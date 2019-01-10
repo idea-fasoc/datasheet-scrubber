@@ -3,13 +3,13 @@ Thanks for downloading and using our codes. You can do Datasheet Scrubbing by ru
 
 # Datasheet Scrubbing
 These are steps for compiling codes:
-1. Make a work directory similar to Fig. 1, and write this directory at the first line of Address.txt file (replace the current line of Address.txt, which is C:\Users\morte\Box Sync\Education_tools\project_python_document with your directory.)
+1. Make a work directory similar to Fig. 1, and write this directory at the first line of Address.txt file (replace the current line of Address.txt, which is C:\Users\morte\Box Sync\Education_tools\project_python_document with your directory.)
 
- ![](docs/fig1.png)
+ ![](src/docs/fig1.png)
 
 2. Inside All_pdf, create folders similar to Fig. 2.
 
- ![](docs/fig2.png)
+ ![](src/docs/fig2.png)
 
 3. All_pdf, All_text, cropped_pdf, and cropped_text are training directories. For making your training dataset, put your labeled pdf files in All_pdf directory (it means put ADC datasheets in ADC folder inside All_pdf, CDC datasheet in CDC folder inside All_pdf and so on).
 4. Open and run make_training_set function to make appropriate files in All_text, cropped_pdf, and cropped_text.

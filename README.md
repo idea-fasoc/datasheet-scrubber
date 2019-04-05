@@ -1,9 +1,15 @@
-# FASoC-Datasheet-Scrubber
-Thanks for downloading and using our codes. You can do Datasheet Scrubbing by running Datasheet_Scrubbing.py, which you can input a datasheet (between one of ADC, CDC, DCDC, PLL, LDO, SRAM, Temperature Sensor categories) and observe the extracted specs and pins. Instruction steps of each of these would be as follows:
+# FASoC Datasheet-Scrubber
+The FASoC Datasheet Scrubbet is a utility that scrubs through large sets of PDF datasheets/documents in order to extract key circuit information. The information gathered is used to build a database of commercial off-the-shelf (COTS) IP that can be used to build larger SoC in the FASoC design. More information [here](https://fasoc.engin.umich.edu/datasheet-scrubber)
 
-# Datasheet Scrubbing
+You can do Datasheet Scrubbing by running Datasheet_Scrubbing.py, which you can input a datasheet (between one of ADC, CDC, DCDC, PLL, LDO, SRAM, Temperature Sensor categories) and observe the extracted specs and pins. Instruction steps of each of these would be as follows:
+
+### Getting Started
 These are steps for compiling codes:
-1. Make a work directory similar to Fig. 1, and write this directory at the first line of Address.txt file (replace the current line of Address.txt, which is C:\Users\morte\Box Sync\Education_tools\project_python_document with your directory.)
+1. Clone the datasheet-scrubber repository
+```bash
+git clone 
+```
+1. Make a work directory similar to Fig. 1 and update the working directory path in `Address.txt` (replace the current line of Address.txt, which is C:\Users\morte\Box Sync\Education_tools\project_python_document with your directory.)
 
  ![](src/docs/fig1.png)
 
@@ -16,4 +22,5 @@ These are steps for compiling codes:
 5. Put pdf files of datasheets that you want to test in Test_pdf folder and please email them to fayazi@umich.edu in order to have a better repository.
 6. Open and run Datasheet_Scrubbing.py which you can input a datasheet (between one of ADC, CDC, DCDC, PLL, LDO, SRAM, Temperature Sensor categories) and observe the extracted specs and pins. 
 
-**Note: We appreciate if you email your labeled datasheets to fayazi@umich.edu in order to have a better repository.**
+### Contributing
+Extracted datasheets can be emailed to fayazi@umich.edu in order build a bigger repository.

@@ -23,5 +23,5 @@
 import os
 def Address (i):
     f=open(r"C:\Users\morte\Box Sync\Education_tools\project_python_code\Datasheet_Scrubbing\Address.txt")
-    lines=f.readlines()
+    lines=f.readlines(1)
     return(lines[i-1])

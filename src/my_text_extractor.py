@@ -26,21 +26,17 @@ import os
 import pdftotext
 def my_text_extractor(subject, path):
     result={}
-    # General={
-    #     'Area': {'rex': r'(?i)([0-9]+\.?[0-9]*\-?\s?(?:mm){0,1}\s?(?:x)\s?[0-9]+\.?[0-9]*)\s?\-?(?:mm)',
-    #              'word_main': ['description'],
-    #              'word_spare': ['general']
-    #     },
-    #     'Input Supply Voltage Range': {
-    #         'rex': r'(?i)(?:input voltages?)[^0-9|\.|\/]*([0-9]+\.?[0-9]*\s?v?\s?to\s?[0-9]+\.?[0-9]*\s?v)|([0-9]+\.?[0-9]*\s?v\s?to\s?[0-9]+\.?[0-9]*\s?v)[^0-9|\.|\/]*(?:input voltages?)|([0-9]+\.?[0-9]*\s?v)[^0-9|\.|\/]*(?:operating|input voltages?)|(?:operating|input voltages?)[^0-9|\.|\/]*([0-9]+\.?[0-9]*\s?v)',
-    #         'word_main': ['description', 'descriptions'],
-    #         'word_spare': ['features', 'feature']
-    #         },
-    #     'Temperature': {'rex': r'(?i)(?:temperature)[^0-9]{0,15}(\W?\-?\+?[0-9]+\s?\W?c?(?:[^0-9\-]){0,6}\-?\+?[0-9]+\s?\Wc)|(\W?\-?\+?[0-9]+\Wc(?:[a-z\s]){0,6}\W?\-?\+?[0-9]+\Wc)\s?(?:temperature)',
-    #                     'word_main':['features', 'key features'],
-    #                     'word_spare': ['description']}
-    #
-    # }
+    General={
+        'Input Supply Voltage Range': {
+            'rex': r'(?i)(?:input voltages?)[^0-9|\.|\/]*([0-9]+\.?[0-9]*\s?v?\s?to\s?[0-9]+\.?[0-9]*\s?v)|([0-9]+\.?[0-9]*\s?v\s?to\s?[0-9]+\.?[0-9]*\s?v)[^0-9|\.|\/]*(?:input voltages?)|([0-9]+\.?[0-9]*\s?v)[^0-9|\.|\/]*(?:operating|input voltages?)|(?:operating|input voltages?)[^0-9|\.|\/]*([0-9]+\.?[0-9]*\s?v)',
+            'word_main': ['description', 'descriptions'],
+            'word_spare': ['features', 'feature']
+            },
+        'Temperature': {'rex': r'(?i)(?:temperature)[^0-9]{0,15}(\W?\-?\+?[0-9]+\s?\W?c?(?:[^0-9\-]){0,6}\-?\+?[0-9]+\s?\Wc)|(\W?\-?\+?[0-9]+\Wc(?:[a-z\s]){0,6}\W?\-?\+?[0-9]+\Wc)\s?(?:temperature)',
+                        'word_main':['features', 'key features'],
+                        'word_spare': ['description']}
+
+    }
     ADC={
         'Resolution':{'rex':r"(?i)([0-9]+)-?bit[s]?(?:(?:\s|\-|,)[\s]?[0-9a-z\-.]*[ ]?){0,10}(?:analog[\s]?\-[\s]?to[\s]?\-[\s]?digital|ADC|A/D)|([0-9]+)[\s\-]?bit[s]?\s?(?:of|\s)\s?(?:resolution|converter)",
                        'word_main': ["product description", "general  description", "general description", "introduction"],
@@ -145,7 +141,12 @@ def my_text_extractor(subject, path):
                            },
         'Initial Accuracy': {'rex': r'(?i)(\W?[0-9]+\.?[0-9]*\%)(?:\s?accuracy)|(?:accuracy\s?)(?:[a-z]|\s|\:){0,20}(\W?[0-9]+\.?[0-9]*\%)|(?:accuracy\s?)\.*\s?(\W?[0-9]+\.?[0-9]*\%)',
                              'word_main': ['features'],
-                             'word_spare': ['description']}
+                             'word_spare': ['description']},
+        'Input Voltage': {
+            'rex': r'(?i)(?:input voltages?)[^0-9|\.|\/]*([0-9]+\.?[0-9]*\s?v?\s?to\s?[0-9]+\.?[0-9]*\s?v)|([0-9]+\.?[0-9]*\s?v\s?to\s?[0-9]+\.?[0-9]*\s?v)[^0-9|\.|\/]*(?:input voltages?)|([0-9]+\.?[0-9]*\s?v)[^0-9|\.|\/]*(?:input voltages?)|(?:input voltages?)[^0-9|\.|\/]*([0-9]+\.?[0-9]*\s?v)',
+            'word_main': ['description', 'descriptions'],
+            'word_spare': ['features', 'feature']
+            },
     }
     DCDC={
         'Input Voltage': {'rex':r'(?i)(?:input voltages?)[^0-9|\.|\/]*([0-9]+\.?[0-9]*\s?v?\s?to\s?[0-9]+\.?[0-9]*\s?v)|([0-9]+\.?[0-9]*\s?v\s?to\s?[0-9]+\.?[0-9]*\s?v)[^0-9|\.|\/]*(?:input voltages?)|([0-9]+\.?[0-9]*\s?v)[^0-9|\.|\/]*(?:operating|input voltages?)|(?:operating|input voltages?)[^0-9|\.|\/]*([0-9]+\.?[0-9]*\s?v)',
@@ -182,9 +183,9 @@ def my_text_extractor(subject, path):
     if subject == 'DCDC':
         for keys in DCDC:
             result[keys] = element_extracter.element_extracter(path, DCDC[keys]['word_main'], DCDC[keys]['word_spare'], 'DCDC', keys, DCDC[keys]['rex'])
-    # if subject == 'General':
-    #     for keys in General:
-    #         result[keys] = element_extracter.element_extracter(path, General[keys]['word_main'], General[keys]['word_spare'], 'General', keys, General[keys]['rex'])
+    if subject == 'General':
+        for keys in General:
+            result[keys] = element_extracter.element_extracter(path, General[keys]['word_main'], General[keys]['word_spare'], 'General', keys, General[keys]['rex'])
     new_result = {}
     for keys in result:
         if result[keys][0] != []:

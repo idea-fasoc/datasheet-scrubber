@@ -115,7 +115,7 @@ def table_extract(type_of_device, source_pdf_path):
     number_page=pfr.getNumPages()#Counting number of pdf pages
     #Convert each pdf page to CSV file and save each CSV page separately    
     pdf_cropper.pdf_cropper(source_pdf_path, destination_pdf_path, last_pdf_directory_word, number_page)
-    pdf_csv_converter.pdf_csv_converter(source_csv_path,destination_csv_path, last_pdf_directory_word, last_csv_directory_word, number_page)
+    #pdf_csv_converter.pdf_csv_converter(source_csv_path,destination_csv_path, last_pdf_directory_word, last_csv_directory_word, number_page)
 
     pins={}
     max_value={}

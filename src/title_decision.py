@@ -50,24 +50,27 @@ def title_decision():
     previous_Test_text_dir=os.path.join(Path_extracted1,'Test_text')
     previous_cropped_pdf_dir=os.path.join(Path_extracted1,'Test_cropped_pdf')
     previous_cropped_text_dir=os.path.join(Path_extracted1,'Test_cropped_text')
-    for file in os.listdir(previous_Test_text_dir):
-        os.remove(os.path.join(previous_Test_text_dir,file))
-    for file in os.listdir(previous_cropped_pdf_dir):
-        os.remove(os.path.join(previous_cropped_pdf_dir,file))
-    for file in os.listdir(previous_cropped_text_dir):
-        os.remove(os.path.join(previous_cropped_text_dir,file))
+    #for file in os.listdir(previous_Test_text_dir):
+     #   os.remove(os.path.join(previous_Test_text_dir,file))
+    #for file in os.listdir(previous_cropped_pdf_dir):
+     #   os.remove(os.path.join(previous_cropped_pdf_dir,file))
+    #for file in os.listdir(previous_cropped_text_dir):
+     #   os.remove(os.path.join(previous_cropped_text_dir,file))
         
-    pdf_to_text('Test_pdf','Test_text')
-    pdf_cropper_title('Test_pdf','Test_cropped_pdf')
-    pdf_to_text('Test_cropped_pdf','Test_cropped_text')
-    normal_classifier_title_result=supervised_classifier(SOURCES)
+    #pdf_to_text('Test_pdf','Test_text')
+    #pdf_cropper_title('Test_pdf','Test_cropped_pdf')
+    #pdf_to_text('Test_cropped_pdf','Test_cropped_text')
+    #normal_classifier_title_result=supervised_classifier(SOURCES)
     #ngram_classifier_title_result=supervised_classifier_ngram(SOURCES)
     #print(normal_classifier_title_result)
     #print(ngram_classifier_title_result)
     [key_words_title_result,key_words_occurrence_array,key_words_title_result_second,max_zero_flag,max_second_zero_flag]=key_words_title_counter('Test_text')
-    title=title_arbitration(normal_classifier_title_result,key_words_title_result,key_words_occurrence_array,key_words_title_result_second,max_zero_flag,max_second_zero_flag)
+    #title=title_arbitration(normal_classifier_title_result,key_words_title_result,key_words_occurrence_array,key_words_title_result_second,max_zero_flag,max_second_zero_flag)
     #print(key_words_title_result,key_words_occurrence_array)
     #print(key_words_title_result)
     #print(key_words_title_result_second)
     #print(title)
-    return title
+    titles=[]
+    for elem in key_words_title_result:
+        titles.append(elem[0])
+    return titles

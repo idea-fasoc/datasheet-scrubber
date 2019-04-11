@@ -19,37 +19,6 @@
 #LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #SOFTWARE.
-
-from collections import defaultdict
-import numpy as np
-def old_decision_maximum_occurance(array_occurance):
-    array_occurance_len=len(array_occurance)
-    non_equal_cells=False
-    k=0
-    result_5=[]
-    for i in range(0,array_occurance_len-1):
-        if array_occurance[i]!=array_occurance[i+1]:
-            non_equal_cells=True
-            break
-    if non_equal_cells:
-        d = defaultdict(int)
-        for i in array_occurance:
-            d[i] += 1
-        result = max(d.items(), key=lambda x: x[1])
-        '''Change iteritems to items'''
-        result_1=result[1]
-        result_2=[[x,array_occurance.count(x)] for x in set(array_occurance)]
-        result_3=np.array(result_2)
-        result_4=result_3[:,1]
-        for element in result_4:
-            result_5.append(int(element))
-        for element in result_5:
-            if result_1==element:
-                k+=1
-    return(non_equal_cells,k)
-
-'''Faster and simplier version'''
-'''Replace the decision_maximum_occurance with the following one '''
 from collections import Counter
 def decision_maximum_occurance(array_occurance):
     if len(array_occurance) != len(set(array_occurance)):

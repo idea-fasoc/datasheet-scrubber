@@ -22,6 +22,6 @@
 
 import os
 def Address (i):
-    f=open(r"C:\Users\morte\Box Sync\Education_tools\project_python_code\Datasheet_Scrubbing\Address.txt")
-    lines=f.readlines(1)
+    f=open(r"C:\Users\morte\Box Sync\Education_tools\project_python_code\Datasheet_Scrubbing_and_SoC_Integration\Address.txt")
+    lines=f.readlines()
     return(lines[i-1])

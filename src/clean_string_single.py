@@ -29,14 +29,9 @@ def clean_string_single(string_ADC_Bit):
                 updated_string_ADC_Bit.append(element[j])
             else:
                 broken=False
-    # for element in updated_string_ADC_Bit:
-    #     if len(element)!=1:
-    #         broken=False
     if broken:
         updated_string_ADC_Bit=string_ADC_Bit
     return updated_string_ADC_Bit
-    #it will make 0.5 Hz to 900 Mhz  to 0 . 5 H Z....
 
-'''clean_string_single has bug when deal with tlv320adc3100.txt 
-input['','','92'] output[]'''
-#input ['4 Hz to 2 Hz'] will output []
+#clean_string_single has bug when deal with tlv320adc3100.txt 
+#input['','','92'] output[]'''

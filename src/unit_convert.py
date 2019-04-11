@@ -19,11 +19,10 @@
 #LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #SOFTWARE.
-
 import re
 def unit_convert(data_in):
     target_number = re.compile(r'\W?[0-9]+\.?\,?[0-9]*\,?[0-9]*')
-    target_unit = re.compile(r'(?i)\w?Hz|\w?V|\w?A|\w?s|k|m|m?ksps|\w?f')
+    target_unit = re.compile(r'(?i)\w?Hz|\w?V|\w?A|mm|\w?s|k|m|m?ksps|\w?f')
     raw_number = re.findall(target_number, data_in)
     raw_unit = re.findall(target_unit, data_in)
     number = []
@@ -41,10 +40,10 @@ def unit_convert(data_in):
         unit.append(inter_unit)
     else:
         unit=raw_unit
-    if unit == []:
+    if unit == [] or 'mm' in unit:
         return number
     for element in range(0,len(unit)):
-        '''convert Hz'''
+        #convert Hz
         unit[element]=unit[element].lower()
         if unit[element][len(unit[element])-2:len(unit[element])]=='hz':
             if unit[element][0]=='h':
@@ -55,7 +54,7 @@ def unit_convert(data_in):
                 number[element] = str(float(number[element]) * 10**9)
             if unit[element][0] == 'k':
                 number[element] = str(float(number[element]) * 10**3)
-                '''convert V'''
+                #convert V
         if unit[element][len(unit[element])-1:len(unit[element])]=='v':
             if unit[element][0]=='v':
                 continue
@@ -63,7 +62,7 @@ def unit_convert(data_in):
                 number[element] = str(float(number[element]) / 10**6)
             if unit[element][0] == 'm':
                 number[element] = str(float(number[element]) / 10**3)
-                '''convert s'''
+                #convert s
         if unit[element][len(unit[element]) - 1:len(unit[element])] == 's':
             if unit[element][0] == 's':
                 continue
@@ -71,7 +70,7 @@ def unit_convert(data_in):
                 number[element] = str(float(number[element]) / 10**12)
             if unit[element][0] == 'n':
                 number[element] = str(float(number[element]) / 10**9)
-        '''convert A'''
+        #convert A
         if unit[element][len(unit[element]) - 1:len(unit[element])] == 'a':
             if unit[element][0] == 'a':
                 continue
@@ -79,17 +78,17 @@ def unit_convert(data_in):
                 number[element] = str(float(number[element]) / 10**6)
             if unit[element][0] == 'm':
                 number[element] = str(float(number[element]) / 10**3)
-        '''convert bit'''
+        #convert bit
         if unit[element][len(unit[element]) - 1:len(unit[element])] == 'k':
             number[element] = str(float(number[element])* 1024)
         if unit[element][len(unit[element]) - 1:len(unit[element])] == 'm':
             number[element] = str(float(number[element])* 1024 ** 2)
-        '''convert sps'''
+        #convert sps
         if unit[element] == 'msps':
             number[element] = str(float(number[element])*10**6)
         if unit[element] == 'ksps':
             number[element] = str(float(number[element])*10**3)
-        '''convert f'''
+        #convert f
         if unit[element][len(unit[element]) - 1:len(unit[element])] == 'f':
             if unit[element][0] == 'f':
                 continue

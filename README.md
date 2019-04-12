@@ -9,18 +9,19 @@ These are steps for compiling codes:
 ```bash
 git clone 
 ```
-1. Make a work directory similar to Fig. 1 and update the working directory path in `Address.txt` (replace the current line of Address.txt, which is C:\Users\morte\Box Sync\Education_tools\project_python_document with your directory.)
+2. Go to [here](https://www.dropbox.com/sh/o3nxl4qrm2rrvf4/AADF9iPv17bN9U6mJQaa8nrya?dl=0) and download the zipfile, All_pdf.zip.
 
- ![](src/docs/fig1.png)
+3. Run initializer.py. It will ask you to type All_pdf.zip directory and your work directory. After running initializer.py you should see something like this.
 
-2. Inside All_pdf, create folders similar to Fig. 2.
+![](src/docs/fig1.png)
 
- ![](src/docs/fig2.png)
+4. All_pdf, All_text, cropped_pdf, and cropped_text are training directories. For addign more files to training set put your labeled pdf files in All_pdf directory (it means put ADC datasheets in ADC folder inside All_pdf, CDC datasheet in CDC folder inside All_pdf and so on).
 
-3. All_pdf, All_text, cropped_pdf, and cropped_text are training directories. For making your training dataset, put your labeled pdf files in All_pdf directory (it means put ADC datasheets in ADC folder inside All_pdf, CDC datasheet in CDC folder inside All_pdf and so on).
-4. Open and run make_training_set function to make appropriate files in All_text, cropped_pdf, and cropped_text.
-5. Put pdf files of datasheets that you want to test in Test_pdf folder and please email them to fayazi@umich.edu in order to have a better repository.
-6. Open and run Datasheet_Scrubbing.py which you can input a datasheet (between one of ADC, CDC, DCDC, PLL, LDO, SRAM, Temperature Sensor categories) and observe the extracted specs and pins. 
+5. Run make_training_set.py function to make appropriate files in All_text, cropped_pdf, and cropped_text.
+
+6. Put pdf files of datasheets that you want to test in Test_pdf folder and please email them to fayazi@umich.edu in order to have a better repository.
+
+7. Run Datasheet_Scrubbing.py which you can input a datasheet (between one of ADC, CDC, DCDC, PLL, LDO, SRAM, Temperature Sensor categories) and observe the extracted specs and pins. 
 
 ### Contributing
 Extracted datasheets can be emailed to fayazi@umich.edu in order build a bigger repository.

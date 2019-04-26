@@ -70,8 +70,6 @@ def pdf_to_text(sourth_path,destin_path):
 
     Path_extracted=Address(1).split("\n")
     Path_extracted1=Path_extracted[0]
-    #pdfDir=os.path.join(Path_extracted1,os.path.join('pdf','ADC'))
-    #txtDir=os.path.join(Path_extracted1,os.path.join('text','ADC'))
     pdfDir=os.path.join(Path_extracted1,sourth_path)
     txtDir=os.path.join(Path_extracted1,destin_path)
     convertMultiple(pdfDir, txtDir)

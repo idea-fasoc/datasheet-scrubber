@@ -1,19 +1,16 @@
 import os
 import shutil
 from Address import Address
-from title_decision import title_decision
-#from confusion_matrix import performance
+from title_decision_confusion_matrix import title_decision_confusion_matrix
 from confusion_matrix import confusionMatrix
-from title_decision import title_decision
 import numpy as np
 division_group=10
 class_num=7
 Path_extracted=Address(1).split("\n")
 Path_extracted1=Path_extracted[0]
 list_counter=0
-list_test_case=['ADC','PLL','DCDC','CDC','Temperature_Sensor','SRAM','LDO']
+list_test_case=['ADC', 'PLL', 'DCDC','CDC','Temperature_Sensor','SRAM','LDO']
 Total_Total_matrix=np.zeros(shape=(class_num,class_num))
-#list_test_case=['LDO']
 for test_case in list_test_case:
     source_pdf_Dir1=os.path.join(Path_extracted1,os.path.join('All_pdf',test_case))
     destination_pdf1=os.path.join(Path_extracted1,'Test_pdf')
@@ -56,7 +53,7 @@ for test_case in list_test_case:
             source1=os.path.join(source_txt_cropped_Dir1,file_list_txt_cropped[i])
             shutil.move(source1, destination_txt_cropped1)
             inner_counter+=1
-        gussed_title=title_decision()
+        gussed_title=title_decision_confusion_matrix()
         correct_title=[test_case]*inner_counter
         conf_matrix=confusionMatrix(correct_title,gussed_title)
         #print(conf_matrix)
@@ -95,7 +92,7 @@ for test_case in list_test_case:
         source1=os.path.join(source_txt_cropped_Dir1,file_list_txt_cropped[i])
         shutil.move(source1, destination_txt_cropped1)
     if additional_tag:
-        gussed_title=title_decision()
+        gussed_title=title_decision_confusion_matrix()
         correct_title=[test_case]*inner_counter
         conf_matrix=confusionMatrix(correct_title,gussed_title)
         #print(conf_matrix)

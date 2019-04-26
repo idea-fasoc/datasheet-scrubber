@@ -28,7 +28,7 @@ from key_words_title_counter import key_words_title_counter
 from title_arbitration import title_arbitration
 from Address import Address
 import os
-def title_decision():
+def title_decision_confusion_matrix():
     Path_extracted=Address(1).split("\n")
     Path_extracted1=Path_extracted[0]
     ADC = 'ADC'
@@ -50,16 +50,7 @@ def title_decision():
     previous_Test_text_dir=os.path.join(Path_extracted1,'Test_text')
     previous_cropped_pdf_dir=os.path.join(Path_extracted1,'Test_cropped_pdf')
     previous_cropped_text_dir=os.path.join(Path_extracted1,'Test_cropped_text')
-    for file in os.listdir(previous_Test_text_dir):
-        os.remove(os.path.join(previous_Test_text_dir,file))
-    for file in os.listdir(previous_cropped_pdf_dir):
-        os.remove(os.path.join(previous_cropped_pdf_dir,file))
-    for file in os.listdir(previous_cropped_text_dir):
-        os.remove(os.path.join(previous_cropped_text_dir,file))
-        
-    pdf_to_text('Test_pdf','Test_text')
-    pdf_cropper_title('Test_pdf','Test_cropped_pdf')
-    pdf_to_text('Test_cropped_pdf','Test_cropped_text')
+    
     #normal_classifier_title_result=supervised_classifier(SOURCES)
     #ngram_classifier_title_result=supervised_classifier_ngram(SOURCES)
     #print(normal_classifier_title_result)

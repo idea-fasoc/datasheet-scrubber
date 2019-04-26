@@ -43,3 +43,19 @@ def pdf_cropper(source_path,destination_path,pdf_filename,number_page):
         writer.addPage(pg)
         with open(NewPDFfilename, "wb") as outputStream: #create new PDF
             writer.write(outputStream) #write pages to new PDF
+
+
+def pdf_cropper_all(source_path,destination_path,pdf_filename,number_page):
+    ## generate  number_page pdf in one file
+    PDFfilename = source_path #filename of your PDF/directory where your PDF is stored
+    pfr = PyPDF2.PdfFileReader(open(PDFfilename, "rb")) #PdfFileReader object
+    if pfr.isEncrypted: #needed for some encrypted files lke AD7183
+        pfr.decrypt('')
+    NewPDFfilename = os.path.join(destination_path, pdf_filename)  # filename of your PDF/directory where you want your new PDF to be
+    writer = PyPDF2.PdfFileWriter()  # create PdfFileWriter object
+    for i in range(0, number_page):
+        pg = pfr.getPage(i)  # extract pg 1
+        # add pages
+        writer.addPage(pg)
+    with open(NewPDFfilename, "ab+") as outputStream:  # create new PDF
+        writer.write(outputStream)  # write pages to new PDF

@@ -29,8 +29,6 @@ import re
 def pdf_cropper_title(sourth_path,destin_path):
     Path_extracted=Address(1).split("\n")
     Path_extracted1=Path_extracted[0]
-    #source_pdf_Dir=os.path.join(Path_extracted1,os.path.join('All_pdf','ADC'))
-    #destin_pdf_Dir=os.path.join(Path_extracted1,os.path.join('All_text','ADC'))
     source_pdf_Dir=os.path.join(Path_extracted1,sourth_path)
     destin_pdf_Dir=os.path.join(Path_extracted1,destin_path)
     basic_search_words = r'(?:product description|Product description|Product Description|PRODUCT DESCRIPTION|general description|General description|General Description|GENERAL DESCRIPTION)'

@@ -20,8 +20,15 @@
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #SOFTWARE.
 
+
+from pdf_to_text import pdf_to_text
+from pdf_cropper_title import pdf_cropper_title
+from Address import Address
+from title_decision import title_decision
 import os
-def Address (i):
-    f=open(r"/afs/umich.edu/user/f/a/fayazi/FASoC/Generator/generators/src/SoC-Integration/python/Address.txt")
-    lines=f.readlines()
-    return(lines[i-1])
+
+#pdf_to_text('Test_pdf','Test_text')
+#pdf_cropper_title('Test_pdf','Test_cropped_pdf')
+#pdf_to_text(os.path.join('cropped_pdf','ADC'),os.path.join('cropped_text','ADC'))
+a=title_decision()
+print(a)

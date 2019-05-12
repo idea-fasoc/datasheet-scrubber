@@ -9,7 +9,7 @@ These are steps for compiling codes:
 ```bash
 git clone 
 ```
-2. Go to [here](https://www.dropbox.com/sh/o3nxl4qrm2rrvf4/AADF9iPv17bN9U6mJQaa8nrya?dl=0) and download the zipfile, All_pdf.zip.
+2. Go to [here](https://www.dropbox.com/s/ixrf3t2dl1a9p4s/All_pdf.zip?dl=0.
 
 3. Run initializer.py. It will ask you to type All_pdf.zip directory and your work directory. After running initializer.py you should see something like this.
 

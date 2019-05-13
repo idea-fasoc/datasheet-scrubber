@@ -32,36 +32,52 @@ def title_decision_confusion_matrix():
     Path_extracted=Address(1).split("\n")
     Path_extracted1=Path_extracted[0]
     ADC = 'ADC'
+    BDRT = 'BDRT'
+    CDC = 'CDC'
+    counters = 'counters'
+    DAC = 'DAC'
+    DCDC = 'DCDC'
+    Delay_Line = 'Delay_Line'
+    DSP = 'DSP'
+    IO = 'IO'
+    LDO = 'LDO'
+    Opamp = 'Opamp'
+    Digital_Potentiometers = 'Digital_Potentiometers'
     PLL = 'PLL'
-    DCDC= 'DCDC'
-    CDC= 'CDC'
-    Temperature_Sensor='Temperature_Sensor'
-    SRAM='SRAM'
-    Opamp='Opamp'
-    LDO='LDO'
-    ADC_path=[os.path.join(os.path.join(Path_extracted1,'cropped_text'), 'ADC'),        ADC]
-    PLL_path=[os.path.join(os.path.join(Path_extracted1,'cropped_text'), 'PLL'),        PLL]
-    DCDC_path=[os.path.join(os.path.join(Path_extracted1,'cropped_text'), 'DCDC'),        DCDC]
-    CDC_path=[os.path.join(os.path.join(Path_extracted1,'cropped_text'), 'CDC'),        CDC]
-    Temperature_Sensor_path=[os.path.join(os.path.join(Path_extracted1,'cropped_text'), 'Temperature_Sensor'),    Temperature_Sensor]
-    SRAM_path=[os.path.join(os.path.join(Path_extracted1,'cropped_text'), 'SRAM'),        SRAM]
-    LDO_path=[os.path.join(os.path.join(Path_extracted1,'cropped_text'), 'LDO'),        LDO]
-    SOURCES = [ADC_path,PLL_path,DCDC_path,CDC_path,Temperature_Sensor_path,SRAM_path,LDO_path]
+    SRAM = 'SRAM'
+    Temperature_Sensor = 'Temperature_Sensor'
+
+    ADC_path = [os.path.join(os.path.join(Path_extracted1, 'cropped_text'), 'ADC'), ADC]
+    BDRT_path = [os.path.join(os.path.join(Path_extracted1, 'cropped_text'), 'BDRT'), BDRT]
+    CDC_path = [os.path.join(os.path.join(Path_extracted1, 'cropped_text'), 'CDC'), CDC]
+    COUNTER_path = [os.path.join(os.path.join(Path_extracted1, 'cropped_text'), 'counters'), counters]
+    DAC_path = [os.path.join(os.path.join(Path_extracted1, 'cropped_text'), 'DAC'), DAC]
+    DCDC_path = [os.path.join(os.path.join(Path_extracted1, 'cropped_text'), 'DCDC'), DCDC]
+    DELAY_LINE_path = [os.path.join(os.path.join(Path_extracted1, 'cropped_text'), 'Delay_Line'), Delay_Line]
+    DSP_path = [os.path.join(os.path.join(Path_extracted1, 'cropped_text'), 'DSP'), DSP]
+    IO_path = [os.path.join(os.path.join(Path_extracted1, 'cropped_text'), 'IO'), IO]
+    LDO_path = [os.path.join(os.path.join(Path_extracted1, 'cropped_text'), 'LDO'), LDO]
+    OPAMP_path = [os.path.join(os.path.join(Path_extracted1, 'cropped_text'), 'Opamp'), Opamp]
+    POTENTIOMETER_path = [os.path.join(os.path.join(Path_extracted1, 'cropped_text'), 'Digital_Potentiometers'), Digital_Potentiometers]
+    PLL_path = [os.path.join(os.path.join(Path_extracted1, 'cropped_text'), 'PLL'), PLL]
+    SRAM_path = [os.path.join(os.path.join(Path_extracted1, 'cropped_text'), 'SRAM'), SRAM]
+    Temperature_Sensor_path = [os.path.join(os.path.join(Path_extracted1, 'cropped_text'), 'Temperature_Sensor'),Temperature_Sensor]
+
+    SOURCES = [ADC_path,BDRT_path,COUNTER_path,DAC_path,DELAY_LINE_path,DSP_path,IO_path,OPAMP_path,POTENTIOMETER_path,PLL_path,DCDC_path,CDC_path,Temperature_Sensor_path,SRAM_path,LDO_path]
     previous_Test_text_dir=os.path.join(Path_extracted1,'Test_text')
     previous_cropped_pdf_dir=os.path.join(Path_extracted1,'Test_cropped_pdf')
     previous_cropped_text_dir=os.path.join(Path_extracted1,'Test_cropped_text')
     
-    #normal_classifier_title_result=supervised_classifier(SOURCES)
+    normal_classifier_title_result=supervised_classifier(SOURCES)
     #ngram_classifier_title_result=supervised_classifier_ngram(SOURCES)
-    #print(normal_classifier_title_result)
-    #print(ngram_classifier_title_result)
     [key_words_title_result,key_words_occurrence_array,key_words_title_result_second,max_zero_flag,max_second_zero_flag]=key_words_title_counter('Test_text')
-    #title=title_arbitration(normal_classifier_title_result,key_words_title_result,key_words_occurrence_array,key_words_title_result_second,max_zero_flag,max_second_zero_flag)
-    #print(key_words_title_result,key_words_occurrence_array)
-    #print(key_words_title_result)
-    #print(key_words_title_result_second)
-    #print(title)
+    title=title_arbitration(normal_classifier_title_result,key_words_title_result,key_words_occurrence_array,key_words_title_result_second,max_zero_flag,max_second_zero_flag)
     titles=[]
-    for elem in key_words_title_result:
-        titles.append(elem[0])
+    #for elem in normal_classifier_title_result:
+     #   titles.append(elem)
+    #for elem in key_words_title_result:
+      #  titles.append(elem[0])
+    for elem in title:
+        titles.append(elem)
+    #print(titles)
     return titles

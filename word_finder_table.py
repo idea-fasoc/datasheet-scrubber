@@ -43,7 +43,7 @@ def word_finder_table(source_pdf_path,y,exception_list):
 
     destination_pdf_path=os.path.join(Path_extracted1,'Modified_pdf')
     source_csv_path=destination_pdf_path
-    destination_csv_path=os.path.join(Path_extracted1,'CSV')
+    destination_csv_path=os.path.join(Path_extracted1,'Test_pdf','CSV')
 
     last_directory_word_spliting_pdf=source_pdf_path.split(chr(92)) #splits by forward slash
     last_pdf_directory_word=last_directory_word_spliting_pdf[-1] #gets last index 

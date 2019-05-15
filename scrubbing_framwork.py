@@ -27,7 +27,7 @@ import os
 from Address import Address
 import os
 from extraction import extraction
-
+import shutil
 def scrubbing_framwork(title):
     Path_extracted=Address(1).split("\n")
     Path_extracted1=Path_extracted[0]
@@ -74,6 +74,8 @@ def scrubbing_framwork(title):
                 shutil.copy(os.path.join(datasheets_crop_pdf_dir,test_files[copy_desired[j]-1]), os.path.join(pdf_crop_copy_destiny,title[copy_desired[j]-1]))
                 shutil.copy(os.path.join(datasheets_crop_text_dir,textname), os.path.join(text_crop_copy_destiny,title[copy_desired[j]-1]))
             print('Thanks a lot for testing our software!')
+            shutil.rmtree(os.path.join(Path_extracted1,'Test_pdf','CSV'))
+            shutil.rmtree(os.path.join(Path_extracted1,'Test_pdf','Modified_pdf'))
             sys.exit()
     elif correct_flag_titles=='No':
         corrected_titles=input('For incorrect circuits types please write the pdf rank as sorted above followed by the correct circuits types. When it done please write "Done". Ex: 1:SRAM\n')
@@ -107,5 +109,7 @@ def scrubbing_framwork(title):
                     shutil.copy(os.path.join(datasheets_crop_pdf_dir,test_files[copy_desired[j]-1]), os.path.join(pdf_crop_copy_destiny,title[copy_desired[j]-1]))
                     shutil.copy(os.path.join(datasheets_crop_text_dir,textname), os.path.join(text_crop_copy_destiny,title[copy_desired[j]-1]))
                 print('Thanks a lot for testing our software!')
+                shutil.rmtree(os.path.join(Path_extracted1,'Test_pdf','CSV'))
+                shutil.rmtree(os.path.join(Path_extracted1,'Test_pdf','Modified_pdf'))
                 sys.exit()
         

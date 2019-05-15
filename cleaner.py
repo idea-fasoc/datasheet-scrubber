@@ -20,8 +20,17 @@
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #SOFTWARE.
 
-from title_decision import title_decision
-from scrubbing_framwork import scrubbing_framwork
-    
-title=title_decision()
-scrubbing_framwork(title)
+import os
+from Address import Address
+Path_extracted=Address(1).split("\n")
+Path_extracted1=Path_extracted[0]
+import shutil
+
+shutil.rmtree(os.path.join(Path_extracted1,'Test_pdf'))
+os.makedirs(os.path.join(Path_extracted1,'Test_pdf'))
+for file in os.listdir(os.path.join(Path_extracted1,'Test_text')):
+    os.remove(os.path.join(Path_extracted1,'Test_text',file))
+for file in os.listdir(os.path.join(Path_extracted1,'Test_cropped_pdf')):
+    os.remove(os.path.join(Path_extracted1,'Test_cropped_pdf',file))
+for file in os.listdir(os.path.join(Path_extracted1,'Test_cropped_text')):
+    os.remove(os.path.join(Path_extracted1,'Test_cropped_text',file))

@@ -74,6 +74,15 @@ def extraction(type,path):
     cdc_unit = {'Input Capacitance Range': 'F','Resolution':'bit','Reference Voltage': 'V'}
     memory_unit = {'Column':'bit', 'Row':'bit','Capacity': '','Clock Frequency':'Hz','Foundry':''}
     dcdc_unit = {'Input Voltage':'V','Output Voltage':'V','Load Current':'A'}
+    bdrt_unit = {'Input Voltage':'V','Output Voltage':'V', '3-STATE Output Leakage':'A'}
+    counters_unit = {'Input Voltage':'V','Input Current':'I','Output Voltage':'V','Supply Voltage':'V','Count Up':'','recovery time':'s'}
+    dac_unit = {'Digital Input High Voltage':'V','Resolution':'Bit','Capacitance':'C','Digital Input Low Voltage':'V','SR':'V/s','DAC-to-DAC Crosstalk':'s'}
+    delay_line_unit = {'Input Voltage Low':'V','Maximum Frequency':'Hz','Input-to-Tap Delay Tolerance':'s','Input Step':'s'}
+    digital_potentiometers_unit = {'Input Voltage Low':'V','Resistor Noise Voltage':'V'}
+    dsp_unit = {'Circuit current':'A','Output voltage':'V'}
+    io_unit = {'Input Voltage Low':'V','Supply Voltage':'V','Standby Current':'A','SCL clock frequency':'Hz'}
+    opamp_unit = {'Input Voltage Low':'V','Input Bias Current':'A','Supply Voltage Range':'V'}
+    
     if type == 'ADC':
         final_dict_unit = adc_unit
     elif type == 'PLL':
@@ -87,8 +96,24 @@ def extraction(type,path):
     elif type == 'SRAM':
         final_dict_unit = memory_unit
     elif type == 'DCDC':
-            final_dict_unit = dcdc_unit
-
+        final_dict_unit = dcdc_unit
+    elif type == 'BDRT':
+        final_dict_unit = bdrt_unit
+    elif type == 'counters':
+        final_dict_unit = counters_unit
+    elif type == 'DAC':
+        final_dict_unit = dac_unit
+    elif type == 'Delay_Line':
+        final_dict_unit = delay_line_unit
+    elif type == 'Digital_Potentiometers':
+        final_dict_unit = digital_potentiometers_unit
+    elif type == 'DSP':
+        final_dict_unit = dsp_unit
+    elif type == 'IO':
+        final_dict_unit = io_unit
+    elif type == 'Opamp':
+        final_dict_unit = opamp_unit
+        
     #print(max_value)
     #print(min_value)
     #print(typ_value)

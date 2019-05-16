@@ -1,6 +1,32 @@
 # FASoC Datasheet-Scrubber
 The FASoC Datasheet Scrubbet is a utility that scrubs through large sets of PDF datasheets/documents in order to extract key circuit information. The information gathered is used to build a database of commercial off-the-shelf (COTS) IP that can be used to build larger SoC in the FASoC design. More information [here](https://fasoc.engin.umich.edu/datasheet-scrubber)
-You can do Datasheet Scrubbing by running Datasheet_Scrubbing.py, which you can input a datasheet (between one of ADC, CDC, DCDC, PLL, LDO, SRAM, Temperature Sensor categories) and observe the extracted specs and pins. Instruction steps of each of these would be as follows:
+You can do Datasheet Scrubbing by running Datasheet_Scrubbing.py, which you can input a datasheet (between one of ADC, CDC, DCDC, PLL, LDO, SRAM, Temperature Sensor, BDRT, Counters, DAC, Delay_Line, Digital Potentiometers, DSP, IO, Opamp categories) and observe the extracted specs and pins. Instruction steps of each of these would be as follows:
+### Environment
+We need python 3.7 for this part. Moreover we need these libraries that you can use pip to install in PowerShell/terminal.
+1. install and upgrade pip: python -m pip install --upgrade pip
+
+2. pip install pandas
+
+3. pip install -U scipy
+
+4. pip install matplot
+
+5. pip install matplotlib
+
+6. pip install pdfminer.six
+
+7. pip install pypdf2
+
+8. pip install request
+
+9. pip install lxml
+
+10. pip install tabula-py
+
+11. pip install sklearn
+
+12. pip install regex
+
 ### Getting Started
 These are steps for compiling codes:
 1. Clone the datasheet-scrubber repository

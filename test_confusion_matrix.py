@@ -5,12 +5,14 @@ from title_decision_confusion_matrix import title_decision_confusion_matrix
 from confusion_matrix import confusionMatrix
 import numpy as np
 division_group=10
-class_num=15
+#class_num=15
+class_num=13
 Path_extracted=Address(1).split("\n")
 Path_extracted1=Path_extracted[0]
 #Path_extracted1 = r"D:\All_pdf\test"
 list_counter=0
-list_test_case=['ADC', 'PLL', 'DCDC','CDC','Temperature_Sensor','SRAM','LDO','BDRT','counters','DAC','Delay_Line','DSP','IO','Opamp','Digital_Potentiometers']
+#list_test_case=['ADC', 'PLL', 'DCDC','CDC','Temperature_Sensor','SRAM','LDO','BDRT','counters','DAC','Delay_Line','DSP','IO','Opamp','Digital_Potentiometers']
+list_test_case=['ADC', 'PLL', 'DCDC','CDC','Temperature_Sensor','SRAM','LDO','BDRT','counters','DSP','IO','Opamp','Digital_Potentiometers']
 Total_Total_matrix=np.zeros(shape=(class_num,class_num))
 for test_case in list_test_case:
     source_pdf_Dir1=os.path.join(Path_extracted1,os.path.join('All_pdf',test_case))

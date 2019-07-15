@@ -92,12 +92,12 @@ def key_words_title_counter(source_dir):
         else:
             COUNTER_words = re.findall(r'(?i)[0-9]+\W?(?:bits?|stage)\s?binary\s?[a-z]*\s?counter|counter', f.read())
         f.close()
-        f = open(os.path.join(txtDir, text), errors='ignore')
-        DAC_words = re.findall(r'DAC|(?i)digital\W?to\W?analog\W?converter|process\s?control', f.read())
-        f.close()
-        f = open(os.path.join(txtDir, text), errors='ignore')
-        DELAY_LINE_words = re.findall(r'(?i)delay\s?(?:range|block|lines?|chip|matching|\s?[A-Z]*\s?[0-9]+[a-z]?s)', f.read())
-        f.close()
+        #f = open(os.path.join(txtDir, text), errors='ignore')
+        #DAC_words = re.findall(r'DAC|(?i)digital\W?to\W?analog\W?converter|process\s?control', f.read())
+        #f.close()
+        #f = open(os.path.join(txtDir, text), errors='ignore')
+        #DELAY_LINE_words = re.findall(r'(?i)delay\s?(?:range|block|lines?|chip|matching|\s?[A-Z]*\s?[0-9]+[a-z]?s)', f.read())
+        #f.close()
         f = open(os.path.join(txtDir, text), errors='ignore')
         temp = re.findall(r'DSP|(?i)Digital\sSignal\sProcessor', f.read()[:1000])
         DSP_words = []
@@ -126,8 +126,10 @@ def key_words_title_counter(source_dir):
         POTENTIOMETER_words = re.findall(r'(?i)Potentiometers?|wiper|readback|position|Digitally\WControlled', f.read())
         f.close()
 
-        occurrence_array=[len(CDC_words),len(ADC_words),len(DCDC_words),len(LDO_words),len(PLL_words),len(SRAM_words),len(Temperature_Sensor_words), len(BDRT_words), len(COUNTER_words), len(DAC_words), len(DELAY_LINE_words),len(DSP_words), len(IO_words), len(OPAMP_words), len(POTENTIOMETER_words)]
-        occurrence_array_copy=[len(CDC_words),len(ADC_words),len(DCDC_words),len(LDO_words),len(PLL_words),len(SRAM_words),len(Temperature_Sensor_words), len(BDRT_words), len(COUNTER_words), len(DAC_words), len(DELAY_LINE_words), len(DSP_words), len(IO_words), len(OPAMP_words), len(POTENTIOMETER_words)]
+        #occurrence_array=[len(CDC_words),len(ADC_words),len(DCDC_words),len(LDO_words),len(PLL_words),len(SRAM_words),len(Temperature_Sensor_words), len(BDRT_words), len(COUNTER_words), len(DAC_words), len(DELAY_LINE_words),len(DSP_words), len(IO_words), len(OPAMP_words), len(POTENTIOMETER_words)]
+        occurrence_array=[len(CDC_words),len(ADC_words),len(DCDC_words),len(LDO_words),len(PLL_words),len(SRAM_words),len(Temperature_Sensor_words), len(BDRT_words), len(COUNTER_words), len(DSP_words), len(IO_words), len(OPAMP_words), len(POTENTIOMETER_words)]
+        #occurrence_array_copy=[len(CDC_words),len(ADC_words),len(DCDC_words),len(LDO_words),len(PLL_words),len(SRAM_words),len(Temperature_Sensor_words), len(BDRT_words), len(COUNTER_words), len(DAC_words), len(DELAY_LINE_words), len(DSP_words), len(IO_words), len(OPAMP_words), len(POTENTIOMETER_words)]
+        occurrence_array_copy=[len(CDC_words),len(ADC_words),len(DCDC_words),len(LDO_words),len(PLL_words),len(SRAM_words),len(Temperature_Sensor_words), len(BDRT_words), len(COUNTER_words), len(DSP_words), len(IO_words), len(OPAMP_words), len(POTENTIOMETER_words)]
         #print (occurrence_array)
         def title_name(maximum_occurrence):
             title_local=[]
@@ -150,17 +152,25 @@ def key_words_title_counter(source_dir):
                     title='BDRT'
                 elif maximum_occurrence[i]==8:
                     title='counters'
+                #elif maximum_occurrence[i]==9:
+                 #   title='DAC'
+                #elif maximum_occurrence[i]==10:
+                 #   title='Delay_Line'
+                #elif maximum_occurrence[i]==11:
+                 #   title='DSP'
+                #elif maximum_occurrence[i]==12:
+                 #   title='IO'
+                #elif maximum_occurrence[i]==13:
+                 #   title='Opamp'
+                #elif maximum_occurrence[i]==14:
+                 #   title='Digital_Potentiometers'
                 elif maximum_occurrence[i]==9:
-                    title='DAC'
-                elif maximum_occurrence[i]==10:
-                    title='Delay_Line'
-                elif maximum_occurrence[i]==11:
                     title='DSP'
-                elif maximum_occurrence[i]==12:
+                elif maximum_occurrence[i]==10:
                     title='IO'
-                elif maximum_occurrence[i]==13:
+                elif maximum_occurrence[i]==11:
                     title='Opamp'
-                elif maximum_occurrence[i]==14:
+                elif maximum_occurrence[i]==12:
                     title='Digital_Potentiometers'
                 title_local.append(title)
             return title_local

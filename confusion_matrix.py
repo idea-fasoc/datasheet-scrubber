@@ -2,7 +2,8 @@ import numpy as np
 import supervised_classifier_ngram
 from supervised_classifier_ngram import supervised_classifier_ngram
 
-def confusionMatrix(y_true, y_pred, class_num = 15):
+#def confusionMatrix(y_true, y_pred, class_num = 15):
+def confusionMatrix(y_true, y_pred, class_num = 13):
     """
     y_true represents the array of real classes ("targets" array in the implement
     of the training part of classifier function); y_pred represents the
@@ -35,18 +36,26 @@ def confusionMatrix(y_true, y_pred, class_num = 15):
             true.append(7)
         elif t == 'counters':
             true.append(8)
-        elif t == 'DAC':
-            true.append(9)
-        elif t == 'Delay_Line':
-            true.append(10)
+        #elif t == 'DAC':
+         #   true.append(9)
+        #elif t == 'Delay_Line':
+         #   true.append(10)
+        #elif t == 'DSP':
+         #   true.append(11)
+        #elif t == 'IO':
+         #   true.append(12)
+        #elif t == 'Opamp':
+         #   true.append(13)
+        #elif t == 'Digital_Potentiometers':
+         #   true.append(14)
         elif t == 'DSP':
-            true.append(11)
+            true.append(9)
         elif t == 'IO':
-            true.append(12)
+            true.append(10)
         elif t == 'Opamp':
-            true.append(13)
+            true.append(11)
         elif t == 'Digital_Potentiometers':
-            true.append(14)
+            true.append(12)
     for p in y_pred:
         if p == 'ADC':
             prediction.append(0)
@@ -66,23 +75,32 @@ def confusionMatrix(y_true, y_pred, class_num = 15):
             prediction.append(7)
         elif p == 'counters':
             prediction.append(8)
-        elif p == 'DAC':
-            prediction.append(9)
-        elif p == 'Delay_Line':
-            prediction.append(10)
+        #elif p == 'DAC':
+         #   prediction.append(9)
+        #elif p == 'Delay_Line':
+        #    prediction.append(10)
+        #elif p == 'DSP':
+         #   prediction.append(11)
+        #elif p == 'IO':
+         #   prediction.append(12)
+        #elif p == 'Opamp':
+         #   prediction.append(13)
+        #elif p == 'Digital_Potentiometers':
+         #   prediction.append(14)
         elif p == 'DSP':
-            prediction.append(11)
+            prediction.append(9)
         elif p == 'IO':
-            prediction.append(12)
+            prediction.append(10)
         elif p == 'Opamp':
-            prediction.append(13)
+            prediction.append(11)
         elif p == 'Digital_Potentiometers':
-            prediction.append(14)
+            prediction.append(12)
     for t,p in zip(true, prediction):
         conf_matrix[t][p] += 1
     return conf_matrix
 
-def performance(y_true, y_pred, class_num = 15, metric = 'accuracy'):
+#def performance(y_true, y_pred, class_num = 15, metric = 'accuracy'):
+def performance(y_true, y_pred, class_num = 13, metric = 'accuracy'):
     score = 0
     data_size = len(y_true)
     conf_matrix = confusionMatrix_multi(y_true, y_pred, class_num)

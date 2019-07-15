@@ -35,9 +35,9 @@ def title_decision_confusion_matrix():
     BDRT = 'BDRT'
     CDC = 'CDC'
     counters = 'counters'
-    DAC = 'DAC'
+    #DAC = 'DAC'
     DCDC = 'DCDC'
-    Delay_Line = 'Delay_Line'
+    #Delay_Line = 'Delay_Line'
     DSP = 'DSP'
     IO = 'IO'
     LDO = 'LDO'
@@ -51,9 +51,9 @@ def title_decision_confusion_matrix():
     BDRT_path = [os.path.join(os.path.join(Path_extracted1, 'cropped_text'), 'BDRT'), BDRT]
     CDC_path = [os.path.join(os.path.join(Path_extracted1, 'cropped_text'), 'CDC'), CDC]
     COUNTER_path = [os.path.join(os.path.join(Path_extracted1, 'cropped_text'), 'counters'), counters]
-    DAC_path = [os.path.join(os.path.join(Path_extracted1, 'cropped_text'), 'DAC'), DAC]
+    #DAC_path = [os.path.join(os.path.join(Path_extracted1, 'cropped_text'), 'DAC'), DAC]
     DCDC_path = [os.path.join(os.path.join(Path_extracted1, 'cropped_text'), 'DCDC'), DCDC]
-    DELAY_LINE_path = [os.path.join(os.path.join(Path_extracted1, 'cropped_text'), 'Delay_Line'), Delay_Line]
+    #DELAY_LINE_path = [os.path.join(os.path.join(Path_extracted1, 'cropped_text'), 'Delay_Line'), Delay_Line]
     DSP_path = [os.path.join(os.path.join(Path_extracted1, 'cropped_text'), 'DSP'), DSP]
     IO_path = [os.path.join(os.path.join(Path_extracted1, 'cropped_text'), 'IO'), IO]
     LDO_path = [os.path.join(os.path.join(Path_extracted1, 'cropped_text'), 'LDO'), LDO]
@@ -63,21 +63,22 @@ def title_decision_confusion_matrix():
     SRAM_path = [os.path.join(os.path.join(Path_extracted1, 'cropped_text'), 'SRAM'), SRAM]
     Temperature_Sensor_path = [os.path.join(os.path.join(Path_extracted1, 'cropped_text'), 'Temperature_Sensor'),Temperature_Sensor]
 
-    SOURCES = [ADC_path,BDRT_path,COUNTER_path,DAC_path,DELAY_LINE_path,DSP_path,IO_path,OPAMP_path,POTENTIOMETER_path,PLL_path,DCDC_path,CDC_path,Temperature_Sensor_path,SRAM_path,LDO_path]
+    #SOURCES = [ADC_path,BDRT_path,COUNTER_path,DAC_path,DELAY_LINE_path,DSP_path,IO_path,OPAMP_path,POTENTIOMETER_path,PLL_path,DCDC_path,CDC_path,Temperature_Sensor_path,SRAM_path,LDO_path]
+    SOURCES = [ADC_path,BDRT_path,COUNTER_path,DSP_path,IO_path,OPAMP_path,POTENTIOMETER_path,PLL_path,DCDC_path,CDC_path,Temperature_Sensor_path,SRAM_path,LDO_path]
     previous_Test_text_dir=os.path.join(Path_extracted1,'Test_text')
     previous_cropped_pdf_dir=os.path.join(Path_extracted1,'Test_cropped_pdf')
     previous_cropped_text_dir=os.path.join(Path_extracted1,'Test_cropped_text')
     
     normal_classifier_title_result=supervised_classifier(SOURCES)
     #ngram_classifier_title_result=supervised_classifier_ngram(SOURCES)
-    [key_words_title_result,key_words_occurrence_array,key_words_title_result_second,max_zero_flag,max_second_zero_flag]=key_words_title_counter('Test_text')
-    title=title_arbitration(normal_classifier_title_result,key_words_title_result,key_words_occurrence_array,key_words_title_result_second,max_zero_flag,max_second_zero_flag)
+    #[key_words_title_result,key_words_occurrence_array,key_words_title_result_second,max_zero_flag,max_second_zero_flag]=key_words_title_counter('Test_text')
+    #title=title_arbitration(normal_classifier_title_result,key_words_title_result,key_words_occurrence_array,key_words_title_result_second,max_zero_flag,max_second_zero_flag)
     titles=[]
-    #for elem in normal_classifier_title_result:
-     #   titles.append(elem)
+    for elem in normal_classifier_title_result:
+        titles.append(elem)
     #for elem in key_words_title_result:
       #  titles.append(elem[0])
-    for elem in title:
-        titles.append(elem)
-    #print(titles)
+    #for elem in title:
+     #   titles.append(elem)
+    print(titles)
     return titles

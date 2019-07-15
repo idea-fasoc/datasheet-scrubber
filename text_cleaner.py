@@ -29,14 +29,11 @@ def text_cleaner(path,word):
         lines[i]=lines[i].lower()
         for m in range(0,len(word)):
             if word[m] in lines[i]:
-                number_of_exact_words.append(i)
-                if len(lines[i-1])>1:
-                   number_of_exact_words.pop()
-                elif len(lines[i])>len(word[m])+1:
-                    number_of_exact_words.pop()
-                    if lines[i][0] in ['1','2','3','4','5','6','7','8','9','10']:
-                        if lines[i][1] in ['.','-',' ']:
-                            if len(lines[i])<len(word[m])+5:
-                                number_of_exact_words.append(i)
+                if len(lines[i-1])<=1:
+                    if len(lines[i])>len(word[m])+1:
+                        if lines[i][0].isnumeric() and lines[i][1] in ['.','-',' '] and len(lines[i])<len(word[m])+5:
+                            number_of_exact_words.append(i)
+                    else:
+                        number_of_exact_words.append(i)
         i+=1
     return(number_of_exact_words,lines)

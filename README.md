@@ -3,9 +3,8 @@ The FASoC Datasheet Scrubbet is a utility that scrubs through large sets of PDF 
 You can do Datasheet Scrubbing by running Datasheet_Scrubbing.py, which you can input a datasheet (between one of ADC, CDC, DCDC, PLL, LDO, SRAM, Temperature Sensor, BDRT, Counters, DAC, Delay_Line, Digital Potentiometers, DSP, IO, Opamp categories) and observe the extracted specs and pins. Instruction steps of each of these would be as follows:
 ### Environment
 We need python 3.7 for this part. Moreover we need these libraries that you can use pip to install in PowerShell/terminal.
-1. install and upgrade pip: python -m pip install --upgrade pip
-
-2. pip install pandas
+- install and upgrade pip: python -m pip install --upgrade pip
+- pip install pandas
 
 3. pip install -U scipy
 

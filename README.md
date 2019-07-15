@@ -5,26 +5,30 @@ You can do Datasheet Scrubbing by running Datasheet_Scrubbing.py, which you can 
 We need python 3.7 for this part. Moreover we need these libraries that you can use pip to install in PowerShell/terminal.
 - install and upgrade pip: python -m pip install --upgrade pip
 - pip install pandas
+- pip install -U scipy
+- pip install matplot
+- pip install matplotlib
+- pip install pdfminer.six
+- pip install pypdf2
+- pip install request
+- pip install lxml
+- pip install tabula-py
+- pip install sklearn
+- pip install regex
+- pip install keras
+- pip install tensorflow
+- pip install pdf2image
+- pip install pillow
+- pip install pytesseract
+- pip install -U numpy
+- pip install opencv-python
 
-3. pip install -U scipy
-
-4. pip install matplot
-
-5. pip install matplotlib
-
-6. pip install pdfminer.six
-
-7. pip install pypdf2
-
-8. pip install request
-
-9. pip install lxml
-
-10. pip install tabula-py
-
-11. pip install sklearn
-
-12. pip install regex
+Here we propose two different approaches:
+- Categorition using Bag of words, text extraction using regular expression, and table extraction using tabula (please see [here](https://github.com/chezou/tabula-py) for more information)
+- Categorition, text extraction, and table extraction using Convolutional neural network (CNN) (please see [here](https://en.wikipedia.org/wiki/Convolutional_neural_network) for more information)
+ - If you want to test the CNN part, we need more softwares:
+  - Poppler
+  - Tesseract
 
 ### Getting Started
 These are steps for compiling codes:

@@ -26,10 +26,11 @@ We need python 3.7 for this part. Moreover we need these libraries that you can 
 Here we propose two different approaches:
 - Categorition using Bag of words, text extraction using regular expression, and table extraction using tabula (please see [here](https://github.com/chezou/tabula-py) for more information)
 - Categorition, text extraction, and table extraction using Convolutional neural network (CNN) (please see [here](https://en.wikipedia.org/wiki/Convolutional_neural_network) for more information)
- - If you want to test the CNN part, we need more softwares:
-  - Poppler
-  - Tesseract
-
+   - If you want to test the CNN part, we need more softwares:
+     - Poppler
+     - Tesseract
+     - Visual Studio 2017
+  
 ### Getting Started
 These are steps for compiling codes:
 1. Clone the datasheet-scrubber repository

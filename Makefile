@@ -1,8 +1,8 @@
 init:
-	python ./Initializer.py
+	python src/Initializer.py
 categorizer:
-	python ./test_confusion_matrix.py
+	python src/test_confusion_matrix.py
 extraction:
-	python ./Datasheet_Scrubbing.py
+	python src/Datasheet_Scrubbing.py
 clean:
-	python ./cleaner.py
+	python src/cleaner.py

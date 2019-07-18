@@ -10,6 +10,9 @@ import cv2
 import numpy
 import copy
 from sklearn.model_selection import train_test_split
+from keras import backend as K
+
+from Address import Address
 
 def image_spliter(pdfs, verticle_size):
     data = []
@@ -18,11 +21,11 @@ def image_spliter(pdfs, verticle_size):
             img = pdf[iter]
 
             #debug_loc = r"C:\Users\Zach\Downloads\Identifier\Main\Pdf" + str(pdf_num) + r"\page" + str(iter)
-            debug_loc = r"C:\Users\morte\Box Sync\Education_tools\Test_init\CNN_table\Identifier\Main\Pdf" + str(pdf_num) + r"\page" + str(iter)
+            debug_loc = os.path.join(Address(1), r"CNN_table\Identifier\Main\Pdf") + str(pdf_num) + r"\page" + str(iter)
             #if not os.path.exists(r"C:\Users\Zach\Downloads\Identifier\Main\Pdf" + str(pdf_num)):
                 #os.mkdir(r"C:\Users\Zach\Downloads\Identifier\Main\Pdf" + str(pdf_num))
-            if not os.path.exists(r"C:\Users\morte\Box Sync\Education_tools\Test_init\CNN_table\Identifier\Main\Pdf" + str(pdf_num)):
-                os.mkdir(r"C:\Users\morte\Box Sync\Education_tools\Test_init\CNN_table\Identifier\Main\Pdf" + str(pdf_num))
+            if not os.path.exists(os.path.join(Address(1), r"CNN_table\Identifier\Main\Pdf") + str(pdf_num)):
+                os.mkdir(os.path.join(Address(1), r"CNN_table\Identifier\Main\Pdf") + str(pdf_num))
 
             if not os.path.exists(debug_loc):
                 os.mkdir(debug_loc)
@@ -44,22 +47,13 @@ def image_spliter(pdfs, verticle_size):
     return(data)
         
 
-class table_split:
-    def __init__(self, pdf):
-        #with open(r"C:\Users\Zach\Downloads\Identifier\model_architecture.json", 'r') as f:
-        with open(r"C:\Users\morte\Box Sync\Education_tools\Test_init\CNN_table\Identifier\model_architecture.json", 'r') as f:
-            self.model = model_from_json(f.read())
-        #self.model.load_weights(r"C:\Users\Zach\Downloads\Identifier\model_weights.h5")
-        self.model.load_weights(r"C:\Users\morte\Box Sync\Education_tools\Test_init\CNN_table\Identifier\model_weights.h5")
-        f.close() 
-
-        Test_pages = pdf2image.convert_from_path(pdf, 100)
-        self.array = []
-        for page in Test_pages:
-            data = numpy.expand_dims(image_spliter([[page]], 100), axis = 3)
-            results = self.model.predict(data)
-            results = results.flatten()
-            self.array.append(results)
-
-    def return_data(self):
-        return self.array
+def table_split(pdf, model):
+   
+    Test_pages = pdf2image.convert_from_path(pdf, 100)
+    array = []
+    for page in Test_pages:
+        data = numpy.expand_dims(image_spliter([[page]], 100), axis = 3)
+        results = model.predict(data)
+        results = results.flatten()
+        array.append(results)
+    return array

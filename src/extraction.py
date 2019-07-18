@@ -57,11 +57,13 @@ def normalize(value, type): #expand
     return value
     
 
-def extraction(type,path):
+def extraction(type,path, CNN_TABLE):
     text_path = os.path.join(os.path.join(Address(1).split('\n')[0],  "Test_text"), path.split('\\')[-1].split('.')[0] + ".txt")
     text_data = my_text_extractor.my_text_extractor(type, text_path)
     text_pin = pin_extractor.pin_extraction(text_path)
-    max_value, min_value, typ_value, named_list, keys, pin_names = table_extracter.table_extract(type,path)
+
+
+    max_value, min_value, typ_value, named_list, keys, pin_names = table_extracter.table_extract(type,path,CNN_TABLE)
 
     final_dict_max = {}
     final_dict_min = {}

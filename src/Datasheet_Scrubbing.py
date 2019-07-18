@@ -22,6 +22,17 @@
 
 from title_decision import title_decision
 from scrubbing_framwork import scrubbing_framwork
+
+from CNN_Table_Extracter import main_func
+
+from CNN_Identifier import CNN_Identifier
+
+CNN_IDENTIFY = False
+CNN_TABLE = False
     
-title=title_decision()
-scrubbing_framwork(title)
+if(CNN_IDENTIFY):
+    title = CNN_Identifier()
+else:
+    title = title_decision()
+
+scrubbing_framwork(title, CNN_TABLE)

@@ -28,7 +28,7 @@ from Address import Address
 import os
 from extraction import extraction
 import shutil
-def scrubbing_framwork(title):
+def scrubbing_framwork(title, CNN_TABLE):
     Path_extracted=Address(1).split("\n")
     Path_extracted1=Path_extracted[0]
     datasheets_dir=os.path.join(Path_extracted1,'Test_pdf')
@@ -46,12 +46,15 @@ def scrubbing_framwork(title):
     for file in os.listdir(datasheets_dir):
         print(str(i)+') '+file+': '+title[i-1])
         print ('The extracted relevant specs are as follows:')
+        print('')
         specs,pins=extraction(title[i-1],os.path.join(datasheets_dir,file))
-        print (specs)
-        print('')
-        print ('The extracted relevant pins are as follows:')
-        print (pins)
-        print('')
+        for spec in specs:
+            print (spec[0]+':')
+            print(spec[1:len(spec)])
+            print('')
+        #print ('The extracted relevant pins are as follows:')
+        #print (pins)
+        #print('')
         print('')
         test_files.append(file)
 

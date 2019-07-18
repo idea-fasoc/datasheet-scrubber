@@ -29,13 +29,15 @@ from Address import Address
 import os
 import re
 
+from CNN_Table_Extracter import main_func
+
 def cleaner (value): # cleans up the entries
     for i in value:
         if((i.isdigit()) | (i == '.') | (i == ",")):   
             value = value.replace(i, "")
     return value
 
-def table_extract(type_of_device, source_pdf_path):
+def table_extract(type_of_device, source_pdf_path, CNN_TABLE):
     #ta = Address(1).split("\n")
     Path_extracted1 = os.path.split(source_pdf_path)[0]
 
@@ -169,10 +171,14 @@ def table_extract(type_of_device, source_pdf_path):
 
     pfr = PyPDF2.PdfFileReader(open(source_pdf_path, "rb"))
 
+
     number_page=pfr.getNumPages()#Counting number of pdf pages
-    #Convert each pdf page to CSV file and save each CSV page separately    
     pdf_cropper.pdf_cropper(source_pdf_path, destination_pdf_path, last_pdf_directory_word, number_page)
-    pdf_csv_converter.pdf_csv_converter(source_csv_path,destination_csv_path, last_pdf_directory_word, last_csv_directory_word, number_page)
+    if(CNN_TABLE):
+        main_func(source_csv_path,destination_csv_path, last_pdf_directory_word, last_csv_directory_word, number_page)
+    else:
+        #Convert each pdf page to CSV file and save each CSV page separately    
+        pdf_csv_converter.pdf_csv_converter(source_csv_path,destination_csv_path, last_pdf_directory_word, last_csv_directory_word, number_page)
 
     pins={}
     max_value={}
@@ -217,35 +223,35 @@ def table_extract(type_of_device, source_pdf_path):
                 for row_counter, row in enumerate(csv_file):
                     if(column_holder == -1):
                         for column_counter, word in enumerate (row):
-                             word=word.lower()
-                             if(word == "pin name" or word == "pin names"):
-                                 column_holder = column_counter
-                                 row_holder = row_counter
-                             elif("pin" in word):
-                                 A = True
-                                 B = True
-                                 C = True
-                                 try:
-                                     csv_file[row_counter + 1][column_counter]
-                                 except:
-                                     A = False
-                                 try:
-                                     csv_file[row_counter + 2][column_counter]
-                                 except:
-                                     B = False
-                                 try:
-                                     csv_file[row_counter][column_counter + 1]
-                                 except:
-                                     C = False
-                                 if(A and "name" in csv_file[row_counter + 1][column_counter].lower()):
-                                     column_holder = column_counter
-                                     row_holder = row_counter + 1
-                                 elif(B and "name" in csv_file[row_counter + 2][column_counter].lower()):
-                                     column_holder = column_counter
-                                     row_holder = row_counter + 2
-                                 elif(C and "name" in csv_file[row_counter][column_counter+1].lower()):
-                                     column_holder = column_counter+1
-                                     row_holder = row_counter
+                                word=word.lower()
+                                if(word == "pin name" or word == "pin names"):
+                                    column_holder = column_counter
+                                    row_holder = row_counter
+                                elif("pin" in word):
+                                    A = True
+                                    B = True
+                                    C = True
+                                    try:
+                                        csv_file[row_counter + 1][column_counter]
+                                    except:
+                                        A = False
+                                    try:
+                                        csv_file[row_counter + 2][column_counter]
+                                    except:
+                                        B = False
+                                    try:
+                                        csv_file[row_counter][column_counter + 1]
+                                    except:
+                                        C = False
+                                    if(A and "name" in csv_file[row_counter + 1][column_counter].lower()):
+                                        column_holder = column_counter
+                                        row_holder = row_counter + 1
+                                    elif(B and "name" in csv_file[row_counter + 2][column_counter].lower()):
+                                        column_holder = column_counter
+                                        row_holder = row_counter + 2
+                                    elif(C and "name" in csv_file[row_counter][column_counter+1].lower()):
+                                        column_holder = column_counter+1
+                                        row_holder = row_counter
                     elif(row[column_holder] != ""):
                         if((row[column_holder].split(" ")[0] not in pin_names) and (row_holder < row_counter)):
                             try: #remove pure numbers

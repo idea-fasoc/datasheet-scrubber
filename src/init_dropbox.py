@@ -26,19 +26,17 @@ import pdf_csv_converter
 import pdftotext
 import PyPDF2
 import zipfile
-import shutil
 
 def init_dropbox(main_path):
     print("Extracting All_pdf.zip...")
-    All_pdf_path = os.path.join(main_path,"All_pdf")
-    if not os.path.exists(All_pdf_path):
-        os.mkdir(All_pdf_path)
+    source_path = os.path.join(main_path,"All_pdf")
+    if not os.path.exists(source_path):
+        os.mkdir(source_path)
     else:
         print("ERROR: All_pdf path already exists")
         return -1
     zip_file = zipfile.ZipFile(os.path.join(main_path,"All_pdf.zip"),'r')
-    #zip_file.extractall(source_path)
-    zip_file.extractall(main_path)
+    zip_file.extractall(source_path)
     print("Extracting All_pdf.zip Complete")
     destination_csv_path = os.path.join(main_path, "CSV")
     destination_pdf_path = os.path.join(main_path, "Modified_pdf")
@@ -50,12 +48,7 @@ def init_dropbox(main_path):
     Test_text = os.path.join(main_path, "Test_text")
     Test_cropped_pdf = os.path.join(main_path, "Test_cropped_pdf")
     Test_cropped_text = os.path.join(main_path, "Test_cropped_text")
-    CNN_table = os.path.join(main_path, "CNN_table")
-    CNN_CSV = os.path.join(CNN_table, "CSV")
-    CNN_Images = os.path.join(CNN_table, "CNN_Images")
-    CNN_ModImages = os.path.join(CNN_table, "CNN_ModImages")
-    Prime_Identifier = os.path.join(main_path, "Identifier")
-    Final_Identifier = os.path.join(CNN_table)
+
 
     ##creating the cooresponding folder
     print("Creating folder...")
@@ -109,34 +102,10 @@ def init_dropbox(main_path):
     else:
         print("ERROR: Test_text path already exists")
         return -1
-    if not os.path.exists(CNN_table):
-        os.mkdir(CNN_table)
-    else:
-        print("ERROR: CNN_table path already exists")
-        return -1
-    if not os.path.exists(CNN_CSV):
-        os.mkdir(CNN_CSV)
-    else:
-        print("ERROR: CNN_CSV path already exists")
-        return -1
-    if not os.path.exists(CNN_Images):
-        os.mkdir(CNN_Images)
-    else:
-        print("ERROR: CNN_Images path already exists")
-        return -1
-    if not os.path.exists(CNN_ModImages):
-        os.mkdir(CNN_ModImages)
-    else:
-        print("ERROR: CNN_ModImages path already exists")
-        return -1
     print("Creating folder Complete")
 
-    print("Moving Identifier files...")
-    shutil.move(Prime_Identifier,Final_Identifier)
-    print("Moving Identifier files complete")
-
     print("Initializing files...")
-    for fpath, dirname, fname in os.walk(All_pdf_path):
+    for fpath, dirname, fname in os.walk(source_path):
         for files in fname:
             print(files)
             print("--------------------------------------------------------")

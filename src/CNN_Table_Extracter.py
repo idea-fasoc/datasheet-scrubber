@@ -10,6 +10,10 @@ import multiprocessing
 import functools
 import copy
 from CNN_Table_Finder import table_split
+from keras.models import model_from_json
+from keras import backend as K
+from Address import Address
+
 
 
 def mean_finder(real, infered, precision):
@@ -252,7 +256,7 @@ def check_box(start, end, pixel_data):
 
 def image_to_text(start, end, img, i, j):
     #loc = r"C:\Users\Zach\Downloads\ModImages\TempImages\i" + str(i) +"_" + str(j) + ".jpg"
-    loc = r"C:\Users\morte\Box Sync\Education_tools\Test_init\CNN_table\ModImages\i" + str(i) +"_" + str(j) + ".jpg"
+    loc = os.path.join(Address(1), r"CNN_table\ModImages\i") + str(i) +"_" + str(j) + ".jpg"
     slice = img.crop((start[0], start[1], end[0], end[1]))
     slice = slice.convert('L') # convert image to black and white
     slice.save(loc)
@@ -420,31 +424,22 @@ def table_locator(white_hor, table_loc):
     return start_array, end_array
 
 
-def master(a, pages_in, final_data_array, resolution, table_loc):
-
-#if(1):
-    #resolution = 300
-    #pdf_file = r"C:\Users\Zach\Downloads\PDFs\op_amp.pdf"
-    #splitter = table_split(pdf_file)
-    #table_loc = splitter.return_data()
-    #pages_in = pdf2image.convert_from_path(pdf_file, resolution)
-    #final_data_array = [] 
-    #a = 0
+def master(a, pages_in, final_data_array, resolution, table_loc, complete_csv_path):
     
-    print("Thread Started: ", a)
-    page = pages_in[a]
+    #print("Thread Started: ", a)
+    page = pages_in[0]
     middle_data_array = []
     #page.save(os.path.join(r"C:\Users\Zach\Downloads\Images", "out_" + str(a) +".jpg"), 'JPEG')
     #page = Image.open(r"C:\Users\Zach\Downloads\Images\out_" + str(a) + ".jpg") #cannot just use page.load() this is probably because it needs the JPEG format
-    page.save(os.path.join(r"C:\Users\morte\Box Sync\Education_tools\Test_init\CNN_table\Images", "out_" + str(a) +".jpg"), 'JPEG')
-    page = Image.open(r"C:\Users\morte\Box Sync\Education_tools\Test_init\CNN_table\Images\out_" + str(a) + ".jpg") #cannot just use page.load() this is probably because it needs the JPEG format		
+    page.save(os.path.join(Address(1), r"CNN_table\Images", "out_" + str(a) +".jpg"), 'JPEG')
+    page = Image.open(os.path.join(Address(1), r"CNN_table\Images\out_") + str(a) + ".jpg") #cannot just use page.load() this is probably because it needs the JPEG format		
 
     pixel_data = page.load()  
     white_hor = space_finder(page.size, pixel_data, resolution)
     table_start, table_end = table_locator(white_hor, table_loc[a])
 
     ####Debug
-    page_in_copy = copy.deepcopy(pages_in[a])
+    page_in_copy = copy.deepcopy(pages_in[0])
     pixel_data_copy = page_in_copy.load()
 
     iter = 0
@@ -462,16 +457,18 @@ def master(a, pages_in, final_data_array, resolution, table_loc):
             pixel_data_copy[x,iter] = (255,0,0)
         iter += 1
     #page_in_copy.save(r"C:\Users\Zach\Downloads\ModImages\a_" + str(a) + ".jpg")
-    page_in_copy.save(r"C:\Users\morte\Box Sync\Education_tools\Test_init\CNN_table\ModImages\a_" + str(a) + ".jpg")
+    page_in_copy.save(os.path.join(Address(1), r"CNN_table\ModImages\a_") + str(a) + ".jpg")
     ########Debug
 
 
 
 
     #print("Spaces: ", white_hor) 
-    print(table_start, table_end)
+    #print(table_start, table_end)
 
     if(len(table_start) == 0):
+        with open(complete_csv_path, mode='w') as write:
+            pass
         return
 
     
@@ -521,8 +518,8 @@ def master(a, pages_in, final_data_array, resolution, table_loc):
 
 
 
-    print("Hor Lines Final: ", hor_lines_final)
-    print("Ver Lines Final: ", ver_lines_final)
+    #print("Hor Lines Final: ", hor_lines_final)
+    #print("Ver Lines Final: ", ver_lines_final)
 
 
     j = 0
@@ -541,7 +538,7 @@ def master(a, pages_in, final_data_array, resolution, table_loc):
                 middle_data_array.append("END OF TABLE")
             n += 1 
             j += 1 #go to next line
-            print("N: ", n)
+            #print("N: ", n)
 
         i = 0
         first_data_array = []
@@ -607,7 +604,7 @@ def master(a, pages_in, final_data_array, resolution, table_loc):
 
 
     #page.save(r"C:\Users\Zach\Downloads\ModImages\x_" + str(a) + ".jpg")
-    page.save(r"C:\Users\morte\Box Sync\Education_tools\Test_init\CNN_table\ModImages\x_" + str(a) + ".jpg")
+    page.save(os.path.join(Address(1), r"CNN_table\ModImages\x_") + str(a) + ".jpg")
 
     #for n in inferred_hor_lines:
      #   for x in range(page.size[0]):
@@ -645,7 +642,7 @@ def master(a, pages_in, final_data_array, resolution, table_loc):
             for x in range(10):
                 pixel_data[x,y] = (0,0,0)
     #page.save(r"C:\Users\Zach\Downloads\ModImages\i_" + str(a) + ".jpg")
-    page.save(r"C:\Users\morte\Box Sync\Education_tools\Test_init\CNN_table\ModImages\i_" + str(a) + ".jpg")
+    page.save(os.path.join(Address(1), r"CNN_table\ModImages\i_") + str(a) + ".jpg")
     ######################################################
     middle_data_array.append("END OF TABLE")
 
@@ -694,33 +691,39 @@ def master(a, pages_in, final_data_array, resolution, table_loc):
     #print(clean_array_final)
 
     #with open(r"C:\Users\Zach\Downloads\CSV\x" + str(a) + ".csv", mode='w') as write:
-    with open(r"C:\Users\morte\Box Sync\Education_tools\Test_init\CNN_table\CSV\x" + str(a) + ".csv", mode='w') as write:
+    with open(complete_csv_path, mode='w') as write:
         writer = csv.writer(write, delimiter=',', lineterminator = '\n')
         for data in clean_array_final:
             writer.writerow(data)
-    print("Thread Ended: ", a)
+    #print("Thread Ended: ", a)
     return
 
 
 
     #######################################################
 ##############################START#####################################
-if __name__ == '__main__': 
-    resolution = 300
-    #pdf_file = r"C:\Users\Zach\Downloads\PDFs\tdc7200.pdf"
-    pdf_file = r"C:\Users\morte\Box Sync\Education_tools\Test_init\Test_pdf\tdc1046.pdf"
-    
-    splitter = table_split(pdf_file)
-    table_loc = splitter.return_data()
-
-    pages = pdf2image.convert_from_path(pdf_file, resolution)
+def main_func(source_path,destination_path,pdf_filename,csv_filename,number_page):
+    resolution = 300 
     final_data_array_out = [] 
+    page_seperated=[]
 
-    pool = multiprocessing.Pool(multiprocessing.cpu_count() )
-    prod_x= functools.partial(master, pages_in = pages, final_data_array = final_data_array_out, resolution = resolution, table_loc = table_loc)
+    with open(os.path.join(Address(1), r"CNN_table\Identifier\model_architecture.json"), 'r') as f:
+        model = model_from_json(f.read())
+    model.load_weights(os.path.join(Address(1), r"CNN_table\Identifier\model_weights.h5"))
+    f.close() 
 
-    try:
-        pool.map(prod_x, range(0, len(pdf_file)))
-    except:
-        pass
-    pool.close()
+    for i in range(0,number_page): #CHANGE BACK  number_page
+        page_seperated.append(str(i))
+        new_pdf_folder_path=os.path.join(source_path, page_seperated[i])
+        complete_pdf_path=os.path.join(new_pdf_folder_path,pdf_filename)
+        table_loc = table_split(complete_pdf_path, model)
+        pages = pdf2image.convert_from_path(complete_pdf_path, resolution)
+        
+        new_csv_folder_path=os.path.join(destination_path, page_seperated[i])
+        if not os.path.exists(new_csv_folder_path):
+            os.makedirs(new_csv_folder_path)
+        complete_csv_path=os.path.join(new_csv_folder_path,csv_filename)
+        prod_x= functools.partial(master, pages_in = pages, final_data_array = final_data_array_out, resolution = resolution, table_loc = table_loc, complete_csv_path = complete_csv_path)
+        prod_x(0)
+    K.clear_session()
+

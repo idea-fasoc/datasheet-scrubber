@@ -1,9 +1,3 @@
-# FASoC Datasheet-Scrubber
-
-The FASoC Datasheet Scrubber is a utility that scrubs through large sets of PDF datasheets/documents in order to extract key circuit information. The information gathered is used to build a database of commercial off-the-shelf (COTS) IP that can be used to build larger SoC in the FASoC design. More information [here](https://fasoc.engin.umich.edu/datasheet-scrubber)
-
-You can do Datasheet Scrubbing by running `Datasheet_Scrubbing.py`, which you can input a datasheet (between one of ADC, CDC, DCDC, PLL, LDO, SRAM, Temperature Sensor, BDRT, Counters, DAC, Delay_Line, Digital Potentiometers, DSP, IO, Opamp categories) and observe the extracted specs and pins. Instruction steps of each of these would be as follows:
-
 ### Environment
 
 Python 3.7 is required, older versions of Python will not work. You will also need the following Python libraries which can be installed via pip (in PowerShell/terminal).
@@ -24,18 +18,16 @@ Python 3.7 is required, older versions of Python will not work. You will also ne
 	pip install sklearn
 	pip install regex
 	pip install keras
-	pip install tensorflow
+	pip install tensorflow*
 	pip install pdf2image
 	pip install pillow
 	pip install pytesseract
 	pip install -U numpy
 	pip install opencv-python
 	```
-
-Here we propose two different approaches:
-- Categorization using Bag of words, text extraction using regular expression, and table extraction using tabula (please see [here](https://github.com/chezou/tabula-py) for more information)
-- Categorization, text extraction, and table extraction using Convolutional neural network (CNN) (please see [here](https://en.wikipedia.org/wiki/Convolutional_neural_network) for more information)
-   - If you want to test the CNN part, we need more software:
+	*If you wish to retrain the CNN it is highly recommended that you install tensorflow-gpu and have a compatible graphics card.
+	
+3. Install the following software:
      - Poppler
      - Tesseract
      - Visual Studio 2017
@@ -43,25 +35,15 @@ Here we propose two different approaches:
 ### Getting Started
 
 These are steps for compiling codes:
-1. Clone the [datasheet-scrubber repository](https://github.com/idea-fasoc/datasheet-scrubber)
-	```bash
-	git clone https://github.com/idea-fasoc/datasheet-scrubber.git
-	```
+1. Download the code within the Tablext folder and import it into to Visual Studio. ML.py and ML_Table_Extracter are for the main Tablext software and Table_identifier is to retrain the CNN.
 
-2. Go to [here](https://www.dropbox.com/s/ad4nolrpxx4pks6/All_pdf.zip?dl=0) and download (All_pdf.zip should be downloaded)
+2. Download the Setup_Folders within Tablext and change the "Root" variable in both ML_Table_Extracter and Table_identifier to your local Setup_Folders path.
 
-3. Run make init which runs Initializer.py. It will ask you to type All_pdf.zip directory, your work directory, and your code dirrectory (for datasheet scrubbing) that you have just cloned. After running initializer.py you should see something like this.
+3. From the release tab download the file model_weights.h5 and place it into the "Identifier" folder inside of your "Setup_Folders"
 
-![](src/docs/fig1.png)
+4. Make sure that your ML_Table_Extracter and Table_identifier are set to be the top level code.
 
-4. All_pdf, All_text, cropped_pdf, and cropped_text are training directories. For addign more files to training set put your labeled pdf files in All_pdf directory (it means put ADC datasheets in ADC folder inside All_pdf, CDC datasheet in CDC folder inside All_pdf and so on).
+5. To run the main program, ML_Table_Extacter input the file you wish to extract in the pdf_file variable, several example files are given in the PDFs folder. it currently is easiest to input a PDF file so if you have an image you wish to extract, first convert it to a PDF file.
 
-5. Run make categorizer which runs test_confusion_matrix.py and shows the confusion matrix of our categorizer on whole dataset.
+6. To run Table_identifier set the rebuild bool to True inorder to rebuild the network and set the reextract bool to True in order to input your own input data
 
-6. Put pdf files of datasheets that you want to test in Test_pdf folder and please email them to fayazi@umich.edu in order to have a better repository.
-
-7. Run make extraction which runs Datasheet_Scrubbing.py which you can input a datasheet (between one of ADC, BDRT, CDC, counters, DAC, DCDC, Delay_Line, Digital_Potentiometers, DSP, IO, LDO, Opamp, PLL, SRAM, Temperature Sensor categories) and observe the extracted specs and pins. 
-
-### Contributing
-
-Extracted datasheets can be emailed to fayazi@umich.edu in order build a bigger repository.

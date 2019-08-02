@@ -1,10 +1,10 @@
 ### Environment
 
-Python 3.7 is required, older versions of Python will not work. You will also need the following Python libraries which can be installed via pip (in PowerShell/terminal).
+Python 3.7 or anaconda 3 is required, older versions of Python will not work. You will also need the following Python libraries which can be installed via pip (in PowerShell/terminal).
 
 1. Install and upgrade pip: `python -m pip install --upgrade pip`
 
-2. Install Python dependencies
+2. Install Python dependencies: **You may replace `pip` with `conda` if you are working with anaconda**
 	```
 	pip install pandas
 	pip install -U scipy

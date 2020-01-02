@@ -242,7 +242,7 @@ def inferred_vertical_line_finder(height, width, pixel_data, required_dist, requ
 
     return infer_line_dists, inferred_quality
 
-def concatenate(pixel_data, ver_lines_final, hor_lines_final):
+def concatenate(root, pixel_data, ver_lines_final, hor_lines_final):
     norm_pixel_data = cv2.normalize(pixel_data, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
     ver_lines_no_dup = []
     hor_lines_no_dup = []
@@ -261,7 +261,7 @@ def concatenate(pixel_data, ver_lines_final, hor_lines_final):
             start = hor_lines_final[i] 
     hor_lines_no_dup.append(int((start + hor_lines_final[-1])/2))
 
-    conc_col = load_model(r"C:\Users\Zach\Downloads\Table_extract_robust\conc_col.h5")
+    conc_col = load_model(os.path.join(root, "conc_col.h5"))
     im_arr = []
     for y in range(len(hor_lines_no_dup)-1):
         for x in range(len(ver_lines_no_dup)-2):
@@ -542,7 +542,7 @@ hor_lines_final = mean_finder(hor_lines, ([0] + inferred_hor_lines + [height-1])
 conc_col_2D = []
 ver_lines_no_dup = []
 hor_lines_no_dup = []
-contains_data, conc_col_2D, ver_lines_no_dup, hor_lines_no_dup = concatenate(pixel_data, ver_lines_final, hor_lines_final)
+contains_data, conc_col_2D, ver_lines_no_dup, hor_lines_no_dup = concatenate(root, pixel_data, ver_lines_final, hor_lines_final)
 image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_lines_no_dup, hor_lines_no_dup, scale)
 
 debug(height, width, pixel_data, hor_lines, ver_lines, hor_lines_final, ver_lines_final, inferred_hor_lines, inferred_ver_lines, guarenteed_inf_ver, conc_col_2D, ver_lines_no_dup, hor_lines_no_dup)

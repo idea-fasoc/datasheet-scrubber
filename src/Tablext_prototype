@@ -1,0 +1,548 @@
+import pytesseract
+import statistics
+import pdf2image #poppler needs to be added and added to the path variable
+import os
+import csv
+import pdfminer
+import cv2
+import concurrent.futures
+import functools
+import copy
+import numpy as np
+import xml.etree.ElementTree as ET
+from keras.models import load_model
+
+##CURRENT BUGS##
+#Thinks some black backgrounds are lines e.g. 53
+#Splits up columns too much e.g. 52
+#Some line are to faint to be recoginized e.g. 32
+
+
+#bool_add = True
+#for a in real:    
+#    if(a > (infered[group_start] - precision)  and a < (infered[n] + precision)): #a real line is within y units of the group
+#        bool_add = False
+#if(bool_add):
+#    temp_array = infered[group_start:n+1] 
+#    final_dist.append(int(statistics.mean(temp_array)))
+
+
+def mean_finder_subroutine(real, infered, infered_quality, precision, group_start, n, final_dist):
+    bool_add = True
+    for a in real:    
+        if(a > (infered[group_start] - precision)  and a < (infered[n] + precision)): #a real line is within y units of the group
+            bool_add = False
+    if(bool_add):
+        search_size = 2
+        if((infered[n] - infered[group_start]) > (1+(2*search_size))): #moving average of quality score
+            temp_array = [0 for i in range(infered[n] - infered[group_start] + 1)]
+            start_iter = infered[group_start]
+            for iter in range(group_start,n):
+                infered_quality[iter]
+                temp_array[infered[iter]-start_iter] = infered_quality[iter]
+            max_value = 0
+            line_loc = 0
+            debug_array = []
+            for iter in range(search_size, len(temp_array)-search_size):
+                temp_value = 0
+                for sub_iter in range(iter-search_size, iter+search_size+1):
+                    temp_value += temp_array[sub_iter]
+                debug_array.append(temp_value)
+                if(temp_value > max_value):
+                    max_value = temp_value
+                    line_loc = iter + infered[group_start]
+        else:
+            line_loc = int((infered[n] + infered[group_start])/2)
+        final_dist.append(line_loc)
+    return
+
+def mean_finder(real, infered, infered_quality, precision):
+    n = 0
+    group_start = 0
+    final_dist = []
+    while((n+1) < len(infered)):
+        if (infered[n+1] > (infered[n]+precision)): #the distance needs to be within x units to be apart of the group
+            mean_finder_subroutine(real, infered, infered_quality, precision, group_start, n, final_dist)
+            group_start = n+1
+        n += 1
+    try: ##one final dump required
+        bool_add = True
+        mean_finder_subroutine(real, infered, infered_quality, precision, group_start, n, final_dist)
+    except:
+       pass##########################
+    final_dist += real
+    final_dist.sort()
+    return final_dist
+
+def num_of_groups(infered, i):
+    groups = 0
+    if(len(infered) > 0):
+        groups = 1
+    for a in range(len(infered)-1):
+        if(infered[a+1] > infered[a]+i):
+            groups += 1
+    return groups
+
+def horizontal_line_finder(height, width, pixel_data): #normal finds black lines
+    final_out = [] 
+    search_dist = 3 
+    for y in range(search_dist, height-search_dist):
+        line_dist = 0
+        fails = 0
+        for x in range(width): 
+            top = 0
+            bot = 0
+            for y2 in range(y-search_dist,y-1):
+                top += pixel_data[y2,x]/(search_dist-1)
+
+            for y2 in range(y+2,y+search_dist+1):
+                bot += pixel_data[y2,x]/(search_dist-1)
+
+            if((top/2+bot/2 - pixel_data[y,x]) > 30): #these are 8 bit ints need to calculate like this to avoid overflow
+                line_dist += 1
+                if(fails > 0):
+                    fails -= 1
+            elif(fails < 1): #tolerate x fails
+                fails += width/8
+            else:
+                line_dist = 0
+
+            if(line_dist > width/8):
+                final_out.append(y)  
+                break
+    return final_out
+
+def vertical_line_finder(height, width, pixel_data): #normal finds black lines
+    final_out = [] 
+    search_dist = 3
+    for x in range(search_dist, width-search_dist):
+        line_dist = 0
+        fails = 0
+        for y in range(height):  
+            max_left = 0
+            max_right = 0
+            for x2 in range(x-search_dist,x):
+                if((pixel_data[y,x2]) > max_left):
+                    max_left = pixel_data[y,x2]
+
+            for x2 in range(x+1,x+search_dist+1):
+                if((pixel_data[y,x2]) > max_right):
+                    max_right = pixel_data[y,x2]
+
+            if((max_left/2+max_right/2 - pixel_data[y,x]) > 30): #these are 8 bit ints need to calculate like this to avoid overflow
+                line_dist += 1
+                if(fails > 0):
+                    fails -= 1
+            elif(fails < 1): #tolerate x fails
+                fails += height/8
+            else:
+                line_dist = 0 
+
+            if(line_dist > height/8):
+                final_out.append(x)  
+                break      
+    return final_out
+
+def real_line_margins(lines, margin_size_pixels):
+    margin_lines = []
+    for line in lines:
+        for i in range(line-margin_size_pixels, line+margin_size_pixels):
+            if(i not in margin_lines and i >= lines[0] and i <= lines[-1]):
+                margin_lines.append(i)
+    return margin_lines
+     
+def inferred_horizontal_line_finder(height, width, pixel_data, required_dist, ver_margin_lines): #finds white lines
+    past_array_depth = int(width/100)
+    required_distance = (width) * required_dist
+
+    inferred_line_dists = []  
+    inferred_quality = []
+    inferred_line_thickness = 0
+    for y in range(height):
+        inferred_line_dist = 0 
+        inferred_line_dist_max = 0
+
+        past_array = [0 for i in range(past_array_depth)] #### Together these find the amount of black values in the last y squares
+        black_encountered = 0 ##################
+                   
+        for x in range(width):
+            inferred_line_dist += 1
+
+            if(x not in ver_margin_lines): #skip over verticle lines
+                if(pixel_data[y,x] < 200): #current is black
+                    if(past_array[x%past_array_depth] == 0):  #past is white
+                        black_encountered += 1
+                    past_array[x%past_array_depth] = 1
+                else: #current is white
+                    if(past_array[x%past_array_depth] == 1): #past is black
+                        black_encountered -= 1
+                    past_array[x%past_array_depth] = 0
+
+                if(black_encountered >= (past_array_depth/4)): #if 1/20th is black, stop this line
+                    inferred_line_dist = 0
+                    #pixel_data[width,height] = (0,255,0) #Line ended DEBUG
+
+            if(inferred_line_dist > inferred_line_dist_max):
+                    inferred_line_dist_max = inferred_line_dist
+
+        if(inferred_line_dist_max > required_distance): #a ratio of the outer verticle lines
+            inferred_line_thickness += 1
+        else:
+            inferred_line_thickness = 0
+
+        if(inferred_line_thickness >=  1):
+            inferred_line_dists.append(y)
+            inferred_quality.append(inferred_line_dist_max)
+    
+    return inferred_line_dists, inferred_quality
+
+def inferred_vertical_line_finder(height, width, pixel_data, required_dist, required_thick, hor_margin_lines):
+    infer_line_dists = []
+    inferred_quality = []
+    past_array_depth = int(height/100)
+    if(past_array_depth == 0):
+        past_array_depth = 1
+    inferred_line_thickness = 0
+
+    lenth_req = height * required_dist
+    
+    for x in range(width):  
+        inferred_line_dist = 0 
+        inferred_line_dist_max = 0
+        past_array = [0 for i in range(past_array_depth)] #### Together these find the amount of black values in the last y squares
+        black_encountered = 0 ##################
+        for y in range(height):
+            inferred_line_dist += 1
+            if(y not in hor_margin_lines): #skip over verticle lines
+                if(pixel_data[y,x] < 200): #current is black
+                    if(past_array[y%past_array_depth] == 0):  #past is white
+                        black_encountered += 1
+                    past_array[y%past_array_depth] = 1
+                else: #current is white
+                    if(past_array[y%past_array_depth] == 1): #past is black
+                        black_encountered -= 1
+                    past_array[y%past_array_depth] = 0
+
+                if(black_encountered >= (past_array_depth/4)): #if 1/4th is black, stop this line
+                    inferred_line_dist = 0
+                    if(0 and required_dist == .95):
+                        pixel_data[y,x] = (0) #Line ended DEBUG
+
+            if(inferred_line_dist > inferred_line_dist_max):
+                    inferred_line_dist_max = inferred_line_dist
+
+        if(inferred_line_dist_max > lenth_req): #a ratio of the outer verticle lines
+            inferred_line_thickness += 1
+        else:
+            inferred_line_thickness = 0
+            
+        if(inferred_line_thickness >= required_thick):
+                infer_line_dists.append(x)
+                inferred_quality.append(inferred_line_dist_max)
+
+    return infer_line_dists, inferred_quality
+
+def concatenate(pixel_data, ver_lines_final, hor_lines_final):
+    norm_pixel_data = cv2.normalize(pixel_data, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+    ver_lines_no_dup = []
+    hor_lines_no_dup = []
+
+    start = ver_lines_final[0]
+    for i in range(1, len(ver_lines_final)):
+        if(ver_lines_final[i] != ver_lines_final[i-1]+1):
+            ver_lines_no_dup.append(int((start + ver_lines_final[i-1])/2))
+            start = ver_lines_final[i] 
+    ver_lines_no_dup.append(int((start + ver_lines_final[-1])/2))
+
+    start = hor_lines_final[0]
+    for i in range(1, len(hor_lines_final)):
+         if(hor_lines_final[i] != hor_lines_final[i-1]+1):
+            hor_lines_no_dup.append(int((start + hor_lines_final[i-1])/2))
+            start = hor_lines_final[i] 
+    hor_lines_no_dup.append(int((start + hor_lines_final[-1])/2))
+
+    conc_col = load_model(r"C:\Users\Zach\Downloads\Table_extract_robust\conc_col.h5")
+    im_arr = []
+    for y in range(len(hor_lines_no_dup)-1):
+        for x in range(len(ver_lines_no_dup)-2):
+            top_left = cv2.resize(norm_pixel_data[hor_lines_no_dup[y]:hor_lines_no_dup[y+1], ver_lines_no_dup[x]:ver_lines_no_dup[x+1]], (100, 100)) #these steps makes sure the merge line is in the same place
+            top_right = cv2.resize(norm_pixel_data[hor_lines_no_dup[y]:hor_lines_no_dup[y+1], ver_lines_no_dup[x+1]:ver_lines_no_dup[x+2]], (100, 100))
+            merged_data = cv2.hconcat([top_left,top_right])
+            im_arr.append(merged_data) 
+            if(0):
+                #print(ver_lines_no_dup[x], " ", ver_lines_no_dup[x+2])
+                #print(hor_lines_no_dup[y], " ", hor_lines_no_dup[y+1])
+                temp_data = np.expand_dims(np.array([merged_data]), axis= -1)
+                print(conc_col.predict(temp_data))
+                print("")
+                cv2.imshow('image', pixel_data[hor_lines_no_dup[y]:hor_lines_no_dup[y+1], ver_lines_no_dup[x]:ver_lines_no_dup[x+2]])
+                cv2.waitKey(0)
+                cv2.destroyAllWindows()
+
+    y_len = len(hor_lines_no_dup)-1
+    x_len = len(ver_lines_no_dup)-2
+    if(not im_arr): #this can occur when there are only 2 vertical lines so that nothing can possibly be concatenated
+        return np.ones((y_len, 1)), np.zeros((y_len, 1)), ver_lines_no_dup, hor_lines_no_dup #assume not concatenated and every cell has data, 1D array
+
+    im_arr = np.expand_dims(np.array(im_arr), axis= -1)
+    pred = conc_col.predict(im_arr)
+   
+
+    conc_col_2D = np.zeros((y_len, x_len)) #Y then X
+    contains_data = np.zeros((y_len, x_len+1))
+    for y in range(y_len): 
+        for x in range(x_len): 
+            if(pred[x+y*x_len][0] > .5):
+                conc_col_2D[y][x] = 1
+
+            if(pred[x+y*x_len][1] > .5):
+                contains_data[y][x] = 1
+
+            if(pred[x+y*x_len][2] > .5):
+                contains_data[y][x+1] = 1
+
+
+    print(conc_col_2D)
+    print(contains_data)
+    return contains_data, conc_col_2D, ver_lines_no_dup, hor_lines_no_dup
+
+def horizontal_line_crossover(hor_line, x_s, x_e, pixel_data_unchanged):
+    for line in range(hor_line-3, hor_line+4, 3): #all have to pass the condition for crossover
+        iter = x_s
+        white_pixel = 0
+        black_pixel = 0
+
+        wbw = 0 #white_black_white
+        while(iter < x_e): 
+            if(pixel_data_unchanged[line, iter] < 127):
+                black_pixel += 1 
+                if(wbw % 2 == 1):
+                    wbw += 1
+            else:
+                white_pixel += 1
+                if(wbw % 2 == 0):
+                    wbw += 1
+            iter += 1
+
+        white_pixel /= ((1 + x_e - x_s))
+        black_pixel /= ((1 + x_e - x_s))
+        
+        if(not(white_pixel > .05 and black_pixel > .02 and wbw >= 3)): #more than 2% of the pixels are black and more than 5% are white// white is larger so it doesnt mess up when the box perimeters are not continuous
+            return False
+    return True
+
+def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_lines_no_dup, hor_lines_no_dup, scale):
+    ver_no_dup_scaled = []
+    hor_no_dup_scaled = []
+
+    for i in ver_lines_no_dup:
+        ver_no_dup_scaled.append(int(i*scale))
+
+    for i in hor_lines_no_dup:
+        hor_no_dup_scaled.append(int(i*scale))
+
+    data_array = [["" for i in range(len(contains_data[0]))] for j in range(len(contains_data))]  
+    y = 0
+    while(y < (len(hor_no_dup_scaled)-1)):
+        x = 0
+        while(x < len(ver_no_dup_scaled)-1):
+            loc = os.path.join(root, "TempImages", "i" + str(y) +"_" + str(x) + ".jpg")
+            data_exists = contains_data[y][x]
+            temp_x = x  
+            while(temp_x < len(ver_no_dup_scaled)-2 and conc_col_2D[y][temp_x]):
+                temp_x += 1
+                data_exists = data_exists or contains_data[y][temp_x] #atleast one cell has data in the merged data
+
+            y_merge = False #can only merge 1 line
+            if(y < len(hor_no_dup_scaled)-1 and y > 0): #LOOK TO THE PAST
+               y_merge = horizontal_line_crossover(hor_no_dup_scaled[y], ver_no_dup_scaled[x], ver_no_dup_scaled[temp_x+1], pixel_data_unchanged)
+
+            slice = pixel_data_unchanged[hor_no_dup_scaled[y-y_merge]:hor_no_dup_scaled[y+1], ver_no_dup_scaled[x]:ver_no_dup_scaled[temp_x+1]]
+
+            if(data_exists):
+                cv2.imwrite(loc,slice)
+                data_array[y-y_merge][x] = pytesseract.image_to_string(loc, config='--psm 7')
+
+            if(y_merge):
+                data_array[y][x] = "^ EXTEND" 
+            while(x < temp_x):
+                data_array[y-y_merge][x+1] = "< EXTEND"
+                if(y_merge):
+                    data_array[y][x+1] = "^ EXTEND"  
+                x += 1
+            x += 1
+        y += 1
+
+    ####ARRAY CLEANUP
+    row_valid = [False for y in range(len(data_array))]
+    col_valid = [False for x in range(len(data_array[0]))]
+
+    for y in range(len(data_array)):
+        for x in range(len(data_array[0])):
+            if(data_array[y][x] != "" and data_array[y][x] != "< EXTEND" and data_array[y][x] != "^ EXTEND"):
+                col_valid[x] = True
+                row_valid[y] = True
+
+    cleaned_data_array = []
+    for y in range(len(data_array)):
+        if(row_valid[y]):
+            temp_array = []
+            for x in range(len(data_array[0])):
+                if(col_valid[x]):
+                    temp_array.append(data_array[y][x])
+            cleaned_data_array.append(temp_array)
+    ################
+
+    with open(r"C:\Users\Zach\Downloads\Table_extract_robust\final_results.csv", 'w') as write:
+        writer = csv.writer(write, delimiter=',', lineterminator = '\n')
+        for data in cleaned_data_array:
+            writer.writerow(data)
+
+def debug(height, width, pixel_data, hor_lines, ver_lines, hor_lines_final, ver_lines_final, inferred_hor_lines, inferred_ver_lines, guarenteed_inf_vers, conc_col_2D, ver_lines_no_dup, hor_lines_no_dup):
+    pixel_data = cv2.cvtColor(pixel_data,cv2.COLOR_GRAY2RGB)
+
+    if(0): #infered ver
+        for inferred_ver_line in inferred_ver_lines:
+            cv2.line(pixel_data, (inferred_ver_line, 0), (inferred_ver_line, height), (0,255,255), 1)
+    
+        for guarenteed_inf_ver in guarenteed_inf_vers:
+            cv2.line(pixel_data, (guarenteed_inf_ver, 0), (guarenteed_inf_ver, height), (0,0,255), 1)
+
+    if(0): #infer_hor
+        for inferred_hor_line in inferred_hor_lines:
+            cv2.line(pixel_data, (0, inferred_hor_line), (width, inferred_hor_line), (0,255,255), 1)
+
+    if(1): #final
+        for hor_line in hor_lines_final:
+            cv2.line(pixel_data, (0, hor_line), (width, hor_line), (0,255,0), 1)
+
+        for ver_line in ver_lines_final:
+            cv2.line(pixel_data, (ver_line, 0), (ver_line, height), (0,255,0), 1)
+
+    if(1): #real
+        for hor_line in hor_lines:
+            cv2.line(pixel_data, (0, hor_line), (width, hor_line), (255,0,0), 1)
+
+        for ver_line in ver_lines:
+            cv2.line(pixel_data, (ver_line, 0), (ver_line, height), (255,0,0), 1)
+
+    if(1): #conc fix
+        for row_num, row in enumerate(conc_col_2D):
+            for line_num, line in enumerate(row):
+                if(line):
+                    cv2.line(pixel_data, (ver_lines_no_dup[line_num+1], hor_lines_no_dup[row_num]), (ver_lines_no_dup[line_num+1], hor_lines_no_dup[row_num+1]), (255,255,255), 1)
+
+
+    cv2.imshow('image',pixel_data)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+#######################START########################
+
+root =  r"C:/Users/Zach/Downloads/Table_extract_robust" #enter your local location to the setup folder
+if(1): #normal
+    num = "01"
+    
+    image_loc = r"C:\Users\Zach\Downloads\Table_extract_robust\modern_images\cTDaR_t100" + num + ".jpg" #modern, uses num
+    size_loc = r"C:\Users\Zach\Downloads\Table_extract_robust\modern_xml\cTDaR_t100" + num + ".xml"
+    #image_loc = r"C:\Users\Zach\Downloads\Table_extract_robust\old_images\cTDaR_t00851.jpg" #old, doesn't use num
+    #size_loc = r"C:\Users\Zach\Downloads\Table_extract_robust\old_xml\cTDaR_t00851.xml"
+
+    test_cells = ET.parse(size_loc)	
+    data = test_cells.getroot()
+
+    points = data[0][0].attrib["points"]
+    min_vals = [10000, 10000]
+    max_vals = [0, 0]
+    temp_str = ""
+    ff = False
+    for char in points:   
+        if(char.isdigit()): 
+            temp_str += char
+        else:
+            if(min_vals[ff] > int(temp_str)):
+                min_vals[ff] = int(temp_str)
+            if(max_vals[ff] < int(temp_str)):
+                max_vals[ff] = int(temp_str)
+            temp_str = ""
+            ff = not ff
+else: #hardcoded
+    image_loc = r"C:\Users\Zach\Downloads\tes3.jpg"
+    min_vals = [0, 0]
+    max_vals = [10000, 10000] #x then y
+
+
+
+pixel_data = cv2.imread(image_loc, 0)[min_vals[1]:max_vals[1], min_vals[0]:max_vals[0]]
+pixel_data_unchanged = np.copy(pixel_data)
+
+height, width = pixel_data.shape
+scale = width/800
+pixel_data = cv2.resize(pixel_data,(800, int(height/scale)))  #800 width, variable height
+height, width = pixel_data.shape
+
+print(pixel_data_unchanged.shape)
+print(pixel_data.shape)
+
+hor_lines = horizontal_line_finder(height, width, pixel_data)
+ver_lines = vertical_line_finder(height, width, pixel_data)
+
+hor_margin_lines = real_line_margins(hor_lines, 5)
+ver_margin_lines = real_line_margins(ver_lines, 5)
+
+required_dist = .85 #TODO find a number that balances speed and accuracy
+prev_groups = -1
+inferred_hor_lines = []
+inferred_hor_quality = []
+while(1): #Horizontal
+    inferred_hor_lines_temp, inferred_hor_quality_temp = inferred_horizontal_line_finder(height, width, pixel_data, required_dist, ver_margin_lines) #inferred
+    groups = num_of_groups(inferred_hor_lines_temp, 7)
+    required_dist += .04 #TODO find a number that balances speed and accuracy
+    if(prev_groups > groups or groups == 0):
+        break
+    prev_groups = groups
+    inferred_hor_lines = inferred_hor_lines_temp
+    inferred_hor_quality = inferred_hor_quality_temp
+    #print("INF HOR ", inferred_hor_lines)
+
+
+required_dist = .75 #TODO find a number that balances speed and accuracy
+prev_groups = -1
+inferred_ver_lines = []
+inferred_ver_quality = []
+while(1): #Vertical
+    inferred_ver_lines_temp, inferred_ver_quality_temp = inferred_vertical_line_finder(height, width, pixel_data, required_dist, 8, hor_margin_lines) #inferred
+    groups = num_of_groups(inferred_ver_lines_temp, 15)
+    required_dist += .03 #TODO find a number that balances speed and accuracy
+    if(prev_groups > groups or groups == 0):
+        break
+    prev_groups = groups
+    inferred_ver_lines = inferred_ver_lines_temp
+    inferred_ver_quality = inferred_ver_quality_temp
+    #print("INF VER ", inferred_ver_lines)
+
+
+guarenteed_inf_ver, guarenteed_ver_quality = inferred_vertical_line_finder(height, width, pixel_data, .98, 8, hor_lines) #inject inf_ver that might have been wrongfully removed; Thicker line required USED TO BE .99
+tempv = mean_finder(ver_lines, ([0] + guarenteed_inf_ver  + [width-1]), guarenteed_ver_quality, 10) #TODO find a good number   
+
+ver_lines_final = mean_finder(tempv, inferred_ver_lines, inferred_ver_quality, 15) #this is precision not resolution add lines to the left and right //TODO find a good precision
+hor_lines_final = mean_finder(hor_lines, ([0] + inferred_hor_lines + [height-1]), inferred_hor_quality, 7) #this is precision not resolution
+
+#print("Hor Lines: ", hor_lines)
+#print("Ver Lines: ", ver_lines)
+#print("Hor Lines Inferred: ", inferred_hor_lines)
+#print("Ver Lines Inferred: ", inferred_ver_lines)
+#print("Ver Lines Inferred Guar: ", guarenteed_inf_ver)
+#print("Hor Lines Final: ", hor_lines_final)
+#print("Ver Lines Final: ", ver_lines_final)
+
+#for i in range(len(inferred_ver_lines)):
+#    print(inferred_ver_lines[i], " ", inferred_ver_quality[i])
+
+conc_col_2D = []
+ver_lines_no_dup = []
+hor_lines_no_dup = []
+contains_data, conc_col_2D, ver_lines_no_dup, hor_lines_no_dup = concatenate(pixel_data, ver_lines_final, hor_lines_final)
+image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_lines_no_dup, hor_lines_no_dup, scale)
+
+debug(height, width, pixel_data, hor_lines, ver_lines, hor_lines_final, ver_lines_final, inferred_hor_lines, inferred_ver_lines, guarenteed_inf_ver, conc_col_2D, ver_lines_no_dup, hor_lines_no_dup)

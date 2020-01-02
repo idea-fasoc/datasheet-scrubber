@@ -48,15 +48,16 @@ model = load_model(model_location, custom_objects={'custom_sig':custom_sig})
 
 with open(tokenizer_location, 'rb') as handle:
     t = pickle.load(handle)
+    
+regex = re.compile('[^a-z" "]')
+data = convert(pdf_location, word_amount)
+data = data.lower()
+data = data.replace("-", "")
+data = data.replace(r"\n", " ")
+data = regex.sub(" ", data)
 
-data = [convert(pdf_location, word_amount)]
-#data = data[0].lower()
-#data = data.replace(r"\n", "")
-#regex = re.compile('[^a-z" "]')
-#data = regex.sub("", data)
 
-
-encoded_data = t.texts_to_sequences(data)
+encoded_data = t.texts_to_sequences([data])
 print(encoded_data)
 data_final = []
 for data in encoded_data:

@@ -393,7 +393,7 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_li
             cleaned_data_array.append(temp_array)
     ################
 
-    with open(r"C:\Users\Zach\Downloads\Table_extract_robust\final_results.csv", 'w') as write:
+    with open(os.path.join(root, "final_results.csv"), 'w') as write:
         writer = csv.writer(write, delimiter=',', lineterminator = '\n')
         for data in cleaned_data_array:
             writer.writerow(data)
@@ -439,12 +439,12 @@ def debug(height, width, pixel_data, hor_lines, ver_lines, hor_lines_final, ver_
 
 #######################START########################
 
-root =  r"C:/Users/Zach/Downloads/Table_extract_robust" #enter your local location to the setup folder
+root =  r"C:\Users\zpcol\Downloads\Table_extract_robust" #enter your local location to the setup folder
 if(1): #normal
     num = "01"
     
-    image_loc = r"C:\Users\Zach\Downloads\Table_extract_robust\modern_images\cTDaR_t100" + num + ".jpg" #modern, uses num
-    size_loc = r"C:\Users\Zach\Downloads\Table_extract_robust\modern_xml\cTDaR_t100" + num + ".xml"
+    image_loc = os.path.join(root, "modern_images", "cTDaR_t100" + num + ".jpg") #modern, uses num
+    size_loc = os.path.join(root, "modern_xml", "cTDaR_t100" + num + ".xml")
     #image_loc = r"C:\Users\Zach\Downloads\Table_extract_robust\old_images\cTDaR_t00851.jpg" #old, doesn't use num
     #size_loc = r"C:\Users\Zach\Downloads\Table_extract_robust\old_xml\cTDaR_t00851.xml"
 

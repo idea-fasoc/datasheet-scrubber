@@ -38,9 +38,9 @@ def convert(fname, word_amount):
 
 
 
-model_location = r"D:\TEXT_IDENTIFY_MODEL.h5" #Change to the location of the model 
-pdf_location = r"D:\Full_Dataset\Logic - Shift Registers\PDFs\hv528.pdf" #Change to the current pdf
-tokenizer_location = r"D:\tokenizer.pickle" #Change to the location of the tokenizer
+model_location = r"C:\Users\zpcol\Downloads\TEXT_IDENTIFY_MODEL.h5" #Change to the location of the model 
+pdf_location = r"C:\Users\zpcol\Downloads\MC34708.pdf" #Change to the current pdf
+tokenizer_location = r"C:\Users\zpcol\Downloads\tokenizer.pickle" #Change to the location of the tokenizer
 
 
 word_amount = 256
@@ -48,14 +48,15 @@ model = load_model(model_location, custom_objects={'custom_sig':custom_sig})
 
 with open(tokenizer_location, 'rb') as handle:
     t = pickle.load(handle)
-    
-regex = re.compile('[^a-z" "]')
+
 data = convert(pdf_location, word_amount)
 data = data.lower()
-data = data.replace("-", "")
+data  = data.replace("-", "")
 data = data.replace(r"\n", " ")
+regex = re.compile('[^a-z" "]')
 data = regex.sub(" ", data)
 
+print(data)
 
 encoded_data = t.texts_to_sequences([data])
 print(encoded_data)

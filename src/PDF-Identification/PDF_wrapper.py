@@ -38,9 +38,9 @@ def convert(fname, word_amount):
 
 
 
-model_location = r"D:\TEXT_IDENTIFY_MODEL.h5" #Change to the location of the model 
+model_location = r"D:\TEXT_IDENTIFY_MODEL_long.h5" #Change to the location of the model 
 pdf_location = r"D:/Full_Dataset/ADC/PDFs/ad7819.pdf" #Change to the current pdf
-tokenizer_location = r"D:\tokenizer.pickle" #Change to the location of the tokenizer
+tokenizer_location = r"D:\tokenizer_long.pickle" #Change to the location of the tokenizer
 
 
 word_amount = 256

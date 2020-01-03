@@ -38,9 +38,9 @@ def convert(fname, word_amount):
 
 
 
-model_location = r"C:\Users\zpcol\Downloads\TEXT_IDENTIFY_MODEL.h5" #Change to the location of the model 
-pdf_location = r"C:\Users\zpcol\Downloads\MC34708.pdf" #Change to the current pdf
-tokenizer_location = r"C:\Users\zpcol\Downloads\tokenizer.pickle" #Change to the location of the tokenizer
+model_location = r"D:\TEXT_IDENTIFY_MODEL.h5" #Change to the location of the model 
+pdf_location = r"D:/Full_Dataset/ADC/PDFs/ad7819.pdf" #Change to the current pdf
+tokenizer_location = r"D:\tokenizer.pickle" #Change to the location of the tokenizer
 
 
 word_amount = 256
@@ -51,13 +51,23 @@ with open(tokenizer_location, 'rb') as handle:
 
 data = convert(pdf_location, word_amount)
 data = data.lower()
-data  = data.replace("-", "")
-data = data.replace(r"\n", " ")
+cleaned_data = ""
+skip_eol = False
+for char in data:
+    if(char == "-"):
+        skip_eol = True
+    elif(skip_eol and char != " " and char != r"\n"):
+        cleaned_data += " "
+        skip_eol = False
+
+    if(not skip_eol):
+        cleaned_data += char
+ 
+data = cleaned_data.replace(r"\n", " ")
 regex = re.compile('[^a-z" "]')
 data = regex.sub(" ", data)
 
 print(data)
-
 encoded_data = t.texts_to_sequences([data])
 print(encoded_data)
 data_final = []

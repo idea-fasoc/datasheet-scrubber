@@ -292,7 +292,7 @@ def concatenate(root, pixel_data, ver_lines_final, hor_lines_final):
     contains_data = np.zeros((y_len, x_len+1))
     for y in range(y_len): 
         for x in range(x_len): 
-            if(pred[x+y*x_len][0] > .5):
+            if(pred[x+y*x_len][0] > .9999):
                 conc_col_2D[y][x] = 1
 
             if(pred[x+y*x_len][1] > .5):
@@ -357,11 +357,16 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_li
             if(y < len(hor_no_dup_scaled)-1 and y > 0): #LOOK TO THE PAST
                y_merge = horizontal_line_crossover(hor_no_dup_scaled[y], ver_no_dup_scaled[x], ver_no_dup_scaled[temp_x+1], pixel_data_unchanged)
 
-            slice = pixel_data_unchanged[hor_no_dup_scaled[y-y_merge]:hor_no_dup_scaled[y+1], ver_no_dup_scaled[x]:ver_no_dup_scaled[temp_x+1]]
+            try: #TODO replace with something more exact
+                hor_boundry = int(2*scale)
+                ver_boundry = int(scale)
+                slice = pixel_data_unchanged[hor_no_dup_scaled[y-y_merge]+ver_boundry:hor_no_dup_scaled[y+1]-ver_boundry, ver_no_dup_scaled[x]+hor_boundry:ver_no_dup_scaled[temp_x+1]-hor_boundry] #remove lines on borders
+            except:
+                slice = pixel_data_unchanged[hor_no_dup_scaled[y-y_merge]:hor_no_dup_scaled[y+1], ver_no_dup_scaled[x]:ver_no_dup_scaled[temp_x+1]]
 
             if(data_exists):
                 cv2.imwrite(loc,slice)
-                data_array[y-y_merge][x] = pytesseract.image_to_string(loc, config='--psm 7')
+                data_array[y-y_merge][x] = pytesseract.image_to_string(loc, config='--psm 6')
 
             if(y_merge):
                 data_array[y][x] = "^ EXTEND" 

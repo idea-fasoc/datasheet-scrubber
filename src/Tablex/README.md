@@ -30,7 +30,6 @@ Python 3.7 or anaconda 3 is required, older versions of Python will not work. Yo
 3. Install the following software:
      - Poppler
      - Tesseract
-     - Visual Studio 2017
 
 ### Getting Started
 

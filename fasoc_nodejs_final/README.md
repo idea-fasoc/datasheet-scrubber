@@ -3,11 +3,11 @@
 ## Installation
 
 1. Install npm
-Install npm and nodejs package as explained in the link below:
+Install npm and nodejs package as explained in the link :
 https://nodejs.org/en/
 
 
-2. Install dependencies
+2. Install dependencies :
 run `npm install` 
 
 ## Usage 

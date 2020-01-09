@@ -6,11 +6,11 @@
 
 2. Install dependencies
 ```
-  run `npm install` 
+  npm install 
 ```
 
 ## Usage 
 
-1. run `npm'
+1. run `npm`
 2. run `dev`
 3. Navigate to `localhost:3000`

@@ -28,22 +28,16 @@ def mean_finder_subroutine(real, infered, infered_quality, precision, group_star
     if(bool_add):
         search_size = 2
         if((infered[n] - infered[group_start]) > (1+(2*search_size))): #moving average of quality score
-            temp_array = [0 for i in range(infered[n] - infered[group_start] + 1)]
-            start_iter = infered[group_start]
-            for iter in range(group_start,n):
-                infered_quality[iter]
-                temp_array[infered[iter]-start_iter] = infered_quality[iter]
+            size_of_group = infered[n] - infered[group_start] + 1
             max_value = 0
-            line_loc = 0
             average_array = [0 for i in range(search_size)]
-            for iter in range(search_size, len(temp_array)-search_size): #find max value and get a moving average array
+            for iter in range(search_size, size_of_group - search_size): #find max value and get a moving average array
                 temp_value = 0
                 for sub_iter in range(iter-search_size, iter+search_size+1):
-                    temp_value += temp_array[sub_iter]
+                    temp_value += infered_quality[sub_iter + infered[group_start]]
                 average_array.append(temp_value)
                 if(temp_value > max_value):
                     max_value = temp_value
-                    #line_loc = iter + infered[group_start]
             
             threshold = (max_value * .99)
             first_value = -1
@@ -52,16 +46,16 @@ def mean_finder_subroutine(real, infered, infered_quality, precision, group_star
                     first_value = iter
                 if(average_array[iter] > threshold):
                     last_value = iter
-        
-            line_loc = int((first_value+last_value)/2 + infered[group_start])
-
-            
+            line_loc = int((first_value+last_value)/2 + infered[group_start])  
         else:
             line_loc = int((infered[n] + infered[group_start])/2)
         final_dist.append(line_loc)
     return
 
-def mean_finder(real, infered, infered_quality, precision):
+def mean_finder(real, infered, infered_quality_raw, precision, max_dim_1d):
+    infered_quality = [0 for i in range(max_dim_1d)]
+    for i in range(len(infered)):
+        infered_quality[infered[i]] = infered_quality_raw[i]
     n = 0
     group_start = 0
     final_dist = []
@@ -70,11 +64,7 @@ def mean_finder(real, infered, infered_quality, precision):
             mean_finder_subroutine(real, infered, infered_quality, precision, group_start, n, final_dist)
             group_start = n+1
         n += 1
-    try: ##one final dump required
-        bool_add = True
-        mean_finder_subroutine(real, infered, infered_quality, precision, group_start, n, final_dist)
-    except:
-       pass##########################
+    mean_finder_subroutine(real, infered, infered_quality, precision, group_start, n, final_dist) #Final Dump
     final_dist += real
     final_dist.sort()
     return final_dist
@@ -197,7 +187,7 @@ def inferred_horizontal_line_finder(height, width, pixel_data, required_dist, ve
 
         if(inferred_line_thickness >=  1):
             inferred_line_dists.append(y)
-            inferred_quality.append(inferred_line_dist_max)
+            inferred_quality.append(inferred_line_dist_max/width)
     
     return inferred_line_dists, inferred_quality
 
@@ -243,7 +233,7 @@ def inferred_vertical_line_finder(height, width, pixel_data, required_dist, requ
             
         if(inferred_line_thickness >= required_thick):
                 infer_line_dists.append(x - int(required_thick/2)) #add the line where it actually is
-                inferred_quality.append(inferred_line_dist_max)
+                inferred_quality.append(inferred_line_dist_max/height)
 
     return infer_line_dists, inferred_quality
 
@@ -436,8 +426,8 @@ def debug(root, height, width, pixel_data, hor_lines, ver_lines, hor_lines_final
         for inferred_ver_line in inferred_ver_lines:
             cv2.line(pixel_data, (inferred_ver_line, 0), (inferred_ver_line, height), (0,255,255), 1)
     
-        for guarenteed_inf_ver in guarenteed_inf_vers:
-            cv2.line(pixel_data, (guarenteed_inf_ver, 0), (guarenteed_inf_ver, height), (0,0,255), 1)
+        #for guarenteed_inf_ver in guarenteed_inf_vers:
+        #    cv2.line(pixel_data, (guarenteed_inf_ver, 0), (guarenteed_inf_ver, height), (0,0,255), 1)
 
     if(0): #infer_hor
         for inferred_hor_line in inferred_hor_lines:
@@ -450,7 +440,7 @@ def debug(root, height, width, pixel_data, hor_lines, ver_lines, hor_lines_final
         for ver_line in ver_lines_final:
             cv2.line(pixel_data, (ver_line, 0), (ver_line, height), (0,255,0), 1)
 
-    if(1): #real
+    if(0): #real
         for hor_line in hor_lines:
             cv2.line(pixel_data, (0, hor_line), (width, hor_line), (255,0,0), 1)
 
@@ -475,7 +465,7 @@ def debug(root, height, width, pixel_data, hor_lines, ver_lines, hor_lines_final
 
 root =  r"C:\Users\zpcol\Downloads\Table_extract_robust" #enter your local location to the setup folder
 if(1): #normal
-    num = "32"
+    num = "04"
     
     image_loc = os.path.join(root, "modern_images", "cTDaR_t100" + num + ".jpg") #modern, uses num
     size_loc = os.path.join(root, "modern_xml", "cTDaR_t100" + num + ".xml")
@@ -557,10 +547,10 @@ while(1): #Vertical
 
 
 guarenteed_inf_ver, guarenteed_ver_quality = inferred_vertical_line_finder(height, width, pixel_data, .98, 8, hor_lines) #inject inf_ver that might have been wrongfully removed; Thicker line required USED TO BE .99
-tempv = mean_finder(ver_lines, ([0] + guarenteed_inf_ver  + [width-1]), ([1] + guarenteed_ver_quality + [1]), 10) #TODO find a good number   
+tempv = mean_finder(ver_lines, ([0] + guarenteed_inf_ver  + [width-1]), ([1] + guarenteed_ver_quality + [1]), 10, width) #TODO find a good number   
 
-ver_lines_final = mean_finder(tempv, inferred_ver_lines, inferred_ver_quality, 15) #this is precision not resolution add lines to the left and right //TODO find a good precision
-hor_lines_final = mean_finder(hor_lines, ([0] + inferred_hor_lines + [height-1]), ([1] + inferred_hor_quality + [1]), 7) #this is precision not resolution
+ver_lines_final = mean_finder(tempv, inferred_ver_lines, inferred_ver_quality, 15, width) #this is precision not resolution add lines to the left and right //TODO find a good precision
+hor_lines_final = mean_finder(hor_lines, ([0] + inferred_hor_lines + [height-1]), ([1] + inferred_hor_quality + [1]), 7, height) #this is precision not resolution
 
 #print("Hor Lines: ", hor_lines)
 #print("Ver Lines: ", ver_lines)

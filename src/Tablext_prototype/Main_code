@@ -557,7 +557,7 @@ while(1): #Vertical
 
 
 guarenteed_inf_ver, guarenteed_ver_quality = inferred_vertical_line_finder(height, width, pixel_data, .98, 8, hor_lines) #inject inf_ver that might have been wrongfully removed; Thicker line required USED TO BE .99
-tempv = mean_finder(ver_lines, ([0] + guarenteed_inf_ver  + [width-1]), guarenteed_ver_quality, 10) #TODO find a good number   
+tempv = mean_finder(ver_lines, ([0] + guarenteed_inf_ver  + [width-1]), ([1] + guarenteed_ver_quality + [1]), 10) #TODO find a good number   
 
 ver_lines_final = mean_finder(tempv, inferred_ver_lines, inferred_ver_quality, 15) #this is precision not resolution add lines to the left and right //TODO find a good precision
 hor_lines_final = mean_finder(hor_lines, ([0] + inferred_hor_lines + [height-1]), ([1] + inferred_hor_quality + [1]), 7) #this is precision not resolution
@@ -576,6 +576,6 @@ hor_lines_final = mean_finder(hor_lines, ([0] + inferred_hor_lines + [height-1])
 conc_col_2D = []
 contains_data, conc_col_2D = concatenate(root, pixel_data, ver_lines_final, hor_lines_final)
 ver_width_line, hor_width_line = lines_with_widths(ver_lines_final, hor_lines_final)
-#image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_width_line, hor_width_line, scale)
+image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_width_line, hor_width_line, scale)
 
 debug(root, height, width, pixel_data, hor_lines, ver_lines, hor_lines_final, ver_lines_final, inferred_hor_lines, inferred_ver_lines, guarenteed_inf_ver, conc_col_2D, ver_width_line, hor_width_line)

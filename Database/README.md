@@ -30,7 +30,6 @@ For Developpement purposes, please follow the instructions below:
 ```
   npm run dev 
 ```
-`npm run dev`
 
 2. Navigate to `localhost:3000`
 

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>FASOC</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.10.20/css/jquery.dataTables.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.1.6/css/fixedHeader.dataTables.min.css">
+  <script src="https://code.jquery.com/jquery-3.3.1.js"></script>
+  <script src="https://cdn.datatables.net/1.10.20/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.10.20/js/dataTables.bootstrap.min.js"></script>
+  <script src="https://cdn.datatables.net/fixedheader/3.1.6/js/dataTables.fixedHeader.min.js"></script>
+  <script src="style.js"></script>
+</head>
+<body>
+  <h1>
+    <a href="https://fasoc.engin.umich.edu/">
+      <img src="/images/icon.png" alt="FASOC" width="100%" height="100"/>
+    </a>
+  </h1>
+
+  <table id="dtBasicExample" class="display" cellspacing="0" width="90%">
+      <thead>
+          <tr>
+            <th class="th-sm" width="400">Description
+            </th>
+            <th class="th-sm" width="300">Digi-Key Part Number
+            </th>
+            <th class="th-sm" width="3ls00">Datasheets
+            </th>
+            <th class="th-sm">Subcategory
+            </th>
+            <th class="th-sm">Number of Bits
+            </th>
+            <th class="th-sm">Sampling Rate
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <% for(var i=0; i <digikey.length; i++) {%>
+            <tr>
+              <td><%= digikey[i]['Description'] %></td>
+              <td><%= digikey[i]['Digi-Key Part Number'] %></td>
+              <td><%= digikey[i]['Datasheets'] %></td>
+              <td><%= digikey[i]['Subcategory'] %></td>
+              <td><%= digikey[i]['Number of Bits'] %></td>
+              <td><%= digikey[i]['Sampling Rate (Per Second)'] %></td>
+                </tr>
+          <% } %>
+        </tbody>
+  </table>
+
+
+
+  <script src="main.js"></script>
+</body>
+</html>

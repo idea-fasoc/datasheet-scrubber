@@ -6,10 +6,9 @@ The web application lists some of the components that are stored in a MongoDB cl
 The web application enables a full text search and a filter mechanism for some preperties of the components.
 
 To request access to the cloud cluster with more than 500k components:
-Please submit an inquiry to : zinebbe@umich.edu as the access is on invitation only.
+Please submit an inquiry to [Admin](zinebbe@umich.edu) as the access is on invitation only.
 
-To access the web application please visit the link :
-http://fasoc.herokuapp.com/
+To access the web application please visit the link [here](http://fasoc.herokuapp.com/)
 
 
 For Developpement purposes, please follow the instructions below:

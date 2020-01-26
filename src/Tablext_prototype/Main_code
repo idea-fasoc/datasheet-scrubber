@@ -13,6 +13,8 @@ import numpy as np
 import xml.etree.ElementTree as ET
 from keras.models import load_model
 
+from pdf2image import convert_from_path #debug
+
 
 def table_identifier(img_loc, root):
     pTwo_size = 600
@@ -64,7 +66,6 @@ def table_identifier(img_loc, root):
                 groups.append((int((group_start-1)*label_precision/scale), int((iter+1-y_fail_num)*label_precision/scale)))
             group_start = iter
 
-    print(groups)
     model2 = load_model(os.path.join(root, r"Identification_Models\stage2.h5"))
  
 
@@ -88,7 +89,10 @@ def table_identifier(img_loc, root):
             if(data_final[0][iter] > .5):
                 hor_finish = int((iter+0.5)*original_width/cuts_labels)
 
-        groups2.append((hor_start, hor_finish))
+        if(0 and hor_finish - hor_start > (0.7 * original_width)): #Fix for tables that cover the entire image
+            groups2.append((0, original_width))
+        else:
+            groups2.append((hor_start, hor_finish))
 
     final_splits = []
     for iter in range(len(groups)):
@@ -433,7 +437,7 @@ def hor_split(x_s, x_e, y_s, y_e, pixel_data_unchanged):
     for y in range(y_s, y_e):
         black_count = 0
         for x in range(x_s, x_e):
-            if(pixel_data_unchanged[y, x] < 127):
+            if(pixel_data_unchanged[y, x] < 100):
                 black_count += 1
         if(black_count > (x_e - x_s)/100):
             white_lines[y-y_s] = 0
@@ -445,17 +449,20 @@ def hor_split(x_s, x_e, y_s, y_e, pixel_data_unchanged):
 
 
     for iter_num, iter in enumerate(white_lines):
-        if(iter == FF):
+        if(iter == int(FF)):
             temp_count += 1
         else:
             temp_count = 0
 
-        if(temp_count > (y_e - y_s)/20):
+        if(temp_count > 2 + (y_e - y_s)/30):
             wbw_count += 1
             temp_count = 0
             FF = not FF
             if(wbw_count == 3):
                 split_loc = iter_num + y_s
+
+    if(wbw_count >= 4):
+        print(white_lines)
 
     return (wbw_count >= 4), split_loc
 
@@ -499,6 +506,7 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
             SPLIT, split_loc = hor_split(x_s, x_e, y_s, y_e, pixel_data_unchanged)
 
             if(SPLIT):
+                print("Image Split")
                 ANY_SPLIT = True
                 slice = pixel_data_unchanged[y_s:split_loc, x_s:x_e]
                 w, h = slice.shape
@@ -559,7 +567,7 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
 def debug(root, height, width, pixel_data, hor_lines, ver_lines, hor_lines_final, ver_lines_final, inferred_hor_lines, inferred_ver_lines, guarenteed_inf_vers, conc_col_2D, ver_width_line, hor_width_line):
     pixel_data = cv2.cvtColor(pixel_data,cv2.COLOR_GRAY2RGB)
 
-    if(1): #infered ver
+    if(0): #infered ver
         for inferred_ver_line in inferred_ver_lines:
             cv2.line(pixel_data, (inferred_ver_line, 0), (inferred_ver_line, height), (0,255,255), 1)
     
@@ -601,14 +609,9 @@ def debug(root, height, width, pixel_data, hor_lines, ver_lines, hor_lines_final
 
 root =  r"C:/Users/Zach/Downloads/Table_extract_robust" #enter your local location to the setup folder	
 if(0): #normal	
-    num = "0"	
-    	
+    num = "0"		
     image_loc = r"C:\Users\Zach\Downloads\Table_extract_robust\modern_images\from_modern" + num + ".jpg" #modern, uses num	
     size_loc = r"C:\Users\Zach\Downloads\Table_extract_robust\modern_xml\from_modern" + num + ".xml"	
-    #image_loc = r"C:\Users\Zach\Downloads\Table_extract_robust\old_images\cTDaR_t00851.jpg" #old, doesn't use num	
-    #size_loc = r"C:\Users\Zach\Downloads\Table_extract_robust\old_xml\cTDaR_t00851.xml"	
-else: #hardcoded	
-    image_loc = r"C:\Users\Zach\Downloads\Sparse_test.png"	
 
 conc_pixel_data = table_identifier(image_loc, root)
 final_data = []
@@ -645,7 +648,7 @@ for pixel_data in conc_pixel_data:
         #print("INF HOR ", inferred_hor_lines)
 
 
-    required_dist = .75 #TODO find a number that balances speed and accuracy
+    required_dist = .65 #TODO find a number that balances speed and accuracy
     prev_groups = -1
     inferred_ver_lines = []
     inferred_ver_quality = []
@@ -660,7 +663,7 @@ for pixel_data in conc_pixel_data:
         inferred_ver_lines = inferred_ver_lines_temp
         inferred_ver_quality = inferred_ver_quality_temp
 
-        debug_data = np.copy(pixel_data)
+        #debug_data = np.copy(pixel_data)
         #for inferred_ver_line in inferred_ver_lines:
         #    cv2.line(debug_data, (inferred_ver_line, 0), (inferred_ver_line, height), (0,255,255), 1)
         #cv2.imshow('image',debug_data)
@@ -689,7 +692,7 @@ for pixel_data in conc_pixel_data:
     contains_data, conc_col_2D = concatenate(root, pixel_data, ver_lines_final, hor_lines_final)
     ver_width_line, hor_width_line = lines_with_widths(ver_lines_final, hor_lines_final)
 
-    final_data.append(image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_width_line, hor_width_line, scale))
+    #final_data.append(image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_width_line, hor_width_line, scale))
     debug(root, height, width, pixel_data, hor_lines, ver_lines, hor_lines_final, ver_lines_final, inferred_hor_lines, inferred_ver_lines, guarenteed_inf_ver, conc_col_2D, ver_width_line, hor_width_line)
 
 with open(os.path.join(root, "final_results.csv"), 'w') as write:

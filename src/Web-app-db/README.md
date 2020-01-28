@@ -22,6 +22,7 @@ In order to make sure the installation has been done successfully please open up
 ```
 
 2. Install dependencies.
+
 Make sure you are in the src/Web-app-db directory.
 ```
   npm install 
@@ -29,7 +30,7 @@ Make sure you are in the src/Web-app-db directory.
 
 ## Usage 
 
-1. run the application a local server.
+1. run the application on the local server.
 ```
   npm run dev 
 ```

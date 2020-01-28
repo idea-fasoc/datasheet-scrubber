@@ -17,20 +17,12 @@ Follow the instructions in the How to Install Homebrew on a Mac instruction guid
 
 Install and Run MongoDB with Homebrew: 
 ```
-	brew update
-
-
-	brew install mongodb
-
-
-	mkdir -p /data/db
-
-
-	sudo chown -R `id -un` /data/db
-	# Enter your password
-
-
-	mongod
+brew update
+brew install mongodb
+mkdir -p /data/db
+sudo chown -R `id -un` /data/db
+# Enter your password
+mongod
 ```
 
 => This should start the Mongo server.
@@ -43,7 +35,7 @@ Install and Run MongoDB with Homebrew:
 If the file to be imported is *digikey.json* (or replace with path if in a different folder):
 
 ```
-    	mongoimport ––host localhost:27017 ––db mydb ––collection docs digikey.json
+mongoimport ––host localhost:27017 ––db mydb ––collection docs digikey.json
 ```
 
 In this example, *mydb* is the name of the database and *docs* is the name of the collection into which the data will be inserted.  

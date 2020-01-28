@@ -1,19 +1,18 @@
 # FASoC Datasheet-Scrubber
 
-The FASoC Datasheet Scrubber is a utility that scrubs through large sets of PDF datasheets/documents in order to extract key circuit information. The information gathered is used to build a database of commercial off-the-shelf (COTS) IP that can be used to build larger SoC in the FASoC design. More information [here](https://fasoc.engin.umich.edu/datasheet-scrubber). You can do Datasheet Scrubbing by running `Datasheet_Scrubbing.py`, which you can input a datasheet and observe the extracted specs and pins.
+The FASoC Datasheet Scrubber is a utility that scrubs through large sets of PDF datasheets/documents in order to extract key circuit information. The information gathered is used to build a database of commercial off-the-shelf (COTS) IP that can be used to build larger SoC in the FASoC design. More information [here](https://fasoc.engin.umich.edu/datasheet-scrubber).
 
 ### Setup instructions
 
 1. Ensure your machine has the correct python version and all of the python modules required to run through the FASoC flow. 
-    - Requirements: Python 3.6/3.7 (packages getopt, math, numpy, os, re, shutil, subprocess, sys, smtplib, datetime, logging, matplotlib). Python versions below 3.6 are not supported.
+    - Requirements: Python 3.6/3.7 (packages pandas, scipy, matplot, matplotlib, pdfminer.six, pypdf2, request, lxml, tabula-py, sklearn, regex, keras, tensorflow, pdf2image, pillow, pytesseract, numpy, opencv-python, gensim, nltk). Python versions below 3.6 are not supported.
     
 1. Ensure you have ssh keys setup for github. Instructions for generating and adding ssh keys can be found [here](https://help.github.com/en/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent).
 
 1. Clone the FASoC repository
     ```bash
     git clone git@github.com:idea-fasoc/datasheet-scrubber.git
-    ```
-
+    ``` 
 
 # Database
 
@@ -25,34 +24,6 @@ In order to access a sample of this collection, visit our [web application](http
 To have access to the entire collection of components, please visit [here](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/Database).
 
 ### Datasheet-Scrubber Environment
-
-Python 3.7 or anaconda 3 is required, older versions of Python will not work. You will also need the following Python libraries which can be installed via pip (in PowerShell/terminal).
-
-1. Install and upgrade pip: `python -m pip install --upgrade pip`
-
-2. Install Python dependencies: **You may replace `pip` with `conda` if you are working with anaconda**
-	```
-	pip install pandas
-	pip install -U scipy
-	pip install matplot
-	pip install matplotlib
-	pip install pdfminer.six
-	pip install pypdf2
-	pip install request
-	pip install lxml
-	pip install tabula-py
-	pip install sklearn
-	pip install regex
-	pip install keras
-	pip install tensorflow
-	pip install pdf2image
-	pip install pillow
-	pip install pytesseract
-	pip install -U numpy
-	pip install opencv-python
-	pip install gensim
-        pip install nltk
-	```
 Here we propose two different approaches:
 - Categorization using Bag of words, text extraction using regular expression, and table extraction using tabula (please see [here](https://github.com/chezou/tabula-py) for more information)
 - Categorization, text extraction, and table extraction using Convolutional neural network (CNN) (please see [here](https://en.wikipedia.org/wiki/Convolutional_neural_network) for more information)
@@ -62,7 +33,7 @@ Here we propose two different approaches:
      - Visual Studio 2017
 
 ### Getting Started For Datasheet Scrubber
-
+You can do Datasheet Scrubbing by running `Datasheet_Scrubbing.py`, which you can input a datasheet and observe the extracted specs and pins.
 These are steps for compiling codes:
 1. Clone the [datasheet-scrubber repository](https://github.com/idea-fasoc/datasheet-scrubber)
 	```bash

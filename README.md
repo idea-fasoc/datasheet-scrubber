@@ -1,10 +1,17 @@
 # FASoC Datasheet-Scrubber
 
-The FASoC Datasheet Scrubber is a utility that scrubs through large sets of PDF datasheets/documents in order to extract key circuit information. The information gathered is used to build a database of commercial off-the-shelf (COTS) IP that can be used to build larger SoC in the FASoC design. More information [here](https://fasoc.engin.umich.edu/datasheet-scrubber)
+The FASoC Datasheet Scrubber is a utility that scrubs through large sets of PDF datasheets/documents in order to extract key circuit information. The information gathered is used to build a database of commercial off-the-shelf (COTS) IP that can be used to build larger SoC in the FASoC design. More information [here](https://fasoc.engin.umich.edu/datasheet-scrubber). You can do Datasheet Scrubbing by running `Datasheet_Scrubbing.py`, which you can input a datasheet and observe the extracted specs and pins.
 
-You can do Datasheet Scrubbing by running `Datasheet_Scrubbing.py`, which you can input a datasheet (between one of ADC, CDC, DCDC, PLL, LDO, SRAM, Temperature Sensor, BDRT, Counters, DAC, Delay_Line, Digital Potentiometers, DSP, IO, Opamp categories) and observe the extracted specs and pins. Instruction steps of each of these would be as follows:
+# Database
 
-### Environment
+The FASoC database contains more than 700,000 records of Integrated Circuits (ICs) components collected from [Digikey](https://www.digikey.com/products/ics/en). 
+### Database Web Application
+
+In order to access a sample of this collection, visit our [web application](https://fasoc.herokuapp.com/) or proceed [here](https://fasoc.herokuapp.com/).
+### Raw Database
+To have access to the entire collection of comonents, please visit [here](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/Database).
+
+### Datasheet-Scrubber Environment
 
 Python 3.7 or anaconda 3 is required, older versions of Python will not work. You will also need the following Python libraries which can be installed via pip (in PowerShell/terminal).
 
@@ -41,7 +48,7 @@ Here we propose two different approaches:
      - Tesseract
      - Visual Studio 2017
 
-### Getting Started
+### Getting Started For Datasheet Scrubber
 
 These are steps for compiling codes:
 1. Clone the [datasheet-scrubber repository](https://github.com/idea-fasoc/datasheet-scrubber)

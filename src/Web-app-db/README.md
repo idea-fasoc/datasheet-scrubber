@@ -22,6 +22,7 @@ In order to make sure the installation has been done successfully please open up
 ```
 
 2. Install dependencies.
+Make sure you are in the src/Web-app-db directory.
 ```
   npm install 
 ```
@@ -33,4 +34,4 @@ In order to make sure the installation has been done successfully please open up
   npm run dev 
 ```
 
-2. Navigate to `localhost:3000`.
+2. Open a browser and navigate to `localhost:3000`.

@@ -11,7 +11,7 @@ MongoDB is a document database which belongs to a family of databases called NoS
 
 **Homebrew**
 
-Homebrew is a package manager for the Mac – it makes installing most open source software (like MongoDB) as simple as writing brew install mongodb. 
+Homebrew is a package manager for the Mac\Linux – it makes installing most open source software (like MongoDB) as simple as writing brew install mongodb.
 Follow the instructions in the How to Install Homebrew on a Mac instruction guide.
 
 

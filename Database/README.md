@@ -29,13 +29,12 @@ mongod
 
 ### Import data into MongoDB
 
-If the imported file is *digikey.json* (or replace with path if in a different folder)
-
+Run the following command
 ```
 mongoimport ––host localhost:27017 ––db mydb ––collection docs digikey.json
 ```
 
-In this example, *mydb* is the name of the database and *docs* is the name of the collection into which the data will be inserted.  
+In this example, *digikey.json* is the file (or the path to the file) we want to import into the database, *mydb* is the name of the database and *docs* is the name of the collection into which the data will be inserted.  
 Note that *localhost:27017* is the default server and port for MongoDB.
 
 

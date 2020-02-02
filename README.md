@@ -9,7 +9,7 @@ The FASoC Datasheet Scrubber is a utility that scrubs through large sets of PDF 
     
 1. Ensure you have ssh keys setup for github. Instructions for generating and adding ssh keys can be found [here](https://help.github.com/en/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent).
 
-1. Clone the FASoC repository
+1. Clone the Datasheet Scrubber repository
     ```bash
     git clone git@github.com:idea-fasoc/datasheet-scrubber.git
     ``` 

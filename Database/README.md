@@ -1,6 +1,6 @@
 # Database
 
-Our Database content was exported into a json file accessible using the following [link](https://umich.box.com/s/gmybk8xu1htec9w3z4vse86vtotws22r).
+Our Database content was exported into a json file accessible using [link](https://umich.box.com/s/gmybk8xu1htec9w3z4vse86vtotws22r).
 
 
 # How to create a local MongoDB instance from a JSON file

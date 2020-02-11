@@ -1,6 +1,6 @@
 1.  After pulling the table extraction code, download the required neural network models by following the instructions below.
 
-        a.  Navigate to http://umich.app.box.com/folder/93471033925
+        a.  Navigate to https://umich.app.box.com/s/64pqr725gbz538q1htgb60x3alrxrkiy
 
         b.  Download the folder "Table_extract_robust" inside the folder "Tablext"
   

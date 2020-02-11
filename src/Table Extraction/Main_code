@@ -4,13 +4,11 @@ import statistics
 import pdf2image #poppler needs to be added and added to the path variable
 import os
 import csv
-import pdfminer
 import cv2
 import concurrent.futures
 import functools
 import copy
 import numpy as np
-import xml.etree.ElementTree as ET
 from keras.models import load_model
 
 from pdf2image import convert_from_path #debug

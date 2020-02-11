@@ -24,39 +24,10 @@ In order to access a sample of this collection, visit our [web application](http
 To have access to the entire collection of components, please visit [here](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/Database).
 
 ### Datasheet-Scrubber Environment
-Here we propose two different approaches:
-- Categorization using Bag of words, text extraction using regular expression, and table extraction using tabula (please see [here](https://github.com/chezou/tabula-py) for more information)
-- Categorization, text extraction, and table extraction using Convolutional neural network (CNN) (please see [here](https://en.wikipedia.org/wiki/Convolutional_neural_network) for more information)
-   - If you want to test the CNN part, we need more software:
-     - Poppler
-     - Tesseract
-     - Visual Studio 2017
+
 
 ### Getting Started For Datasheet Scrubber
-You can do Datasheet Scrubbing by running `Datasheet_Scrubbing.py`, which you can input a datasheet and observe the extracted specs and pins.
-These are steps for compiling codes:
-1. Clone the [datasheet-scrubber repository](https://github.com/idea-fasoc/datasheet-scrubber)
-	```bash
-	git clone https://github.com/idea-fasoc/datasheet-scrubber.git
-	```
 
-2. Go to [here](https://www.dropbox.com/s/ad4nolrpxx4pks6/All_pdf.zip?dl=0) and download (All_pdf.zip should be downloaded)
-
-3. Run make init which runs Initializer.py. It will ask you to type All_pdf.zip directory, your work directory, and your code dirrectory (for datasheet scrubbing) that you have just cloned. After running initializer.py you should see something like this.
-
-![](src/docs/fig1.png)
-
-Also when this window will pops up, press download.
-
-![](src/docs/NLTK.png)
-
-4. All_pdf, All_text, cropped_pdf, and cropped_text are training directories. For addign more files to training set put your labeled pdf files in All_pdf directory (it means put ADC datasheets in ADC folder inside All_pdf, CDC datasheet in CDC folder inside All_pdf and so on).
-
-5. Run make categorizer which runs test_confusion_matrix.py and shows the confusion matrix of our categorizer on whole dataset.
-
-6. Put pdf files of datasheets that you want to test in Test_pdf folder and please email them to fayazi@umich.edu in order to have a better repository.
-
-7. Run make extraction which runs Datasheet_Scrubbing.py which you can input a datasheet (between one of ADC, BDRT, CDC, counters, DAC, DCDC, Delay_Line, Digital_Potentiometers, DSP, IO, LDO, Opamp, PLL, SRAM, Temperature Sensor categories) and observe the extracted specs and pins.
 
 ### Contributing
 

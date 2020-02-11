@@ -4,7 +4,7 @@ After pulling the table extraction code, download the required neural network mo
 
     b.  Download the folder "Models" inside the folder "PDF_IDEN"
     
-    Update the "model_location" and "tokenizer_location" variables within the wrapper.
+    c.  Update the "model_location" and "tokenizer_location" variables within the wrapper.
     Additionally, enter the location of the PDF you wish to identify.
 
 Ensure python3 is installed in addition to the following packages.

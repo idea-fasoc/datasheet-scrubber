@@ -8,9 +8,9 @@ Requirements: Python 3.6/3.7 (packages pytesseract, pdf2image, opencv-python, nu
 
 1.  After pulling the table extraction code, download the required neural network models by following the instructions below.
 
-    - Navigate to [here](https://umich.app.box.com/s/64pqr725gbz538q1htgb60x3alrxrkiy)
+    - Navigate to [here](https://umich.app.box.com/s/64pqr725gbz538q1htgb60x3alrxrkiy).
 
-    - Download the folder "Table_extract_robust" inside the folder "Tablext"
+    - Download the folder "Table_extract_robust" inside the folder "Tablext".
   
 2.  Update the "root" variable within Main_code to your local location of "Table_extract_robust." 
   e.g. r"C:/Users/User/Downloads/Table_extract_robust".

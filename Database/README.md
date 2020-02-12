@@ -3,6 +3,34 @@
 Our Database content was exported into a json file accessible using [link](https://umich.box.com/s/gmybk8xu1htec9w3z4vse86vtotws22r).
 
 
+
+# How to collect data to create our Database?
+We use web-scraping in order to collect detailed description of electronic componenets.
+The data collected is scrapped from Digikey website using we-scraping libraries in Python.
+
+### prerequisites
+1. Use Chrome for the scraping process
+2. Download chromedriver [here](https://chromedriver.chromium.org/downloads)
+3. Install Selenium package following simple [instructions](https://selenium-python.readthedocs.io/installation.html)
+4. Use Python version 3.5 or higher
+
+### Steps
+
+Make sure to have the file 'links_and_type.csv' available, it will be used to perform the scraping process.
+
+1. Run web scraping script
+
+```
+python digikey_web_scraping.py
+```
+Please note that the script will take from few minutes to several hours depending on the number of components present in a given category.
+
+2. populate your local DB with the files extracted
+
+```
+python populate_db_fron_csv.py
+```
+
 # How to create a local MongoDB instance from a JSON file
 **What’s MongoDB?**
 

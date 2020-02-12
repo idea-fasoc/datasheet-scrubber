@@ -16,16 +16,21 @@ The data collected is scrapped from Digikey website using we-scraping libraries 
 
 ### Steps
 
-Make sure to have the file 'links_and_type.csv' available, it will be used to perform the scraping process.
+1. Generate 'links_and_type.csv' by running the following script:
+```
+python digikey_get_urls.py
+```
 
-1. Run web scraping script
+It will be used to perform the next step of the scraping process.
+
+2. Run web scraping script
 
 ```
 python digikey_web_scraping.py
 ```
 Please note that the script will take from few minutes to several hours depending on the number of components present in a given category.
 
-2. populate your local DB with the files extracted
+3. populate your local DB with the files extracted
 
 ```
 python populate_db_fron_csv.py

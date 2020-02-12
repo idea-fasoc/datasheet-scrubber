@@ -10,8 +10,8 @@ The data collected is scrapped from Digikey website using we-scraping libraries 
 
 ### prerequisites
 1. Use Chrome for the scraping process
-2. Download chromedriver [here](https://chromedriver.chromium.org/downloads)
-3. Install Selenium package following simple [instructions](https://selenium-python.readthedocs.io/installation.html)
+2. Download [chromedriver](https://chromedriver.chromium.org/downloads)
+3. Install [Selenium package](https://selenium-python.readthedocs.io/installation.html)
 4. Use Python version 3.5 or higher
 
 ### Steps

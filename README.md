@@ -23,7 +23,7 @@ In order to access a sample of this collection, visit our [web application](http
 ### Raw Database
 To have access to the entire collection of components, please visit [here](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/Database).
 
-### Datasheet-Scrubber
+# Datasheet-Scrubber
 Datasheet scrubber includes three steps of [category recognition](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/src/PDF%20Categorization), [table extracton](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/src/Table%20Extraction) and text extraction.
 
 ### Contributing

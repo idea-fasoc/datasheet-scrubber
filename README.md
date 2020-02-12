@@ -24,9 +24,9 @@ In order to access a sample of this collection, visit our [web application](http
 To have access to the entire collection of components, please visit [here](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/Database).
 
 ### Datasheet-Scrubber Environment
+To access the current version of the table extraction, head to src/Table Extraction. Installation details are provided in this folder’s local README.
 
-
-### Getting Started For Datasheet Scrubber
+To access the current version of the component identifier, head to src/PDF Categorization. Installation details are provided in this folder’s local README.
 
 
 ### Contributing

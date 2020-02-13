@@ -5,8 +5,8 @@ Our Database content was exported into a json file accessible using [link](https
 
 
 # How to collect data to create our Database?
-We use web-scraping in order to collect detailed description of electronic componenets.
-The data collected is scrapped from Digikey website using we-scraping libraries in Python.
+We use web-scraping in order to collect detailed description of electronic components.
+The data collected is scrapped from Digikey website using web-scraping libraries in Python.
 
 ### prerequisites
 1. Use Chrome for the scraping process

@@ -4,7 +4,7 @@ A majority of a datasheet’s relevant specifications are found within their var
 
 ### Environment Setup
 
-Requirements: Python 3.6/3.7 (packages pytesseract, pdf2image, opencv-python, numpy, keras, tensorflow). Python versions below 3.6 are not supported.
+Requirements: Python 3.6 (packages pytesseract, pdf2image, opencv-python, numpy, keras, tensorflow). Python versions below 3.6 are not supported.
 
 1.  After pulling the table extraction code, download the required neural network models by following the instructions below.
 

@@ -15,6 +15,6 @@ Requirements: Python 3.6/3.7 (packages pytesseract, pdf2image, opencv-python, nu
 2.  Update the "root" variable within Main_code to your local location of "Table_extract_robust." 
   e.g. r"C:/Users/User/Downloads/Table_extract_robust".
   
-3. Download [Poppler](https://poppler.freedesktop.org/), and [Tesseract](https://github.com/tesseract-ocr/tesseract/releases/tag/3.05.02). Reference the software in your system variables.
+3. Download [Poppler](https://poppler.freedesktop.org/), and [Tesseract](https://tesseract-ocr.github.io/tessdoc/Home.html). Reference the software in your system variables.
       
 4.  Run the code and follow the terminal prompts.

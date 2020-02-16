@@ -4,7 +4,7 @@ The first step to automatically scrub datasheets is to recognize the IP category
 
 ### Environment Setup
 
-Requirements: Python 3.6/3.7 (packages pdfminer.six, numpy, keras, tensorflow). Python versions below 3.6 are not supported.
+Requirements: Python 3.6 (packages pdfminer.six, numpy, keras, tensorflow). Python versions below 3.6 are not supported.
 
 After pulling the table extraction code, download the required neural network models by following the instructions below.
  - Navigate to [here](https://umich.app.box.com/s/64pqr725gbz538q1htgb60x3alrxrkiy).

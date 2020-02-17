@@ -664,10 +664,10 @@ def run_main(image, root, identify_model, identify_model2, conc_col_model, valid
     return final_data 
 
 
-#######################START########################    
+#######################START########################
 
 cap = 10
-root =  r"C:/Users/Zach/Downloads/Table_extract_robust" #enter your local location to the setup folder	
+root =  r"" #enter your local location to the setup folder	
 
 pdf_loc = input("Enter a PDF's file location and name: ").lower()
 parameters = []
@@ -682,8 +682,8 @@ while(1):
 
 pages = convert_from_path(pdf_loc, 300)
 
-identify_model = load_model(os.path.join(root, r"Identification_Models\stage1.h5"))
-identify_model2 = load_model(os.path.join(root, r"Identification_Models\stage2.h5"))
+identify_model = load_model(os.path.join(root, r"Identification_Models", r"stage1.h5"))
+identify_model2 = load_model(os.path.join(root, r"Identification_Models", r"stage2.h5"))
 conc_col_model = load_model(os.path.join(root, "conc_col.h5"))
 valid_cells_model = load_model(os.path.join(root, "valid_cells.h5"))
 

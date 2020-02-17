@@ -39,8 +39,11 @@ def convert(fname, word_amount):
 
 
 model_location = r"D:\TEXT_IDENTIFY_MODEL_long.h5" #Change to the location of the model 
-pdf_location = r"D:/Full_Dataset/ADC/PDFs/ad7819.pdf" #Change to the current pdf
 tokenizer_location = r"D:\tokenizer_long.pickle" #Change to the location of the tokenizer
+
+
+#pdf_location = r"D:/Full_Dataset/ADC/PDFs/ad7819.pdf" #Change to the current pdf
+pdf_location = input("Enter a PDF's location and name: ")
 
 
 word_amount = 256
@@ -67,11 +70,11 @@ data = cleaned_data.replace(r"\n", " ")
 regex = re.compile('[^a-z" "]')
 data = regex.sub(" ", data)
 
-print(data)
 encoded_data = t.texts_to_sequences([data])
-print(encoded_data)
+#print(encoded_data)
 data_final = []
 for data in encoded_data:
+    #print(data)
     temp_array1D = []
     for iter in range(word_amount):
         if(iter < len(data)):
@@ -83,7 +86,7 @@ data_final = numpy.array(data_final)
 
 final_identification = model.predict(data_final)
 
-print(final_identification)
+#print(final_identification)
 
 Types = ['ADC', 'AFE', 'Amplifiers - Audio', 'Amplifiers - Video Amps and Modules', 'Clock Buffers, Drivers', 'Clocks', 
         'CODECs', 'Controllers', 'CPLDs', 'DAC', 'Delay Lines', 'Drivers, Receivers, Transceivers', 'DSP', 'FPGAs', 'Instrumentation, OP Amps, Buffer Amps', 

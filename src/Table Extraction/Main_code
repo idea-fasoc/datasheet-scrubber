@@ -1,7 +1,6 @@
 import sys
 import pytesseract
 import statistics
-import pdf2image #poppler needs to be added and added to the path variable
 import os
 import csv
 import cv2
@@ -11,7 +10,7 @@ import copy
 import numpy as np
 from keras.models import load_model
 
-from pdf2image import convert_from_path #debug
+from pdf2image import convert_from_path ##poppler needs to be added and added to the path variable
 
 
 def table_identifier(pixel_data, root, identify_model, identify_model2):
@@ -191,35 +190,36 @@ def horizontal_line_finder(height, width, pixel_data): #normal finds black lines
                 break
     return final_out
 
-def vertical_line_finder(height, width, pixel_data): #normal finds black lines
+def vertical_line_finder(height, width, pixel_data, hor_margin_lines): #normal finds black lines
     final_out = [] 
     search_dist = 3
     for x in range(search_dist, width-search_dist):
         line_dist = 0
         fails = 0
-        for y in range(height):  
-            max_left = 0
-            max_right = 0
-            for x2 in range(x-search_dist,x):
-                if((pixel_data[y,x2]) > max_left):
-                    max_left = pixel_data[y,x2]
+        for y in range(height):
+            if(y not in hor_margin_lines):
+                max_left = 0
+                max_right = 0
+                for x2 in range(x-search_dist,x):
+                    if((pixel_data[y,x2]) > max_left):
+                        max_left = pixel_data[y,x2]
 
-            for x2 in range(x+1,x+search_dist+1):
-                if((pixel_data[y,x2]) > max_right):
-                    max_right = pixel_data[y,x2]
+                for x2 in range(x+1,x+search_dist+1):
+                    if((pixel_data[y,x2]) > max_right):
+                        max_right = pixel_data[y,x2]
 
-            if((max_left/2+max_right/2 - pixel_data[y,x]) > 30): #these are 8 bit ints need to calculate like this to avoid overflow
-                line_dist += 1
-                if(fails > 0):
-                    fails -= 1
-            elif(fails < 1): #tolerate x fails
-                fails += height/8
-            else:
-                line_dist = 0 
+                if((max_left/2+max_right/2 - pixel_data[y,x]) > 30): #these are 8 bit ints need to calculate like this to avoid overflow
+                    line_dist += 1
+                    if(fails > 0):
+                        fails -= 1
+                elif(fails < 1): #tolerate x fails
+                    fails += height/8
+                else:
+                    line_dist = 0 
 
-            if(line_dist > height/8):
-                final_out.append(x)  
-                break      
+                if(line_dist > height/8):
+                    final_out.append(x)  
+                    break      
     return final_out
 
 def real_line_margins(lines, margin_size_pixels):
@@ -321,6 +321,24 @@ def inferred_vertical_line_finder(height, width, pixel_data, required_dist, requ
 
     return infer_line_dists, inferred_quality
 
+def merging_helper(im_arr): #This is a temporary fix and should not be needed when more training data is available
+    output_array = []
+    for image in im_arr:
+        for x in range(99,101): #if any has 95% black pixels
+            black_count = 0
+            for y in range(0,100):
+                if(image[y, x] < 100):
+                    black_count += 1
+
+            if(black_count > 95):
+                break
+        if(black_count > 95):
+            output_array.append(1)
+        else:
+            output_array.append(0)
+
+    return output_array
+
 def concatenate(root, pixel_data, ver_lines_final, hor_lines_final, conc_col_model, valid_cells_model):
     norm_pixel_data = cv2.normalize(pixel_data, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
     ver_lines_no_dup = []
@@ -363,7 +381,9 @@ def concatenate(root, pixel_data, ver_lines_final, hor_lines_final, conc_col_mod
     if(not im_arr): #this can occur when there are only 2 vertical lines so that nothing can possibly be concatenated
         return np.ones((y_len, 1)), np.zeros((y_len, 1)) #assume not concatenated and every cell has data, 1D array
 
+
     im_arr = np.expand_dims(np.array(im_arr), axis= -1)
+    helper_output = merging_helper(im_arr)
     pred = conc_col_model.predict(im_arr)
     pred2 = valid_cells_model.predict(im_arr)
    
@@ -372,7 +392,7 @@ def concatenate(root, pixel_data, ver_lines_final, hor_lines_final, conc_col_mod
     contains_data = np.zeros((y_len, x_len+1))
     for y in range(y_len): 
         for x in range(x_len): 
-            if(pred[x+y*x_len][0] > .5):
+            if(pred[x+y*x_len][0] > .5 and helper_output == 1):
                 conc_col_2D[y][x] = 1
 
             if(pred2[x+y*x_len][0] > .5):
@@ -431,10 +451,20 @@ def hor_split(x_s, x_e, y_s, y_e, pixel_data_unchanged):
     white_lines = [1 for i in range(y_s, y_e)]
     for y in range(y_s, y_e):
         black_count = 0
+        midpoint = (x_s + x_e)/2
+        half_length = (x_e - x_s)/2
+        base = (x_s + x_e)/20
         for x in range(x_s, x_e):
+
+            if(x < midpoint): #Values in the center are more valuable
+                points = base + (x - x_s)
+            else:
+                points = base + half_length - (x - midpoint)
+
+
             if(pixel_data_unchanged[y, x] < 100):
-                black_count += 1
-        if(black_count > (x_e - x_s)/100):
+                black_count += points
+        if(black_count > (x_e - x_s)/4):
             white_lines[y-y_s] = 0
 
     split_loc = 0
@@ -442,14 +472,13 @@ def hor_split(x_s, x_e, y_s, y_e, pixel_data_unchanged):
     FF = True
     temp_count = 0
 
-
     for iter_num, iter in enumerate(white_lines):
         if(iter == int(FF)):
             temp_count += 1
         else:
             temp_count = 0
 
-        if(temp_count > 2 + (y_e - y_s)/30):
+        if(temp_count > 3 + (y_e - y_s)/30):    #adjust this if its not working properly
             wbw_count += 1
             temp_count = 0
             FF = not FF
@@ -471,11 +500,10 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
     for i in hor_width_line:
         hor_scaled.append([int(i[0]*scale), int(i[1]*scale)+1])
 
-    #print(ver_scaled)
-    #print(hor_scaled)`
 
     data_array = [["" for i in range(len(contains_data[0]))] for j in range(len(contains_data))]  
     y = 0
+    y_SPLIT_extend = 0
     while(y < (len(hor_scaled)-1)):
         x = 0
         split_holder = []
@@ -492,13 +520,13 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
             if(y < len(hor_scaled)-1 and y > 0): #LOOK TO THE PAST
                y_merge = horizontal_line_crossover(hor_scaled[y][0]+int(hor_scaled[y][1]/2), ver_scaled[x][0]+ver_scaled[x][1], ver_scaled[temp_x+1][0], pixel_data_unchanged)
 
-            x_s = ver_scaled[x][0]+ver_scaled[x][1]
+            x_s = ver_scaled[x][0]+ver_scaled[x][1]+1
             x_e = ver_scaled[temp_x+1][0]
-            y_s = hor_scaled[y-y_merge][0]+hor_scaled[y-y_merge][1]
+            y_s = hor_scaled[y-y_merge][0]+hor_scaled[y-y_merge][1]+1
             y_e = hor_scaled[y+1][0]
             
 
-            SPLIT, split_loc = hor_split(x_s, x_e, y_s, y_e, pixel_data_unchanged)
+            SPLIT, split_loc = hor_split(x_s, x_e, y_s, y_e, pixel_data_unchanged) # ==========
 
             if(SPLIT):
                 #print("Image Split")
@@ -520,21 +548,21 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
 
             if(data_exists and w > 0 and h > 0):
                 cv2.imwrite(loc,slice)
-                data_array[y-y_merge][x] = pytesseract.image_to_string(loc, config='--psm 7')
+                data_array[y-y_merge+y_SPLIT_extend][x] = pytesseract.image_to_string(loc, config='--psm 7')
 
             if(y_merge):
-                data_array[y][x] = "^ EXTEND" 
+                data_array[y+y_SPLIT_extend][x] = "^ EXTEND" 
             while(x < temp_x):
                 split_holder.append("^ EXTEND")
-                data_array[y-y_merge][x+1] = "< EXTEND"
+                data_array[y-y_merge+y_SPLIT_extend][x+1] = "< EXTEND"
                 if(y_merge):
-                    data_array[y][x+1] = "^ EXTEND"  
+                    data_array[y+y_SPLIT_extend][x+1] = "^ EXTEND"  
                 x += 1
             x += 1
         y += 1
         if(ANY_SPLIT):
-            data_array.insert(y, split_holder)
-            y += 1
+            data_array.insert(y+y_SPLIT_extend, split_holder)
+            y_SPLIT_extend += 1
 
     ####ARRAY CLEANUP
     cleaned_data_array = []
@@ -580,7 +608,7 @@ def debug(root, height, width, pixel_data, hor_lines, ver_lines, hor_lines_final
         for ver_line in ver_lines_final:
             cv2.line(pixel_data, (ver_line, 0), (ver_line, height), (0,255,0), 1)
 
-    if(0): #real
+    if(1): #real
         for hor_line in hor_lines:
             cv2.line(pixel_data, (0, hor_line), (width, hor_line), (255,0,0), 1)
 
@@ -611,10 +639,10 @@ def run_main(image, root, identify_model, identify_model2, conc_col_model, valid
         pixel_data = cv2.resize(pixel_data,(800, int(height/scale)))  #800 width, variable height
         height, width = pixel_data.shape
 
-        hor_lines = horizontal_line_finder(height, width, pixel_data)
-        ver_lines = vertical_line_finder(height, width, pixel_data)
-
+        hor_lines = horizontal_line_finder(height, width, pixel_data) #cannot use margin_lines, but it is fine table cells are usally wider than they are tall
         hor_margin_lines = real_line_margins(hor_lines, 5)
+        
+        ver_lines = vertical_line_finder(height, width, pixel_data, hor_margin_lines)
         ver_margin_lines = real_line_margins(ver_lines, 5)
 
         required_dist = .85 #TODO find a number that balances speed and accuracy
@@ -664,10 +692,11 @@ def run_main(image, root, identify_model, identify_model2, conc_col_model, valid
     return final_data 
 
 
-#######################START########################
-
+#######################START########################    
+write_tables = True
 cap = 10
-root =  r"" #enter your local location to the setup folder	
+root =  r"C:/Users/Zach/Downloads/Table_extract_robust" #enter your local location to the setup folder	
+#pdf_loc = r"C:\Users\Zach\Downloads\Table_extract\PDFs\3ad4002-4006-4010.pdf"
 
 pdf_loc = input("Enter a PDF's file location and name: ").lower()
 parameters = []
@@ -682,8 +711,8 @@ while(1):
 
 pages = convert_from_path(pdf_loc, 300)
 
-identify_model = load_model(os.path.join(root, r"Identification_Models", r"stage1.h5"))
-identify_model2 = load_model(os.path.join(root, r"Identification_Models", r"stage2.h5"))
+identify_model = load_model(os.path.join(root, r"Identification_Models\stage1.h5"))
+identify_model2 = load_model(os.path.join(root, r"Identification_Models\stage2.h5"))
 conc_col_model = load_model(os.path.join(root, "conc_col.h5"))
 valid_cells_model = load_model(os.path.join(root, "valid_cells.h5"))
 
@@ -693,6 +722,7 @@ for image_num, image in enumerate(pages):
     if(image_num >= cap):
         break
     #print("\n\nStarting page: ", image_num)
+
     image = np.array(image)	
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     temp_array = run_main(image, root, identify_model, identify_model2, conc_col_model, valid_cells_model)
@@ -705,6 +735,11 @@ keyword_locs = [] #min typ max
 keywords = ["min", "typ", "max"] 
 
 for table_loc, table in enumerate(array):
+    if(write_tables):
+        a = np.array(table)
+        with open(os.path.join(root, ("table_" + str(table_loc) + ".csv")), "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerows(a)
     keyword_locs_per_table = [-1, -1, -1]
     parameter_xy_temp = [[-1, -1] for i in range(len(parameters))]
     for row_num, row in enumerate(table):

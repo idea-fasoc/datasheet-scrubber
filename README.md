@@ -19,13 +19,15 @@ The FASoC Datasheet Scrubber is a utility that scrubs through large sets of PDF 
 The FASoC database contains more than 700,000 records of Integrated Circuits (ICs) components collected from [Digikey](https://www.digikey.com/products/ics/en). 
 ### Database Web Application
 
-In order to access a sample of this collection, visit our [web application](https://fasoc.herokuapp.com/) or proceed [here](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/Web-app-db).
+In order to access a sample of this collection, visit our [web application](https://fasoc.herokuapp.com/) or proceed [here](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/tests/web-app-db).
 ### Raw Database
 To have access to the entire collection of components, please visit [here](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/src/Database).
 
 # Datasheet-Scrubber
-Datasheet scrubber includes three steps of [category recognition](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/src/PDF%20Categorization), [table extracton](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/src/Table%20Extraction) and text extraction.
-
+Datasheet scrubber includes three steps of [category recognition](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/src/Category-Recognition), [table extracton](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/src/table_extraction) and text extraction.
+### Test
+an example of how to use the table extractor can be found [here](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/tests/table_extraction).
+ 
 ### Contributing
 
 Extracted datasheets can be emailed to fayazi@umich.edu in order build a bigger repository.

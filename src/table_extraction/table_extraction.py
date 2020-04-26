@@ -1,3 +1,27 @@
+#!/usr/bin/env python3
+
+# MIT License
+
+# Copyright (c) 2018 The University of Michigan
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 import sys
 import pytesseract
 import statistics
@@ -8,6 +32,7 @@ import concurrent.futures
 import functools
 import copy
 import numpy as np
+import argparse  # arguement parsing
 from keras.models import load_model
 
 from pdf2image import convert_from_path ##poppler needs to be added and added to the path variable
@@ -367,8 +392,6 @@ def concatenate(root, pixel_data, ver_lines_final, hor_lines_final, conc_col_mod
             merged_data = cv2.hconcat([top_left,top_right])
             im_arr.append(merged_data) 
             if(0):
-                #print(ver_lines_no_dup[x], " ", ver_lines_no_dup[x+2])
-                #print(hor_lines_no_dup[y], " ", hor_lines_no_dup[y+1])
                 temp_data = np.expand_dims(np.array([merged_data]), axis= -1)
                 print(conc_col_model.predict(temp_data))
                 print("")
@@ -478,15 +501,12 @@ def hor_split(x_s, x_e, y_s, y_e, pixel_data_unchanged):
         else:
             temp_count = 0
 
-        if(temp_count > 3 + (y_e - y_s)/30):    #adjust this if its not working properly
+        if(temp_count > 3 + (y_e - y_s)/30):# Adjust this if its not working properly
             wbw_count += 1
             temp_count = 0
             FF = not FF
             if(wbw_count == 3):
                 split_loc = iter_num + y_s
-
-    #if(wbw_count >= 4):
-    #    print(white_lines)
 
     return (wbw_count >= 4), split_loc
 
@@ -529,7 +549,6 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
             SPLIT, split_loc = hor_split(x_s, x_e, y_s, y_e, pixel_data_unchanged) # ==========
 
             if(SPLIT):
-                #print("Image Split")
                 ANY_SPLIT = True
                 slice = pixel_data_unchanged[y_s:split_loc, x_s:x_e]
                 w, h = slice.shape
@@ -593,9 +612,6 @@ def debug(root, height, width, pixel_data, hor_lines, ver_lines, hor_lines_final
     if(0): #infered ver
         for inferred_ver_line in inferred_ver_lines:
             cv2.line(pixel_data, (inferred_ver_line, 0), (inferred_ver_line, height), (0,255,255), 1)
-    
-        #for guarenteed_inf_ver in guarenteed_inf_vers:
-        #    cv2.line(pixel_data, (guarenteed_inf_ver, 0), (guarenteed_inf_ver, height), (0,0,255), 1)
 
     if(0): #infer_hor
         for inferred_hor_line in inferred_hor_lines:
@@ -658,8 +674,6 @@ def run_main(image, root, identify_model, identify_model2, conc_col_model, valid
             prev_groups = groups
             inferred_hor_lines = inferred_hor_lines_temp
             inferred_hor_quality = inferred_hor_quality_temp
-            #print("INF HOR ", inferred_hor_lines)
-
 
         required_dist = .65 #TODO find a number that balances speed and accuracy
         prev_groups = -1
@@ -688,84 +702,72 @@ def run_main(image, root, identify_model, identify_model2, conc_col_model, valid
         ver_width_line, hor_width_line = lines_with_widths(ver_lines_final, hor_lines_final)
 
         final_data.append(image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_width_line, hor_width_line, scale))
-        #debug(root, height, width, pixel_data, hor_lines, ver_lines, hor_lines_final, ver_lines_final, inferred_hor_lines, inferred_ver_lines, guarenteed_inf_ver, conc_col_2D, ver_width_line, hor_width_line)
     return final_data 
 
-
 #######################START########################    
-write_tables = True
-cap = 10
-root =  r"C:/Users/Zach/Downloads/Table_extract_robust" #enter your local location to the setup folder	
-#pdf_loc = r"C:\Users\Zach\Downloads\Table_extract\PDFs\3ad4002-4006-4010.pdf"
+pyth_dir = os.path.dirname(__file__)
 
-pdf_loc = input("Enter a PDF's file location and name: ").lower()
-parameters = []
-print("Enter parameters to find (seperated by line, blank line to end)")
-while(1):
-    temp = input()
-    if(temp == ""):
-        break
-    parameters.append(temp) 
+parser = argparse.ArgumentParser(description='Table Extractor Tool')
+parser.add_argument('--weight_dir', required=True,
+                    help='weight directory')
+parser.add_argument('--pdf_dir', required=True,
+                    help='pdf directory')
+args = parser.parse_args()
 
-#print(parameters)
+concatenate_clean = True
 
-pages = convert_from_path(pdf_loc, 300)
+root = args.weight_dir
+pdf_loc = (args.pdf_dir).lower()
+start = int(input("Enter the PDF's starting page for the desired table extraction: "))
+cap = int(input("Enter the PDF's ending page for the desired table extraction: "))
 
-identify_model = load_model(os.path.join(root, r"Identification_Models\stage1.h5"))
-identify_model2 = load_model(os.path.join(root, r"Identification_Models\stage2.h5"))
+pages = convert_from_path(pdf_loc, 300, first_page=start, last_page=cap)
+
+identify_model = load_model(os.path.join(root, "Identification_Models", "stage1.h5"))
+identify_model2 = load_model(os.path.join(root, "Identification_Models", "stage2.h5"))
 conc_col_model = load_model(os.path.join(root, "conc_col.h5"))
 valid_cells_model = load_model(os.path.join(root, "valid_cells.h5"))
 
-
 array = []
 for image_num, image in enumerate(pages):
-    if(image_num >= cap):
-        break
-    #print("\n\nStarting page: ", image_num)
+    page_num = image_num + start
+    print("\n\nStarting page: ", page_num)
 
     image = np.array(image)	
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     temp_array = run_main(image, root, identify_model, identify_model2, conc_col_model, valid_cells_model)
-    #print(temp_array)
-    array += temp_array
 
+    a = []
+    for small_array in temp_array:
+        a += small_array
 
-parameter_xy = []
-keyword_locs = [] #min typ max
-keywords = ["min", "typ", "max"] 
-
-for table_loc, table in enumerate(array):
-    if(write_tables):
-        a = np.array(table)
-        with open(os.path.join(root, ("table_" + str(table_loc) + ".csv")), "w", newline="") as f:
+    if(not concatenate_clean):
+        with open(os.path.join(root, ("P" + str(page_num) + ".csv")), "w", newline="") as f:
             writer = csv.writer(f)
             writer.writerows(a)
-    keyword_locs_per_table = [-1, -1, -1]
-    parameter_xy_temp = [[-1, -1] for i in range(len(parameters))]
-    for row_num, row in enumerate(table):
+    else:
+        array += a
 
-        keyword_locs_temp = [-1, -1, -1]
-        keyword_count = 0
-        for cell_loc in range(len(row)):
-            for par_num, parameter in enumerate(parameters):
-                if(parameter in row[cell_loc].lower()):
-                    parameter_xy_temp[par_num] = [cell_loc, row_num]
+if(concatenate_clean):
+    cleaned_array = []
+    for row in array:
+        if(len(row) < 9):
+            has_extend = False
+            for cell in row:
+                if(cell == "^ EXTEND"):
+                    has_extend = True
 
-            for key_loc in range(len(keywords)):
-                if(keywords[key_loc] in row[cell_loc].lower()):
-                    keyword_locs_temp[key_loc] = cell_loc
-                    keyword_count += 1
+            if(has_extend):
+                for cell_num, cell in enumerate(row):
+                    if(cell != "^ EXTEND" and cell_num < len(cleaned_array[-1])):
+                        cleaned_array[-1][cell_num] += (" " + cell)
+            else:
+                cleaned_array.append(row)
 
-        if(keyword_count >= 2):
-            keyword_locs_per_table = keyword_locs_temp
+            print(cleaned_array)
 
-    keyword_locs.append(keyword_locs_per_table)
-    parameter_xy.append(parameter_xy_temp)
-
-for par_num in range(len(parameters)):
-    for single_num, single_array  in enumerate(array):
-        if(parameter_xy[single_num][par_num] != [-1, -1]):
-            for key_iter in range(3):
-                temp_value = single_array[(parameter_xy[single_num][par_num][1])][(keyword_locs[single_num][key_iter])]
-                if(keyword_locs[single_num][key_iter] != -1 and any(char.isdigit() for char in temp_value)):
-                    print(keywords[key_iter], " ", parameters[par_num], " = ", temp_value)
+    print(cleaned_array)
+    
+    with open(os.path.join(root, ("concatenate_table.csv")), "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerows(cleaned_array)

@@ -529,7 +529,8 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
         split_holder = []
         ANY_SPLIT = False
         while(x < len(ver_scaled)-1):
-            loc = os.path.join(root, "TempImages", "i" + str(y) +"_" + str(x) + ".jpg")
+            #loc = os.path.join(root, "TempImages", "i" + str(y) +"_" + str(x) + ".jpg")
+            loc = os.path.join(TempImages_dir, "i" + str(y) +"_" + str(x) + ".jpg")
             data_exists = contains_data[y][x]
             temp_x = x  
             while(temp_x < len(ver_scaled)-2 and conc_col_2D[y][temp_x]):
@@ -553,7 +554,8 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
                 slice = pixel_data_unchanged[y_s:split_loc, x_s:x_e]
                 w, h = slice.shape
                 slice2 = pixel_data_unchanged[split_loc:y_e, x_s:x_e] 
-                loc2 = os.path.join(root, "TempImages", "i_B" + str(y) +"_" + str(x) + ".jpg")
+                #loc2 = os.path.join(root, "TempImages", "i_B" + str(y) +"_" + str(x) + ".jpg")
+                loc2 = os.path.join(TempImages_dir, "i_B" + str(y) +"_" + str(x) + ".jpg")
                 cv2.imwrite(loc2,slice2)   
                 split_holder.append(pytesseract.image_to_string(loc2, config='--psm 7'))
             else:
@@ -708,23 +710,34 @@ def run_main(image, root, identify_model, identify_model2, conc_col_model, valid
 pyth_dir = os.path.dirname(__file__)
 
 parser = argparse.ArgumentParser(description='Table Extractor Tool')
-parser.add_argument('--weight_dir', required=True,
-                    help='weight directory')
-parser.add_argument('--pdf_dir', required=True,
-                    help='pdf directory')
+parser.add_argument('--weight_dir', required=True, help='weight directory')
+parser.add_argument('--pdf_dir', required=True, help='pdf directory')
+parser.add_argument('--work_dir', required=True, help='main work and output directory')
+parser.add_argument('--first_table_page', required=True, help='The first page that you want table extraction begins with')
+parser.add_argument('--last_table_page', required=True, help='The last page that you want table extraction ends with')
 args = parser.parse_args()
 
 concatenate_clean = True
 
 root = args.weight_dir
 pdf_loc = (args.pdf_dir).lower()
-start = int(input("Enter the PDF's starting page for the desired table extraction: "))
-cap = int(input("Enter the PDF's ending page for the desired table extraction: "))
-
+start = int(args.first_table_page)
+cap = int(args.last_table_page)
 pages = convert_from_path(pdf_loc, 300, first_page=start, last_page=cap)
 
-identify_model = load_model(os.path.join(root, "Identification_Models", "stage1.h5"))
-identify_model2 = load_model(os.path.join(root, "Identification_Models", "stage2.h5"))
+TempImages_dir = os.path.join(args.work_dir, "TempImages")
+try:
+    os.makedirs(TempImages_dir)
+    print("Directory " , TempImages_dir ,  " Created ") 
+except FileExistsError:
+    print("Directory " , TempImages_dir ,  " already exists")
+    print("Cleaning ipxact directory ...")
+    if len(os.listdir(TempImages_dir)) != 0:
+        for file in os.listdir(TempImages_dir):
+            os.remove(os.path.join(TempImages_dir,file))
+
+identify_model = load_model(os.path.join(root, r"Identification_Models", "stage1.h5"))
+identify_model2 = load_model(os.path.join(root, r"Identification_Models", "stage2.h5"))
 conc_col_model = load_model(os.path.join(root, "conc_col.h5"))
 valid_cells_model = load_model(os.path.join(root, "valid_cells.h5"))
 
@@ -763,11 +776,7 @@ if(concatenate_clean):
                         cleaned_array[-1][cell_num] += (" " + cell)
             else:
                 cleaned_array.append(row)
-
-            print(cleaned_array)
-
-    print(cleaned_array)
     
-    with open(os.path.join(root, ("concatenate_table.csv")), "w", newline="") as f:
+    with open(os.path.join(args.work_dir, "concatenate_table.csv"), "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerows(cleaned_array)

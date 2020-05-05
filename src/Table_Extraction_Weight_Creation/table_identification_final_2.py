@@ -177,7 +177,7 @@ conc_labels = np.array(conc_labels)
 
 
 
-if(0):
+if(1):
     output_size = int(Y_size/(2*label_precision))
     x_train, x_valid, y_train, y_valid = train_test_split(conc_data, conc_labels, test_size = 0.1, shuffle = False)
     keras_input = keras.layers.Input(shape=(Y_size,X_size,1), name='keras_input')
@@ -237,7 +237,7 @@ if(0):
             cv2.waitKey(0)
             cv2.destroyAllWindows() #PART 1
 
-if(0): #PART 2
+if(1): #PART 2
     x_train, x_valid, y_train, y_valid = train_test_split(conc_data2, conc_labels2, test_size = 0.1, shuffle = False)
     keras_input = keras.layers.Input(shape=(pTwo_size,pTwo_size,1), name='keras_input')
     conv = Conv2D(32, (5,5), activation="relu")(keras_input)

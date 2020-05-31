@@ -47,7 +47,17 @@ for filename in glob.glob(directory):
     
 
     try:  
-        df = df.drop(["Quantity Available","Factory Stock", "@ qty","Minimum Quantity" ], axis=1)         
+        df = df.drop(["Quantity Available","Factory Stock", "@ qty","Minimum Quantity" ], axis=1)    
+        #Change to path to the folder with all csv files
+        start = '/Users/zinebbenameur/Desktop/Desktop - MacBook Pro/Fasoc/filesall/'
+        end = '_'
+        #Add new subcategory column in the csv
+        subcategory = filename[filename.find(start)+len(start):filename.rfind(end)]
+        
+        
+        #subcategory = filename.split('_')[1]
+        df['Category'] = "IC"
+        df['Subcategory'] = subcategory
         if 'Operating Temperature' in df.columns:
             #print("----- Split temperature------",i)
             df[['min Operating Temp (°C)','max Operating Temp (°C)']] = df['Operating Temperature'].str.split('~',expand=True,)

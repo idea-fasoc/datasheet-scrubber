@@ -30,12 +30,20 @@ python digikey_web_scraping.py
 ```
 Please note that the script will take from few minutes to several hours depending on the number of components present in a given category.
 
-3. populate your local DB with the files extracted
+3. populate your local DB
+
+Only one of the following scripts needs to be run in order to populate the Database.
+
+3.1. populate your local DB with the files extracted (raw version)
 
 ```
 python populate_db_fron_csv.py
 ```
+3.2. populate your local DB with the files extracted (with data transformation)
 
+```
+python digikey_data_transformation.py
+```
 # How to create a local MongoDB instance from a JSON file
 **What’s MongoDB?**
 

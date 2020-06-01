@@ -91,8 +91,15 @@ To confirm that the records are now in MongoDB, do the following.
 
 5. Issue a `db.docs.find()` command to see the records in the “docs” collection.  The first twenty records will be returned.  Type “it” to see additional records.
 
+
 # Compass GUI for MongoDB
 
 To visually explore, query and interact with the data, it is recommended to use [Compass](https://www.mongodb.com/download-center/compass).
 
+# Complete tutorial
+
+This [document](https://umich.box.com/s/7xiozn2tr6e8doikobfntrp7hrykfkjn) gives a step by step guide on how to install MongoDB on other Operating Systems and how to perform queries. By the end of the tutorial you will be able to vizualize documents and search records in the Database using queries.
+
 Please contact [admin](zinebbe@umich.edu) for any question or concern related to this note.
+
+

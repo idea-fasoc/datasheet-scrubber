@@ -355,11 +355,9 @@ def merging_helper(im_arr): #This is a temporary fix and should not be needed wh
                 if(image[y, x] < 100):
                     black_count += 1
 
-            if(black_count > 95):
-                break
-        if(black_count > 95):
-            output_array.append(1)
-        else:
+        if(black_count >= 50 and black_count <= 98):	
+            output_array.append(1)	
+        else:	
             output_array.append(0)
 
     return output_array
@@ -415,7 +413,7 @@ def concatenate(root, pixel_data, ver_lines_final, hor_lines_final, conc_col_mod
     contains_data = np.zeros((y_len, x_len+1))
     for y in range(y_len): 
         for x in range(x_len): 
-            if(pred[x+y*x_len][0] > .5 and helper_output == 1):
+            if(pred[x+y*x_len][0] > .5 and helper_output[x+y*x_len] == 1):
                 conc_col_2D[y][x] = 1
 
             if(pred2[x+y*x_len][0] > .5):

@@ -11,7 +11,7 @@ import xml.etree.ElementTree as ET
 import numpy as np
 
 
-root = r"C:\Users\Zach\Downloads\Table_extract_robust"
+root = r"/Users/serafinakamp/Desktop/TableExt/opt_branch/datasheet-scrubber/src/Table_Extraction_Weight_Creation"
 dim = 800
 
 xmls = os.listdir(os.path.join(root, "modern_xml"))
@@ -40,15 +40,15 @@ for x in range(99):
         points_arr = []
         temp_str = ""
         ff = False
-        for char in points:   
-            if(char.isdigit()): 
-                temp_str += char 
+        for char in points:
+            if(char.isdigit()):
+                temp_str += char
             else:
                 if(ff):
                     points_arr.append((num_storage, int(temp_str)))
                 else:
                     num_storage = int(temp_str)
-                temp_str = ""  
+                temp_str = ""
                 ff = not ff
         points_arr += [(num_storage, int(temp_str)), points_arr[0]] #last added to complete the rectangle
 

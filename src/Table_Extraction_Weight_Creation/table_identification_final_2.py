@@ -1,12 +1,44 @@
 import keras
+import tensorflow as tf
 from keras.layers import Dense, Conv2D, Permute, MaxPooling2D, Flatten, Reshape, Dropout, Concatenate
 import os
 import numpy as np
 import cv2
 import xml.etree.ElementTree as ET
-import copy 
+import copy
 from keras.models import load_model
 from sklearn.model_selection import train_test_split
+
+
+###trying to implement RoI layer
+def Class RoI(keras.layers.Layer):
+    def __init__(self,pool_height,pool_width,**kwargs):
+        self.pool_height = pool_height
+        self.pool_width = pool_width
+        super(Roi,self).__init__(**kwargs)
+
+    #image_batch_input[batch_size x img_width x img_height x channels]
+    #rois_batch_input[batch_size x n_rois_per_image x 4], each roi: [minX,minY,maxX,maxY]
+    def call(self,image_batch_input,rois_batch_input):
+        for i,image in enumerate(image_batch_input):
+            for roi in enumerate(rois_batch_input[i]):
+                minX = roi[0]
+                minY = roi[1]
+                maxX = roi[2]
+                maxY = roi[3]
+                dx = floor((maxX-minX)/self.pool_width)
+                dy = floor((maxY-minY)/self.pool_height)
+                out_map = np.zeros((self.pool_height,self.pool_width))
+                for h in range(self.pool_height):
+                    for w in range(self.pool_width):
+                        x_lower = minX + w*dx
+                        x_upper = minX + (w+1)*dx
+                        y_lower = minY + h*dy
+                        y_upper = minY + (h+1)*dy
+                        region_area = image[x_lower:min(x_upper,maxX),y_lower:min(y_upper,maxY)]
+                        out_map[h][w] = max(list(map(max,region_area)))
+                return out_map
+
 
 def get_coordinates_from_string(str):
     min_vals = [10000, 10000]
@@ -39,7 +71,7 @@ def table_locations(xml_loc):
             min_vals, max_vals = get_coordinates_from_string(data)
             locs.append([min_vals[0], max_vals[0], min_vals[1], max_vals[1]])
         except:
-            break  
+            break
         i += 1
     return locs #list of 4 element arrays [minX, maxX, minY, maxY]
 
@@ -74,7 +106,7 @@ def label_creater(pixel_data, label_precision, Y_size, locs):
     label_bias = int(Y_size/(4*label_precision))
 
     slice_skip_size = int(Y_size/2)
-    
+
     iter = 0
     while((iter*slice_skip_size + Y_size) < height):
         s_iter = iter*slice_skip_size
@@ -108,7 +140,7 @@ def part_two_creation(original_pixel_data, table_locs_original, pTwo_size, cuts_
 
                 for x in range(int(cuts_labels*table_locs_original[table_iter+1][0]/width), int(cuts_labels*table_locs_original[table_iter+1][1]/width)+1):
                     label_temp[x] = 1
-                
+
                 labels.append(label_temp)
                 table_iter += 2
                 continue
@@ -121,7 +153,7 @@ def part_two_creation(original_pixel_data, table_locs_original, pTwo_size, cuts_
     return slices, labels
 
 ########Start
-root_folder = r"C:\Users\Zach\Downloads\Table_extract_robust"
+root_folder = r"/Users/serafinakamp/Desktop/TableExt/opt_branch/datasheet-scrubber/src"
 image_folder_loc = os.path.join(root_folder, "modern_images")
 xml_folder_loc = os.path.join(root_folder, "modern_xml")
 
@@ -154,7 +186,7 @@ for i in range(len(image_locs)):
     original_pixel_data = pixel_data.copy()
 
     table_locs = table_locations(xml_loc)
-    table_locs_original = copy.deepcopy(table_locs) 
+    table_locs_original = copy.deepcopy(table_locs)
     table_locs_hold.append(table_locs_original)
 
     pixel_data = resize(X_size, pixel_data, table_locs)
@@ -177,7 +209,7 @@ conc_labels = np.array(conc_labels)
 
 
 
-if(1):
+if(0):
     output_size = int(Y_size/(2*label_precision))
     x_train, x_valid, y_train, y_valid = train_test_split(conc_data, conc_labels, test_size = 0.1, shuffle = False)
     keras_input = keras.layers.Input(shape=(Y_size,X_size,1), name='keras_input')
@@ -201,7 +233,7 @@ if(1):
         conv = MaxPooling2D((2,2))(temp3)
         conv = Dropout(0.2)(conv)
 
-        
+
     denseLayer = Flatten()(conv)
     denseLayer = Dense(512, activation="relu")(denseLayer)
     denseLayer = Dense(512, activation="relu")(denseLayer)
@@ -218,7 +250,7 @@ if(1):
     model = keras.models.Model(inputs=keras_input, outputs=out)
     model.compile(loss=keras.losses.binary_crossentropy, optimizer='adam', metrics=["accuracy"])
 
-    model.save(r"C:\Users\Zach\Downloads\Table_extract_robust\Identification_Models\stage1.h5")    
+    model.save(r"/Users/serafinakamp/Desktop/TableExt/opt_branch/datasheet-scrubber/src/cnn_models/stage1.h5")
 
     if(0):  #debug
         bias = Y_size/4
@@ -231,13 +263,13 @@ if(1):
                 if(test_data[data_loc] > .5):
                     start_points = (0, int(bias + data_loc*label_precision)+1)
                     end_points = (X_size, int(bias + (data_loc+1)*label_precision)-1)
-                    img = cv2.rectangle(img, start_points, end_points, 0, 1) 
+                    img = cv2.rectangle(img, start_points, end_points, 0, 1)
 
             cv2.imshow('image', img)
             cv2.waitKey(0)
             cv2.destroyAllWindows() #PART 1
 
-if(1): #PART 2
+if(0): #PART 2
     x_train, x_valid, y_train, y_valid = train_test_split(conc_data2, conc_labels2, test_size = 0.1, shuffle = False)
     keras_input = keras.layers.Input(shape=(pTwo_size,pTwo_size,1), name='keras_input')
     conv = Conv2D(32, (5,5), activation="relu")(keras_input)
@@ -255,7 +287,7 @@ if(1): #PART 2
         conv = MaxPooling2D((2,2))(conv)
         conv = Conv2D(64, (3,3), activation="relu")(conv)
         conv = Dropout(0.2)(conv)
-        
+
     denseLayer = Flatten()(conv)
     denseLayer = Dense(512, activation="relu")(denseLayer)
     denseLayer = Dense(512, activation="relu")(denseLayer)
@@ -266,7 +298,7 @@ if(1): #PART 2
     model.compile(loss=keras.losses.binary_crossentropy, optimizer='adam', metrics=["accuracy"])
     model.fit(x_train, y_train, validation_data = (x_valid, y_valid), epochs = 20)
 
-    model.save(r"C:\Users\Zach\Downloads\Table_extract_robust\Identification_Models\stage2.h5")   
+    model.save(r"/Users/serafinakamp/Desktop/TableExt/opt_branch/datasheet-scrubber/src/cnn_models/stage2.h5")
 
     if(0):  #debug
         for im_num in range(len(x_valid)):
@@ -277,25 +309,30 @@ if(1): #PART 2
                 if(test_data[data_loc] > .5):
                     start_points = (int(data_loc*pTwo_size/cuts_labels)+1, 0)
                     end_points = (int((data_loc+1)*pTwo_size/cuts_labels)-1, pTwo_size)
-                    img = cv2.rectangle(img, start_points, end_points, 0, 1) 
+                    img = cv2.rectangle(img, start_points, end_points, 0, 1)
 
             cv2.imshow('image', img)
             cv2.waitKey(0)
             cv2.destroyAllWindows() #PART 2
+#PART 3
+if(1):
+    ##TODO implement final CNN to add roi layer
+    #testing ROI layers
+    image_batch_input = 
 
 total_prec = 0
 total_recall = 0
 
 if(1): #wrapper
-    model1 = load_model(os.path.join(root_folder, r"Identification_Models\stage1.h5"))
-    model2 = load_model(os.path.join(root_folder, r"Identification_Models\stage2.h5"))
+    model1 = load_model(os.path.join(root_folder, r"cnn_models/stage1.h5"))
+    model2 = load_model(os.path.join(root_folder, r"cnn_models/stage2.h5"))
     y_fail_num = 2
     for i_num, i in enumerate(image_locs):
         pixel_data = cv2.imread(i, 0)
         original_pixel_data_255 = pixel_data.copy()
         pixel_data = cv2.normalize(pixel_data, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
         original_pixel_data = pixel_data.copy()
- 
+
         height, width = pixel_data.shape
         scale = X_size/width
 
@@ -308,12 +345,12 @@ if(1): #wrapper
         while((iter*slice_skip_size + Y_size) < int(height*scale+Y_size/2)):
             s_iter = iter*slice_skip_size
             slices.append(bordered_pixel_data[int(s_iter):int(s_iter+Y_size)])
-            iter += 1  
+            iter += 1
 
         slices = np.array(np.expand_dims(slices,  axis = -1))
 
         data = model1.predict(slices)
-        
+
         conc_data = []
         for single_array in data:
             for single_data in single_array:
@@ -333,7 +370,7 @@ if(1): #wrapper
                     groups.append((int((group_start-1)*label_precision/scale), int((iter+1-y_fail_num)*label_precision/scale)))
                 group_start = iter
 
- 
+
 
         groups2 = []
         for group in groups:
@@ -402,7 +439,3 @@ if(1): #wrapper
 
     print(total_prec / len(image_locs))
     print(total_recall / len(image_locs))
-            
-
-
-

@@ -6,39 +6,85 @@ import numpy as np
 import cv2
 import xml.etree.ElementTree as ET
 import copy
-from keras.models import load_model
+from keras.models import load_model, Model
 from sklearn.model_selection import train_test_split
+import math
+import random
 
 
 ###trying to implement RoI layer
-def Class RoI(keras.layers.Layer):
+class RoI(keras.layers.Layer):
     def __init__(self,pool_height,pool_width,**kwargs):
         self.pool_height = pool_height
         self.pool_width = pool_width
-        super(Roi,self).__init__(**kwargs)
+        super(RoI,self).__init__(**kwargs)
 
-    #image_batch_input[batch_size x img_width x img_height x channels]
+
+    def compute_output_shape(self,input_shape):
+        feature_map, rois_shape = input_shape
+        batch_size = rois_shape[0]
+        output_shape = (batch_size,rois_shape[1],self.pool_height,self.pool_width,feature_map[-1])
+        return output_shape
+
+    #image_batch_input[batch_size x img_width x img_height]
     #rois_batch_input[batch_size x n_rois_per_image x 4], each roi: [minX,minY,maxX,maxY]
-    def call(self,image_batch_input,rois_batch_input):
-        for i,image in enumerate(image_batch_input):
-            for roi in enumerate(rois_batch_input[i]):
-                minX = roi[0]
-                minY = roi[1]
-                maxX = roi[2]
-                maxY = roi[3]
-                dx = floor((maxX-minX)/self.pool_width)
-                dy = floor((maxY-minY)/self.pool_height)
-                out_map = np.zeros((self.pool_height,self.pool_width))
-                for h in range(self.pool_height):
-                    for w in range(self.pool_width):
-                        x_lower = minX + w*dx
-                        x_upper = minX + (w+1)*dx
-                        y_lower = minY + h*dy
-                        y_upper = minY + (h+1)*dy
-                        region_area = image[x_lower:min(x_upper,maxX),y_lower:min(y_upper,maxY)]
-                        out_map[h][w] = max(list(map(max,region_area)))
-                return out_map
+    def call(self,input):
 
+        #call function to apply element-wise
+        def elements_pool(input):
+            return RoI.all_rois(input[0],input[1],self.pool_height,self.pool_width)
+        final = tf.map_fn(elements_pool,input,dtype=tf.float32)
+        return final
+
+    @staticmethod
+    def all_rois(image, rois,pool_height,pool_width):
+
+        #call function on one element
+        def element_pool(roi):
+            return RoI.one_roi(image,roi,pool_height,pool_width)
+        maps = tf.map_fn(element_pool,rois,dtype=tf.float32)
+        return maps
+
+    @staticmethod
+    def one_roi(image,roi,pool_height,pool_width):
+        minX = tf.cast(roi[0],'int32')
+        minY = tf.cast(roi[1],'int32')
+        maxX = tf.cast(roi[2],'int32')
+        maxY = tf.cast(roi[3],'int32')
+        dx = tf.cast(((maxX-minX)/pool_width),'int32')
+        dy = tf.cast(((maxY-minY)/pool_height),'int32')
+        areas = [[
+        (minX + w*dx,
+        minX + (w+1)*dx if w+1 < pool_width else maxX,
+        minY + h*dy,
+        minY + (h+1)*dy if h+1 < pool_height else maxY)
+        for w in range(pool_width)]
+        for h in range(pool_height)]
+
+        def max_areas(vals):
+            return tf.math.reduce_max(image[vals[0]:vals[1],vals[2]:vals[3],:],axis=[0,1])
+        stacked_features = tf.stack([[max_areas(vals) for vals in row] for row in areas])
+
+        return stacked_features
+
+def calc_IoU(xml,proposed):
+    intersection = 0
+    xmlMinX = xml[0]
+    xmlMinY = xml[2]
+    xmlMaxX = xml[1]
+    xmlMaxY = xml[3]
+    propMinX = proposed[0]
+    propMinY = proposed[1]
+    propMaxX = proposed[2]
+    propMaxY = proposed[3]
+    width_shared = min(propMaxX,xmlMaxX) - max(propMinX,xmlMinX)
+    height_shared = min(propMaxY,xmlMaxY) - max(propMinY,xmlMinY)
+    if width_shared > 0 and height_shared > 0:
+        intersection = width_shared*height_shared
+    xmlArea = (xmlMaxX-xmlMinX)*(xmlMaxY-xmlMinY)
+    propArea = (propMaxX-propMinX)*(propMaxY-propMinY)
+    union = xmlArea + propArea - intersection
+    return intersection/union
 
 def get_coordinates_from_string(str):
     min_vals = [10000, 10000]
@@ -75,22 +121,36 @@ def table_locations(xml_loc):
         i += 1
     return locs #list of 4 element arrays [minX, maxX, minY, maxY]
 
-def resize(X_size, pixel_data, locs):
+def resize(X_size,Y_size, pixel_data, locs): #locs = [minX,minY,maxX,maxY]
     height, width = pixel_data.shape
-    scale = X_size/width
+    scaleX = X_size/width
+    scaleY = Y_size/height
     temp_image = pixel_data.copy()
-    mod_height = int(height*scale)
+    mod_height = int(height*scaleX)
 
-    temp_image = cv2.resize(temp_image, (X_size, mod_height)) #X, then Y
+    temp_image = cv2.resize(temp_image, (X_size, Y_size)) #X, then Y
     for loc in locs:
-        loc[0] *= scale
-        loc[1] *= scale
-        loc[2] *= scale
-        loc[3] *= scale
+        orig_x_dist = loc[2]-loc[0]
+        orig_y_dist = loc[3]-loc[1]
+        loc[0] = math.ceil(loc[0]*scaleX)
+        loc[1] = math.ceil(loc[1]*scaleX)
+        loc[2] = math.ceil(scaleX*orig_x_dist+loc[0])
+        loc[3] = math.ceil(scaleY*orig_y_dist+loc[1])
+
+        '''
+        top_left = (loc[0],loc[1])
+        top_right = (loc[2],loc[1])
+        bot_left = (loc[0],loc[3])
+        bot_right = (loc[2],loc[3])
+        cv2.line(temp_image, top_left, bot_left, (0,255,0), 1)
+        cv2.line(temp_image, top_left, top_right, (0,255,0), 1)
+        cv2.line(temp_image, bot_left, bot_right, (0,255,0), 1)
+        cv2.line(temp_image, top_right, bot_right, (0,255,0), 1)
+        '''
     #cv2.imshow('image', temp_image)
     #cv2.waitKey(0)
     #cv2.destroyAllWindows()
-    return temp_image #, locs
+    return temp_image, locs
 
 def label_creater(pixel_data, label_precision, Y_size, locs):
     height, width = pixel_data.shape
@@ -154,17 +214,25 @@ def part_two_creation(original_pixel_data, table_locs_original, pTwo_size, cuts_
 
 ########Start
 root_folder = r"/Users/serafinakamp/Desktop/TableExt/opt_branch/datasheet-scrubber/src"
-image_folder_loc = os.path.join(root_folder, "modern_images")
-xml_folder_loc = os.path.join(root_folder, "modern_xml")
+image_folder_loc = "/Users/serafinakamp/Desktop/TableExt/datasheet-scrubber/src/Table_Extraction_Weight_Creation/img_bound_train"
+xml_folder_loc = "/Users/serafinakamp/Desktop/TableExt/datasheet-scrubber/src/Table_Extraction_Weight_Creation/xml_bound_train"
 
 image_locs = []
 xml_locs = []
 
-for file in os.listdir(image_folder_loc):
+imgs = os.listdir(image_folder_loc)
+xmls = os.listdir(xml_folder_loc)
+
+imgs.sort()
+xmls.sort()
+
+
+for file in imgs[:50]:
     image_locs.append(os.path.join(image_folder_loc, file))
 
-for file in os.listdir(xml_folder_loc):
+for file in xmls[:50]:
     xml_locs.append(os.path.join(xml_folder_loc, file))
+print(len(image_locs))
 
 conc_data, conc_data2 = [], []
 conc_labels, conc_labels2 = [], []
@@ -189,6 +257,7 @@ for i in range(len(image_locs)):
     table_locs_original = copy.deepcopy(table_locs)
     table_locs_hold.append(table_locs_original)
 
+    '''
     pixel_data = resize(X_size, pixel_data, table_locs)
 
     slices, s_lables = label_creater(pixel_data, label_precision, Y_size, table_locs)
@@ -198,14 +267,15 @@ for i in range(len(image_locs)):
     s2, l2 = part_two_creation(original_pixel_data, table_locs_original, pTwo_size, cuts_labels)
     conc_data2 += s2
     conc_labels2 += l2
-
+    '''
+'''
 conc_data2 = np.array(np.expand_dims(conc_data2,  axis = -1))
 conc_labels2 = np.array(conc_labels2)
 
 conc_data = np.array(np.expand_dims(conc_data,  axis = -1))
 conc_labels = np.array(conc_labels)
 ##############################
-
+'''
 
 
 
@@ -314,12 +384,8 @@ if(0): #PART 2
             cv2.imshow('image', img)
             cv2.waitKey(0)
             cv2.destroyAllWindows() #PART 2
-#PART 3
-if(1):
-    ##TODO implement final CNN to add roi layer
-    #testing ROI layers
-    image_batch_input = 
 
+##Create bounding boxes for each image using part 1/2
 total_prec = 0
 total_recall = 0
 
@@ -327,7 +393,14 @@ if(1): #wrapper
     model1 = load_model(os.path.join(root_folder, r"cnn_models/stage1.h5"))
     model2 = load_model(os.path.join(root_folder, r"cnn_models/stage2.h5"))
     y_fail_num = 2
+
+    input_roi = []
+    input_image = []
+    roi=[]
+    num_roi = 10 #fixed number of rois
+
     for i_num, i in enumerate(image_locs):
+        print(i_num+1, " of ", len(image_locs))
         pixel_data = cv2.imread(i, 0)
         original_pixel_data_255 = pixel_data.copy()
         pixel_data = cv2.normalize(pixel_data, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
@@ -397,12 +470,19 @@ if(1): #wrapper
             else:
                 groups2.append((hor_start, hor_finish))
 
+
+        #testing ROI layers
+
+        #[minX,minY,maxX,maxY] follows [groups2[i][0],groups[i][0],groups2[i][1],groups[i][1]]
+
         #final_splits = []
         xml_locs = table_locs_hold[i_num] #list of 4 element arrays [minX, maxX, minY, maxY]
 
         data_shared = 0
+        all_roi_coords=[]
         for iter in range(len(groups)):
             final_split = original_pixel_data_255[groups[iter][0]:groups[iter][1], groups2[iter][0]:groups2[iter][1]]
+            all_roi_coords.append([groups2[iter][0],groups[iter][0],groups2[iter][1],groups[iter][1]])
             #final_splits.append(final_split)
 
             for xml_temp in xml_locs:
@@ -414,11 +494,39 @@ if(1): #wrapper
                 cv2.imshow('image', final_split)
                 cv2.waitKey(0)
                 cv2.destroyAllWindows()
-                print(xml_locs)
+                print(np.shape(final_split))
                 cv2.imshow('image', original_pixel_data_255[xml_locs[0][2]:xml_locs[0][3], xml_locs[0][0]:xml_locs[0][1]])
                 cv2.waitKey(0)
                 cv2.destroyAllWindows()
 
+        #pad to num_roi RoI
+        while len(all_roi_coords) < num_roi:
+            rand_ind = math.floor(random.random()*len(all_roi_coords))
+            #scale by 1/2 - maxX = maxX/2, maxY = maxY/2
+            all_roi_coords.append([all_roi_coords[rand_ind][0],all_roi_coords[rand_ind][1],int(all_roi_coords[rand_ind][2]/2),int(all_roi_coords[rand_ind][3]/2)])
+        #if greater than 10, essentially a dropout layers
+        while len(all_roi_coords) > num_roi:
+            random.seed()
+            rand_ind = math.floor(random.random()*len(all_roi_coords))
+            all_roi_coords.pop(rand_ind)
+        assert(len(all_roi_coords)==num_roi)
+
+        roi_labels=[]
+
+        #create labels for RoI - 1 if IoU is very close to 1 (say >0.95)
+        for region in all_roi_coords:
+            label = 0
+            for xml_box in xml_locs:
+                IoU = calc_IoU(xml_box,region)
+                if IoU > 0.80:
+                    label = 1
+                    break
+            roi_labels.append(label)
+        input_roi.append(roi_labels)
+        input_image.append(original_pixel_data)
+        roi.append(all_roi_coords)
+
+        '''
         total_predicted_area = 0
 
         for iter in range(len(groups)):
@@ -436,6 +544,55 @@ if(1): #wrapper
 
         total_prec += data_shared/total_predicted_area
         total_recall += data_shared/total_real_data
+        '''
 
-    print(total_prec / len(image_locs))
-    print(total_recall / len(image_locs))
+    for i,im in enumerate(input_image):
+        input_image[i],roi[i]=resize(200,300,im,roi[i])
+    assert(len(input_image)==len(input_roi))
+    assert(len(input_image)==len(roi))
+
+    #PART 3 - testing RoI
+    if(1):
+        x_train,x_valid,y_train,y_valid = train_test_split(input_image,input_roi,test_size=0.1,shuffle=False)
+        roi_train=[]
+        roi_valid=[]
+        valid_ind=0
+        for i,r in enumerate(roi):
+            if i < len(x_train):
+                roi_train.append(r)
+                x_train[i] = np.expand_dims(x_train[i],axis=-1)
+            else:
+                roi_valid.append(r)
+                x_valid[valid_ind] = np.expand_dims(x_valid[valid_ind],axis=-1)
+                valid_ind=valid_ind+1
+        assert(len(x_train)==len(roi_train))
+        assert(len(x_valid)==len(roi_valid))
+        print(np.shape(x_train))
+
+        image_input = keras.layers.Input(shape=(300,200,1), name="image_input")
+        bound_box = keras.layers.Input(shape=(10,4), name="bound_box")
+
+
+        ##TODO implement final CNN to add roi layer
+        conv = Conv2D(16,(5,5),activation="relu",padding="same")(image_input)
+        conv = Conv2D(16,(5,5),activation="relu",padding="same")(conv)
+        conv = Conv2D(16,(5,5),activation="relu",padding="same")(conv)
+        conv = keras.models.Model(inputs=image_input,outputs=conv)
+
+        roi = RoI(2,2)([conv.output,bound_box])
+
+        #dense = Flatten()(roi)
+        dense = Dense(256, activation="relu")(roi)
+        dense = Dense(256, activation="relu")(dense)
+        dense = Flatten()(dense)
+        out = Dense(num_roi,activation="sigmoid")(dense)
+
+        model = keras.models.Model(inputs=[conv.input,bound_box], outputs=out)
+        model.compile(loss=keras.losses.binary_crossentropy, optimizer='adam', metrics=["accuracy"])
+        print(model.summary())
+        model.fit(x=[x_train,roi_train], y=[y_train], validation_data = ([x_valid,roi_valid], [y_valid]), epochs = 10)
+
+        model.save(r"/Users/serafinakamp/Desktop/TableExt/opt_branch/datasheet-scrubber/src/cnn_models/roi_test.h5")
+
+    #print(total_prec / len(image_locs))
+    #print(total_recall / len(image_locs))

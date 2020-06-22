@@ -14,7 +14,7 @@ import random
 
 ###trying to implement RoI layer
 class RoI(keras.layers.Layer):
-    def __init__(self,pool_height,pool_width,**kwargs):
+    def __init__(self,pool_height=2,pool_width=2,**kwargs):
         self.pool_height = pool_height
         self.pool_width = pool_width
         super(RoI,self).__init__(**kwargs)
@@ -146,10 +146,11 @@ def resize(X_size,Y_size, pixel_data, locs): #locs = [minX,minY,maxX,maxY]
         cv2.line(temp_image, top_left, top_right, (0,255,0), 1)
         cv2.line(temp_image, bot_left, bot_right, (0,255,0), 1)
         cv2.line(temp_image, top_right, bot_right, (0,255,0), 1)
-        '''
-    #cv2.imshow('image', temp_image)
-    #cv2.waitKey(0)
-    #cv2.destroyAllWindows()
+
+    cv2.imshow('image', temp_image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    '''
     return temp_image, locs
 
 def label_creater(pixel_data, label_precision, Y_size, locs):
@@ -227,10 +228,10 @@ imgs.sort()
 xmls.sort()
 
 
-for file in imgs[:50]:
+for file in imgs[:100]:
     image_locs.append(os.path.join(image_folder_loc, file))
 
-for file in xmls[:50]:
+for file in xmls[:100]:
     xml_locs.append(os.path.join(xml_folder_loc, file))
 print(len(image_locs))
 
@@ -480,6 +481,9 @@ if(1): #wrapper
 
         data_shared = 0
         all_roi_coords=[]
+        #add real data
+        for xml_box in xml_locs:
+            all_roi_coords.append([xml_box[0],xml_box[2],xml_box[1],xml_box[3]])
         for iter in range(len(groups)):
             final_split = original_pixel_data_255[groups[iter][0]:groups[iter][1], groups2[iter][0]:groups2[iter][1]]
             all_roi_coords.append([groups2[iter][0],groups[iter][0],groups2[iter][1],groups[iter][1]])
@@ -513,12 +517,12 @@ if(1): #wrapper
 
         roi_labels=[]
 
-        #create labels for RoI - 1 if IoU is very close to 1 (say >0.95)
+        #create labels for RoI - 1 if IoU is very close to 1 (say >0.80)
         for region in all_roi_coords:
             label = 0
             for xml_box in xml_locs:
                 IoU = calc_IoU(xml_box,region)
-                if IoU > 0.80:
+                if IoU > 0.90:
                     label = 1
                     break
             roi_labels.append(label)
@@ -547,7 +551,7 @@ if(1): #wrapper
         '''
 
     for i,im in enumerate(input_image):
-        input_image[i],roi[i]=resize(200,300,im,roi[i])
+        input_image[i],roi[i]=resize(300,400,im,roi[i])
     assert(len(input_image)==len(input_roi))
     assert(len(input_image)==len(roi))
 
@@ -567,32 +571,45 @@ if(1): #wrapper
                 valid_ind=valid_ind+1
         assert(len(x_train)==len(roi_train))
         assert(len(x_valid)==len(roi_valid))
-        print(np.shape(x_train))
 
-        image_input = keras.layers.Input(shape=(300,200,1), name="image_input")
+        image_input = keras.layers.Input(shape=(400,300,1), name="image_input")
         bound_box = keras.layers.Input(shape=(10,4), name="bound_box")
 
 
         ##TODO implement final CNN to add roi layer
-        conv = Conv2D(16,(5,5),activation="relu",padding="same")(image_input)
-        conv = Conv2D(16,(5,5),activation="relu",padding="same")(conv)
-        conv = Conv2D(16,(5,5),activation="relu",padding="same")(conv)
+        conv = Conv2D(32,(3,3),activation="relu",padding="same")(image_input)
+        conv = MaxPooling2D((2,2),padding="same")(conv)
+        conv = Conv2D(32,(3,3),activation="relu",padding="same")(conv)
+        conv = Conv2D(32,(3,3),activation="relu",padding="same")(conv)
+        conv = Dropout(0.2)(conv)
         conv = keras.models.Model(inputs=image_input,outputs=conv)
 
         roi = RoI(2,2)([conv.output,bound_box])
 
-        #dense = Flatten()(roi)
-        dense = Dense(256, activation="relu")(roi)
+        dense = Flatten()(roi)
         dense = Dense(256, activation="relu")(dense)
-        dense = Flatten()(dense)
+        dense = Dense(256, activation="relu")(dense)
+        #dense = Flatten()(dense)
         out = Dense(num_roi,activation="sigmoid")(dense)
 
         model = keras.models.Model(inputs=[conv.input,bound_box], outputs=out)
-        model.compile(loss=keras.losses.binary_crossentropy, optimizer='adam', metrics=["accuracy"])
+        model.compile(loss=keras.losses.binary_crossentropy, optimizer=keras.optimizers.Adam(learning_rate=0.01), metrics=["accuracy"])
         print(model.summary())
-        model.fit(x=[x_train,roi_train], y=[y_train], validation_data = ([x_valid,roi_valid], [y_valid]), epochs = 10)
+        model.fit(x=[x_train,roi_train], y=[y_train], validation_data = ([x_valid,roi_valid], [y_valid]),batch_size=20, epochs = 10)
 
         model.save(r"/Users/serafinakamp/Desktop/TableExt/opt_branch/datasheet-scrubber/src/cnn_models/roi_test.h5")
+
+    if (0):
+        model3 = load_model(os.path.join(root_folder, r"cnn_models/roi_test.h5"),custom_objects={"RoI":RoI})
+
+        image = np.array(input_image[0])
+        image = np.expand_dims(image,axis=-1)
+        image = np.expand_dims(image,axis=0)
+        roi_in = np.array(roi[0])
+        roi_in = np.expand_dims(roi_in,axis=0)
+        predictions = model3.predict([image,roi_in])
+        print(predictions)
+
 
     #print(total_prec / len(image_locs))
     #print(total_recall / len(image_locs))

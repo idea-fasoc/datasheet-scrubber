@@ -13,20 +13,17 @@ import random
 import sys
 
 
-###trying to implement RoI layer
+
+
+###trying to implement RoI layer GOOGLE COLAB !!
 class RoI(keras.layers.Layer):
-    def __init__(self,pool_height=2,pool_width=2,**kwargs):
+    def __init__(self,pool_height=5,pool_width=5,**kwargs):
         self.pool_height = pool_height
         self.pool_width = pool_width
         super(RoI,self).__init__(**kwargs)
-
+    #dont need this
     def build(self, input_shape):
-        features,rois = input_shape
-        weights = tf.keras.initializers.Ones()
-        self.w = tf.Variable(lambda: weights(shape=(features[-1],self.pool_height,self.pool_width), dtype='float32'),
-        trainable=False)
-        biases = tf.keras.initializers.Zeros()
-        self.b = tf.Variable(lambda: biases(shape=(self.pool_height,self.pool_width),dtype='float32'),trainable=False)
+        return
 
 
     def compute_output_shape(self,input_shape):
@@ -38,25 +35,27 @@ class RoI(keras.layers.Layer):
     #image_batch_input[batch_size x img_width x img_height]
     #rois_batch_input[batch_size x n_rois_per_image x 4], each roi: [minX,minY,maxX,maxY]
     def call(self,input):
-
+        print("in call")
         #call function to apply element-wise
-        def elements_pool(input):
+        def max_regions(input):
             return RoI.all_rois(input[0],input[1],self.pool_height,self.pool_width)
-        final = tf.map_fn(elements_pool,input,dtype=tf.float32)
-        tf.print(final, output_stream=sys.stdout)
+        final = tf.map_fn(max_regions,input,dtype=tf.float32)
+        #tf.print(final, output_stream=sys.stdout)
         return final
 
     @staticmethod
-    def all_rois(image, rois,pool_height,pool_width):
-
+    def all_rois(image,rois,pool_height,pool_width):
+        print("in all_rois")
         #call function on one element
-        def element_pool(roi):
+        def max_of_one_region(roi):
             return RoI.one_roi(image,roi,pool_height,pool_width)
-        maps = tf.map_fn(element_pool,rois,dtype=tf.float32)
+        #maps is a stack of 10 regions of dimension pool_height x pool_width
+        maps = tf.map_fn(max_of_one_region,rois,dtype=tf.float32)
         return maps
 
     @staticmethod
     def one_roi(image,roi,pool_height,pool_width):
+        print("in one roi")
         minX = tf.cast(roi[0],'int32')
         minY = tf.cast(roi[1],'int32')
         maxX = tf.cast(roi[2],'int32')
@@ -72,10 +71,19 @@ class RoI(keras.layers.Layer):
         for h in range(pool_height)]
 
         def max_areas(vals):
-            return tf.math.reduce_max(image[vals[0]:vals[1],vals[2]:vals[3],:],axis=[0,1])
+            return tf.math.reduce_max(image[vals[2]:vals[3],vals[0]:vals[1],:],axis=[0,1])
         stacked_features = tf.stack([[max_areas(vals) for vals in row] for row in areas])
 
         return stacked_features
+
+#custom loss (l1 reg) for bounding box regression
+def custom_loss(y_actual,y_pred):
+
+    loss = tf.reduce_sum(tf.abs(tf.subtract(y_actual,y_pred)))
+    #epsilon to protect against large loss values - take 50% of difference
+    epsilon = 0.5
+    total_loss = tf.math.scalar_mul(epsilon,loss)
+    return total_loss
 
 def calc_IoU(xml,proposed):
     intersection = 0
@@ -176,8 +184,8 @@ def resize(X_size,Y_size, pixel_data, locs): #locs = [minX,minY,maxX,maxY]
     mod_height = int(height*scaleX)
 
     temp_image = cv2.resize(temp_image, (X_size, Y_size)) #X, then Y
-    first = True
     for loc in locs:
+
         orig_x_dist = loc[2]-loc[0]
         orig_y_dist = loc[3]-loc[1]
         loc[0] = math.ceil(loc[0]*scaleX)
@@ -185,27 +193,27 @@ def resize(X_size,Y_size, pixel_data, locs): #locs = [minX,minY,maxX,maxY]
         loc[2] = math.ceil(scaleX*orig_x_dist+loc[0])
         loc[3] = math.ceil(scaleY*orig_y_dist+loc[1])
 
-        '''
+
         top_left = (loc[0],loc[1])
         top_right = (loc[2],loc[1])
         bot_left = (loc[0],loc[3])
         bot_right = (loc[2],loc[3])
-        if first:
-            cv2.line(temp_image, top_left, bot_left, (0,255,0), 5)
-            cv2.line(temp_image, top_left, top_right, (0,255,0), 5)
-            cv2.line(temp_image, bot_left, bot_right, (0,255,0), 5)
-            cv2.line(temp_image, top_right, bot_right, (0,255,0), 5)
-            first = False
-        else:
-            cv2.line(temp_image, top_left, bot_left, (0,255,0), 1)
-            cv2.line(temp_image, top_left, top_right, (0,255,0), 1)
-            cv2.line(temp_image, bot_left, bot_right, (0,255,0), 1)
-            cv2.line(temp_image, top_right, bot_right, (0,255,0), 1)
-
-    cv2.imshow('image', temp_image)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-    '''
+        mid_x_min = (int((loc[2]+loc[0])/2),loc[1])
+        mid_x_max = (int((loc[2]+loc[0])/2),loc[3])
+        mid_y_min = (loc[0],int((loc[3]+loc[1])/2))
+        mid_y_max = (loc[2],int((loc[3]+loc[1])/2))
+        #print("window size: " ,str(mid_y_min[1] - top_left[1])," x ",str(mid_x_min[0]-top_left[0]))
+        '''
+        cv2.line(copy_image, top_left, bot_left, (0,255,0), 3)
+        cv2.line(copy_image, top_left, top_right, (0,255,0), 3)
+        cv2.line(copy_image, bot_left, bot_right, (0,255,0), 3)
+        cv2.line(copy_image, top_right, bot_right, (0,255,0), 3)
+        cv2.line(copy_image, mid_x_min, mid_x_max, (0,255,0), 3)
+        cv2.line(copy_image, mid_y_min, mid_y_max, (0,255,0), 3)
+        cv2.imshow('image', copy_image)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+        '''
 
     return temp_image, locs
 
@@ -316,11 +324,9 @@ for i in range(len(image_locs)):
 
     '''
     pixel_data = resize(X_size, pixel_data, table_locs)
-
     slices, s_lables = label_creater(pixel_data, label_precision, Y_size, table_locs)
     conc_data += slices
     conc_labels += s_lables
-
     s2, l2 = part_two_creation(original_pixel_data, table_locs_original, pTwo_size, cuts_labels)
     conc_data2 += s2
     conc_labels2 += l2
@@ -328,7 +334,6 @@ for i in range(len(image_locs)):
 '''
 conc_data2 = np.array(np.expand_dims(conc_data2,  axis = -1))
 conc_labels2 = np.array(conc_labels2)
-
 conc_data = np.array(np.expand_dims(conc_data,  axis = -1))
 conc_labels = np.array(conc_labels)
 ##############################
@@ -602,8 +607,6 @@ if(1): #wrapper
             #deep copy
             for coords in all_roi_coords:
                 proposed_regions.append(coords)
-
-
             #pad to num_roi RoI
             while len(proposed_regions) < num_roi:
                 rand_ind = math.floor(random.random()*len(proposed_regions))
@@ -619,21 +622,16 @@ if(1): #wrapper
                     continue
                 proposed_regions.pop(rand_ind)
             assert(len(proposed_regions)==num_roi)
-
             #randomly shuffle ground truth
             rand_ind = math.floor(random.random()*len(proposed_regions))
             temp_coords = proposed_regions[rand_ind]
             proposed_regions[rand_ind] = proposed_regions[table_ind]
             proposed_regions[table_ind] = temp_coords
             input_roi.append(proposed_regions)
-
             #update label
             image_label[start_ind+table_ind][rand_ind] = 1
-
-
             loc=[proposed_regions[rand_ind][0],proposed_regions[rand_ind][1],proposed_regions[rand_ind][2],proposed_regions[rand_ind][3]]
             temp_image = input_image[start_ind]
-
             top_left = (loc[0],loc[1])
             top_right = (loc[2],loc[1])
             bot_left = (loc[0],loc[3])
@@ -642,42 +640,41 @@ if(1): #wrapper
             cv2.line(temp_image, top_left, top_right, (0,255,0), 5)
             cv2.line(temp_image, bot_left, bot_right, (0,255,0), 5)
             cv2.line(temp_image, top_right, bot_right, (0,255,0), 5)
-
             temp_image = cv2.resize(temp_image,(400,600))
             print(loc)
-
             cv2.imshow('image', temp_image)
             cv2.waitKey(0)
             cv2.destroyAllWindows()
-
             '''
 
         '''
         total_predicted_area = 0
-
         for iter in range(len(groups)):
             total_predicted_area += (groups2[iter][1] - groups2[iter][0]) * (groups[iter][1] - groups[iter][0])
-
         total_real_data = 0
         for xml_temp in xml_locs:
             total_real_data += (xml_temp[1] - xml_temp[0]) * (xml_temp[3] - xml_temp[2])
-
         #total_data -= total_predicted_area + total_real_data - data_shared
         #print(data_shared / total_data)
-
         print("Prec: ", data_shared/total_predicted_area)
         print("Recall: ", data_shared/total_real_data)
-
         total_prec += data_shared/total_predicted_area
         total_recall += data_shared/total_real_data
         '''
+        break
+
+
 
 
     for i,im in enumerate(input_image):
-        input_image[i],input_roi[i]=resize(500,600,im,input_roi[i])
+        input_image[i],input_roi[i]=resize(200,300,im,input_roi[i])
     assert(len(input_image)==len(input_roi))
     assert(len(input_image)==len(image_label))
 
+
+    #x=tf.constant([[[15,2,3],[2,3,4],[1,23,6]],[[2,3,5],[1,2,7],[3,3,10]]])
+    #x=tf.constant([2,2,1,3])
+    #print(tf.reduce_sum(x))
 
     #PART 3 - testing RoI
     if(1):
@@ -703,17 +700,19 @@ if(1): #wrapper
                 valid_ind=valid_ind+1
         assert(len(x_train)==len(roi_train))
         assert(len(x_valid)==len(roi_valid))
+        print(y_bound_train)
 
-        image_input = keras.layers.Input(shape=(600,500,1), name="image_input")
+        image_input = keras.layers.Input(shape=(300,200,1), name="image_input")
         bound_box = keras.layers.Input(shape=(10,4), name="bound_box")
 
 
         ##TODO implement final CNN to add roi layer
         conv = Conv2D(16,(3,3),activation="relu",padding="same")(image_input)
-        conv = Conv2D(16,(3,3),activation="relu",padding="same",kernel_regularizer="l1")(conv)
-        conv = Conv2D(16,(3,3),activation="relu",padding="same",kernel_regularizer="l1")(conv)
+        conv = Conv2D(16,(3,3),activation="relu",padding="same")(conv)
+        conv = Conv2D(16,(3,3),activation="relu",padding="same")(conv)
         conv = Dropout(0.2)(conv)
         conv = keras.models.Model(inputs=image_input,outputs=conv)
+        conv.save(r"/Users/serafinakamp/Desktop/TableExt/opt_branch/datasheet-scrubber/src/cnn_models/conv_test.h5")
         #tf.keras.backend.print_tensor(conv.output)
 
         roi = RoI(2,2)([conv.output,bound_box])
@@ -721,20 +720,20 @@ if(1): #wrapper
         dense = Dense(16, activation="relu")(roi)
         dense = Dense(16,activation="relu")(dense)
         dense = Flatten()(dense)
-        dense_class = Dense(2048, activation="relu")(dense)
+        dense_class = Dense(1024, activation="relu")(dense)
         dense_bound = Dense(1024, activation="relu")(dense)
         out_classifier = Dense(1,activation="sigmoid",name="classify")(dense_class)
         out_bound_box = Dense(4,activation="relu",name="bound")(dense_bound)
 
         model= keras.models.Model(inputs=[image_input,bound_box], outputs=[out_classifier,out_bound_box])
         losses={
-            "classify" : keras.losses.BinaryCrossentropy(),
-            "bound" : keras.losses.MeanSquaredError(),
+            "classify" : keras.losses.binary_crossentropy,
+            "bound" : custom_loss,
         }
-        loss_weights={"classify":0.5,"bound":1.5}
-        model.compile(loss=losses, loss_weights=loss_weights,optimizer=keras.optimizers.Adam(learning_rate=1e-10), metrics=["accuracy"])
+        loss_weights={"classify":1,"bound":1}
+        model.compile(loss=losses, loss_weights=loss_weights,optimizer=keras.optimizers.Adam(learning_rate=1e-8), metrics=["accuracy"])
         print(model.summary())
-        model.fit(x=[x_train,roi_train], y=[y_classify_train,y_bound_train], validation_data = ([x_valid,roi_valid], [y_classify_valid,y_bound_valid]),batch_size=20, epochs = 5)
+        model.fit(x=[x_train,roi_train], y=[y_classify_train,y_bound_train], validation_data = ([x_valid,roi_valid], [y_classify_valid,y_bound_valid]),batch_size=1, epochs = 1)
 
         model.save(r"/Users/serafinakamp/Desktop/TableExt/opt_branch/datasheet-scrubber/src/cnn_models/roi_test.h5")
 
@@ -748,6 +747,18 @@ if(1): #wrapper
         roi_in = np.expand_dims(roi_in,axis=0)
         predictions = model3.predict([image,roi_in])
         print(predictions)
+    if (0):
+        conv = load_model(os.path.join(root_folder, r"cnn_models/conv_test.h5"))
+        for i in range(len(input_image)):
+            images=conv.predict(np.expand_dims(np.expand_dims(input_image[i],axis=0),axis=-1))
+            images = np.reshape(images,(1,32,300,200))
+            for image in images[0]:
+                cv2.imshow('image', input_image[i])
+                cv2.waitKey(0)
+                cv2.destroyAllWindows()
+                cv2.imshow('image', image)
+                cv2.waitKey(0)
+                cv2.destroyAllWindows()
 
 
     #print(total_prec / len(image_locs))

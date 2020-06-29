@@ -8,18 +8,19 @@ import xml.etree.ElementTree as ET
 import copy
 from keras.models import load_model, Model
 from sklearn.model_selection import train_test_split
-import math
+import math as m
 import random
 import sys
 
 
 
 
-###trying to implement RoI layer GOOGLE COLAB !!
+###trying to implement RoI layer GOOGLE COLAB !! - change to RoI Align using bilinear interpolation
 class RoI(keras.layers.Layer):
-    def __init__(self,pool_height=5,pool_width=5,**kwargs):
+    def __init__(self,pool_height=2,pool_width=2,mode="align",**kwargs):
         self.pool_height = pool_height
         self.pool_width = pool_width
+        self.mode=mode #align or pool
         super(RoI,self).__init__(**kwargs)
     #dont need this
     def build(self, input_shape):
@@ -29,23 +30,32 @@ class RoI(keras.layers.Layer):
     def compute_output_shape(self,input_shape):
         feature_map, rois_shape = input_shape
         batch_size = rois_shape[0]
-        output_shape = (batch_size,rois_shape[1],self.pool_height,self.pool_width,feature_map[-1])
+        if seld.mode == "pool":
+            output_shape = (batch_size,rois_shape[1],self.pool_height,self.pool_width,feature_map[-1])
+        elif self.mode == "align":
+            output_shape = (batch_size,rois_shape[1],self.pool_height,self.pool_width,4,feature_map[-1])
+        else:
+            assert(self.mode == "align" or self.mode == "pool")
         return output_shape
 
     #image_batch_input[batch_size x img_width x img_height]
     #rois_batch_input[batch_size x n_rois_per_image x 4], each roi: [minX,minY,maxX,maxY]
     def call(self,input):
-        print("in call")
         #call function to apply element-wise
-        def max_regions(input):
-            return RoI.all_rois(input[0],input[1],self.pool_height,self.pool_width)
-        final = tf.map_fn(max_regions,input,dtype=tf.float32)
-        #tf.print(final, output_stream=sys.stdout)
+        if self.mode == "pool":
+            def max_regions(input):
+                return RoI.all_rois(input[0],input[1],self.pool_height,self.pool_width)
+            final = tf.map_fn(max_regions,input,dtype=tf.float32)
+        elif self.mode == "align":
+            def interpol_regions(input):
+                return RoI.align_all(input[0],input[1],self.pool_height,self.pool_width)
+            final = tf.map_fn(interpol_regions,input,dtype=tf.float32)
+        else:
+            assert(self.mode == "align" or self.mode == "pool")
         return final
 
     @staticmethod
     def all_rois(image,rois,pool_height,pool_width):
-        print("in all_rois")
         #call function on one element
         def max_of_one_region(roi):
             return RoI.one_roi(image,roi,pool_height,pool_width)
@@ -55,7 +65,6 @@ class RoI(keras.layers.Layer):
 
     @staticmethod
     def one_roi(image,roi,pool_height,pool_width):
-        print("in one roi")
         minX = tf.cast(roi[0],'int32')
         minY = tf.cast(roi[1],'int32')
         maxX = tf.cast(roi[2],'int32')
@@ -75,6 +84,113 @@ class RoI(keras.layers.Layer):
         stacked_features = tf.stack([[max_areas(vals) for vals in row] for row in areas])
 
         return stacked_features
+
+    @staticmethod
+    def align_all(image,rois,pool_height,pool_width):
+        #align one region at a time
+        def align_one_region(roi):
+            return RoI.one_region(image,roi,pool_height,pool_width)
+        all_regions = tf.map_fn(align_one_region,rois,dtype="float32")
+        return all_regions
+
+    @staticmethod
+    def one_region(image,roi,pool_height,pool_width):
+        minX = tf.cast(roi[0],'float32')
+        minY = tf.cast(roi[1],'float32')
+        maxX = tf.cast(roi[2],'float32')
+        maxY = tf.cast(roi[3],'float32')
+        dx = tf.cast(((maxX-minX)/pool_width),'float32')
+        dy = tf.cast(((maxY-minY)/pool_height),'float32')
+
+        #2x2x4 tensor to represent 4 central points in each pool region (assumes 2x2 pool region - FIX)
+        # 4 points ordered like topleft,topright,botleft,botright (same as region ordering)
+        areas = [[[[minX+dx/4,minY+dy/4],[minX+3*dx/4,minY+dy/4],[minX+dx/4,minY+3*dy/4],[minX+3*dx/4,minY+3*dy/4]],
+        [[minX+5*dx/4,minY+dy/4],[minX+7*dx/4,minY+dy/4],[minX+5*dx/4,minY+3*dy/4],[minX+7*dx/4,minY+3*dy/4]]],
+        [[[minX+dx/4,minY+5*dy/4],[minX+3*dx/4,minY+5*dy/4],[minX+dx/4,minY+7*dy/4],[minX+3*dx/4,minY+7*dy/4]],
+        [[minX+5*dx/4,minY+5*dy/4],[minX+7*dx/4,minY+5*dy/4],[minX+5*dx/4,minY+7*dy/4],[minX+7*dx/4,minY+7*dy/4]]]]
+
+
+        #calc bilinear interpolation for a single point (x,y)
+        def bilin_interpol(point):
+            return RoI.calc_bilin_interpol_val(image,point,minX,minY,maxX,maxY)
+        stacked_vals = tf.stack([[[bilin_interpol(point) for point in points] for points in row] for row in areas])
+        return stacked_vals
+
+    @staticmethod
+    def calc_bilin_interpol_val(image,point,minX,maxX,minY,maxY):
+        x = point[0]
+        y = point[1]
+
+        #generate list of possible neighbors
+        poss_neighbors=[]
+        '''
+        def bodyX(x_in):
+            tf.add(x_in,1)
+            y_in = tf.math.maximum(tf.cast(y,'int32')-1,tf.cast(minY,'int32'))
+            conditionY = lambda y_in: tf.less(y_in,tf.math.minimum(tf.cast(y,'int32')+1,tf.cast(maxY,'int32')))
+            def bodyY(x_in,y_in):
+                poss_neigbors.append([tf.cast(x_in,'float32')+0.5,tf.cast(y_in,'float32')+0.5])
+                tf.add(y_in,1)
+            tf.while_loop(conditionY,bodyY,loop_vars=[x_in,y_in])
+
+
+
+
+        conditionX = lambda x_in: tf.less(x_in,tf.math.minimum(tf.cast(x,'int32')+1,tf.cast(maxX,'int32')))
+        x_in = tf.math.maximum(tf.cast(x,'int32')-1,tf.cast(minX,'int32'))
+
+        tf.while_loop(conditionX,bodyX,x_in)
+
+        print("success")
+        '''
+
+        for x_val in range(tf.math.maximum(tf.cast(x,'int32')-1,tf.cast(minX,'int32')).eval(),tf.math.minimum(tf.cast(x,'int32')+1,tf.cast(maxX,'int32')).eval()):
+            for y_val in range(tf.math.maximum(tf.cast(y,'int32')-1,tf.cast(minY,'int32')).numpy(),tf.math.minimum(tf.cast(y,'int32')+1,tf.cast(maxY,'int32')).numpy()):
+                poss_neigbors.append([tf.cast(x_val,'float32')+0.5,tf.cast(y_val,'float32')+0.5])
+        #get distances (and retain orig point)
+        for i,p_n in enumerate(poss_neigbors):
+            poss_neighbors[i].append(np.sqrt((p_n[0]-x)**2+(p_n[1]-y)**2))
+
+        #get quadrants
+        #sort by distance given neighbor list [x,y,dist]
+        def sort_key(neighbor):
+            return neighbor[2]
+        poss_neighbors=poss_neighbors.sort(key=sort_key)
+
+        #first 4 are closest cells
+        neighbor_cells = poss_neighbors[:4]
+
+        #sort based on x,y - gives order (Q11,Q21,Q12,Q22)
+        def cell_sort_x(cell):
+            return cell[0]
+        def cell_sort_y(cell):
+            return cell[1]
+        neighbor_cells=neighbor_cells.sort(key=cell_sort_x)
+        neighbor_cells=neighbor_cells.sort(key=cell_sort_y)
+
+        Q11 = (m.floor(neighbor_cells[0][0]),m.floor(neighbor_cells[0][1]))
+        Q21 = (m.floor(neighbor_cells[1][0]),m.floor(neighbor_cells[1][1]))
+        Q12 = (m.floor(neighbor_cells[2][0]),m.floor(neighbor_cells[2][1]))
+        Q22 = (m.floor(neighbor_cells[3][0]),m.floor(neighbor_cells[3][1]))
+
+        x1 = neighbor_cells[0][0]
+        x2 = neighbor_cells[1][0]
+        y1 = neighbor_cells[0][1]
+        y2 = neighbor_cells[2][1]
+
+        factor = 1/((x2-x1)*(y2-y1))
+        X2 = x2-x
+        X1 = x-x1
+        Y2 = y2-y
+        Y1 = y-y1
+
+        full_tensor = tf.add(tf.scalar_mul(X2,tf.add(tf.scalar_mul(Y2,image[Q11,:]),tf.scalar_mul(Y1,image[Q12,:]))),
+                            tf.scalar_mul(X1,tf.add(tf.scalar_mul(Y2,image[Q21,:]),tf.scalar_mul(Y1,image[Q22,:]))))
+
+        return tf.scalar_mul(factor,full_tensor) #return shape is (num_filters)
+
+
+
 
 #custom loss (l1 reg) for bounding box regression
 def custom_loss(y_actual,y_pred):
@@ -188,10 +304,10 @@ def resize(X_size,Y_size, pixel_data, locs): #locs = [minX,minY,maxX,maxY]
 
         orig_x_dist = loc[2]-loc[0]
         orig_y_dist = loc[3]-loc[1]
-        loc[0] = math.ceil(loc[0]*scaleX)
-        loc[1] = math.ceil(loc[1]*scaleX)
-        loc[2] = math.ceil(scaleX*orig_x_dist+loc[0])
-        loc[3] = math.ceil(scaleY*orig_y_dist+loc[1])
+        loc[0] = m.ceil(loc[0]*scaleX)
+        loc[1] = m.ceil(loc[1]*scaleX)
+        loc[2] = m.ceil(scaleX*orig_x_dist+loc[0])
+        loc[3] = m.ceil(scaleY*orig_y_dist+loc[1])
 
 
         top_left = (loc[0],loc[1])
@@ -715,7 +831,7 @@ if(1): #wrapper
         conv.save(r"/Users/serafinakamp/Desktop/TableExt/opt_branch/datasheet-scrubber/src/cnn_models/conv_test.h5")
         #tf.keras.backend.print_tensor(conv.output)
 
-        roi = RoI(2,2)([conv.output,bound_box])
+        roi = RoI(2,2,mode="align")([conv.output,bound_box])
 
         dense = Dense(16, activation="relu")(roi)
         dense = Dense(16,activation="relu")(dense)

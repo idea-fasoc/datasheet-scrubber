@@ -122,34 +122,61 @@ class RoI(keras.layers.Layer):
         y = point[1]
 
         #generate list of possible neighbors
-        poss_neighbors=[]
-        '''
-        def bodyX(x_in):
-            tf.add(x_in,1)
-            y_in = tf.math.maximum(tf.cast(y,'int32')-1,tf.cast(minY,'int32'))
-            conditionY = lambda y_in: tf.less(y_in,tf.math.minimum(tf.cast(y,'int32')+1,tf.cast(maxY,'int32')))
-            def bodyY(x_in,y_in):
-                poss_neigbors.append([tf.cast(x_in,'float32')+0.5,tf.cast(y_in,'float32')+0.5])
-                tf.add(y_in,1)
-            tf.while_loop(conditionY,bodyY,loop_vars=[x_in,y_in])
+        poss_neighbors=tf.TensorArray(tf.float32,size=0,dynamic_size=True,clear_after_read=False)
+        dist = tf.TensorArray(tf.float32,size=0,dynamic_size=True,clear_after_read=False)
 
 
+        poss_neighbors = poss_neighbors.write(0,[minX,minY])
+        dist = dist.write(0,tf.sqrt(tf.square(poss_neighbors.read(0)[0]-x)+tf.square(poss_neighbors.read(0)[1]-y)))
 
 
-        conditionX = lambda x_in: tf.less(x_in,tf.math.minimum(tf.cast(x,'int32')+1,tf.cast(maxX,'int32')))
-        x_in = tf.math.maximum(tf.cast(x,'int32')-1,tf.cast(minX,'int32'))
+        #implement as python function
+        def get_poss_neighbors(x,y,minX,minY,maxX,maxY):
+            x_floor = tf.math.floor(x)
+            y_floor = tf.math.floor(y)
+            poss_neighbors=[]
+            if (x_floor-1) < minX:
+                if (y_floor-1) < minY: #top left corner (4 possible)
+                    poss_neigbors=[[x_floor,y_floor],[x_floor+1,y_floor],[x_floor,y_floor+1],[x_floor+1,y_floor+1]]
+                elif (y_floor+1) > maxY: #bottom left corner (4 possible)
+                    poss_neighbors=[[x_floor,y_floor],[x_floor+1,y_floor],[x_floor,y_floor-1],[x_floor+1,y_floor-1]]
+                else: #left edge (6 possible)
+                    poss_neighbors=[[x_floor,y_floor-1],[x_floor+1,y_floor-1],
+                                    [x_floor,y_floor],[x_floor+1,y_floor],
+                                    [x_floor,y_floor+1],[x_floor+1,y_floor+1]]
+            elif (x_floor+1) > maxX:
+                if (y_floor-1) < minY: #top right corner (4 possible)
+                    poss_neighbors=[[x_floor-1,y_floor],[x_floor,y_floor],[x_floor-1,y_floor+1],[x_floor,y_floor+1]]
+                elif (y_floor+1) > maxY: #bottom right corner (4 possible)
+                    poss_neighbors=[[x_floor-1,y_floor-1],[x_floor,y_floor-1],[x_floor-1,y_floor],[x_floor,y_floor]]
+                else: #right edge (6 possible)
+                    poss_neighbors=[[x_floor-1,y_floor-1],[x_floor,y_floor-1],
+                                    [x_floor-1,y_floor],[x_floor,y_floor],
+                                    [x_floor-1,y_floor+1],[x_floor,y_floor+1]]
+            elif (y_floor-1) < minY: #top edge (6 possible)
+                poss_neighbors = [[x_floor-1,y_floor],[x_floor,y_floor],[x_floor+1,y_floor],
+                                    [x_floor-1,y_floor+1],[x_floor,y_floor+1],[x_floor+1,y_floor+1]]
+            elif (y_floor+1) > maxY: #bottom edge (6 possible)
+                poss_neighbors=[[x_floor-1,y_floor-1],[x_floor,y_floor-1],[x_floor+1,y_floor-1],
+                                [x_floor-1,y_floor],[x_floor,y_floor],[x_floor+1,y_floor]]
+            else: #all middle cases (9 possible)
+                poss_neighbors=[[x_floor-1,y_floor-1],[x_floor,y_floor-1],[x_floor+1,y_floor-1],
+                                [x_floor-1,y_floor],[x_floor,y_floor],[x_floor+1,y_floor],
+                                [x_floor-1,y_floor+1],[x_floor,y_floor+1],[x_floor+1,y_floor+1]]
+            return poss_neighbors
 
-        tf.while_loop(conditionX,bodyX,x_in)
+
+        neighbors = tf.py_function(func=get_poss_neighbors,inp=[x,y,tf.cast(minX,'int32'),tf.cast(minY,'int32'),tf.cast(maxX,'int32'),tf.cast(maxY,'int32')],
+                                    Tout = [tf.float32])
+
+
 
         print("success")
-        '''
 
-        for x_val in range(tf.math.maximum(tf.cast(x,'int32')-1,tf.cast(minX,'int32')).eval(),tf.math.minimum(tf.cast(x,'int32')+1,tf.cast(maxX,'int32')).eval()):
-            for y_val in range(tf.math.maximum(tf.cast(y,'int32')-1,tf.cast(minY,'int32')).numpy(),tf.math.minimum(tf.cast(y,'int32')+1,tf.cast(maxY,'int32')).numpy()):
-                poss_neigbors.append([tf.cast(x_val,'float32')+0.5,tf.cast(y_val,'float32')+0.5])
         #get distances (and retain orig point)
         for i,p_n in enumerate(poss_neigbors):
             poss_neighbors[i].append(np.sqrt((p_n[0]-x)**2+(p_n[1]-y)**2))
+
 
         #get quadrants
         #sort by distance given neighbor list [x,y,dist]

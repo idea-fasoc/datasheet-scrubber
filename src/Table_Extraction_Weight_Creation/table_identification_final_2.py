@@ -30,7 +30,7 @@ class RoI(keras.layers.Layer):
     def compute_output_shape(self,input_shape):
         feature_map, rois_shape = input_shape
         batch_size = rois_shape[0]
-        if seld.mode == "pool":
+        if self.mode == "pool":
             output_shape = (batch_size,rois_shape[1],self.pool_height,self.pool_width,feature_map[-1])
         elif self.mode == "align":
             output_shape = (batch_size,rois_shape[1],self.pool_height,self.pool_width,4,feature_map[-1])
@@ -121,89 +121,105 @@ class RoI(keras.layers.Layer):
         x = point[0]
         y = point[1]
 
-        #generate list of possible neighbors
-        poss_neighbors=tf.TensorArray(tf.float32,size=0,dynamic_size=True,clear_after_read=False)
-        dist = tf.TensorArray(tf.float32,size=0,dynamic_size=True,clear_after_read=False)
-
-
-        poss_neighbors = poss_neighbors.write(0,[minX,minY])
-        dist = dist.write(0,tf.sqrt(tf.square(poss_neighbors.read(0)[0]-x)+tf.square(poss_neighbors.read(0)[1]-y)))
-
 
         #implement as python function
+        @tf.function(experimental_compile=False)
         def get_poss_neighbors(x,y,minX,minY,maxX,maxY):
             x_floor = tf.math.floor(x)
             y_floor = tf.math.floor(y)
+            x_floor = tf.cast(x_floor,'int32')
+            y_floor = tf.cast(y_floor,'int32')
+            minX = tf.cast(minX,'int32')
+            minY = tf.cast(minY,'int32')
+            maxX = tf.cast(maxX,'int32')
+            maxY = tf.cast(maxY,'int32')
             poss_neighbors=[]
             if (x_floor-1) < minX:
-                if (y_floor-1) < minY: #top left corner (4 possible)
-                    poss_neigbors=[[x_floor,y_floor],[x_floor+1,y_floor],[x_floor,y_floor+1],[x_floor+1,y_floor+1]]
-                elif (y_floor+1) > maxY: #bottom left corner (4 possible)
-                    poss_neighbors=[[x_floor,y_floor],[x_floor+1,y_floor],[x_floor,y_floor-1],[x_floor+1,y_floor-1]]
-                else: #left edge (6 possible)
+                if (y_floor-1) < minY: #top left corner (4 possible)(5 extra to match shape)
+                    poss_neighbors=[[x_floor,y_floor],[x_floor+1,y_floor],[x_floor,y_floor+1],[x_floor+1,y_floor+1],
+                                    [x_floor,y_floor+2],[x_floor+1,y_floor+2],[x_floor,y_floor+3],[x_floor+1,y_floor+3],[x_floor+2,y_floor+2]]
+                elif (y_floor+1) > maxY: #bottom left corner (4 possible) (5 extra to match shape)
+                    poss_neighbors=[[x_floor,y_floor],[x_floor+1,y_floor],[x_floor,y_floor-1],[x_floor+1,y_floor-1],
+                                    [x_floor,y_floor+2],[x_floor+1,y_floor+2],[x_floor,y_floor+3],[x_floor+1,y_floor+3],[x_floor+2,y_floor+2]]
+                else: #left edge (6 possible) (3 extra to match shape)
                     poss_neighbors=[[x_floor,y_floor-1],[x_floor+1,y_floor-1],
                                     [x_floor,y_floor],[x_floor+1,y_floor],
-                                    [x_floor,y_floor+1],[x_floor+1,y_floor+1]]
+                                    [x_floor,y_floor+1],[x_floor+1,y_floor+1],
+                                    [x_floor,y_floor+2],[x_floor+1,y_floor+2],[x_floor+2,y_floor+2]]
             elif (x_floor+1) > maxX:
-                if (y_floor-1) < minY: #top right corner (4 possible)
-                    poss_neighbors=[[x_floor-1,y_floor],[x_floor,y_floor],[x_floor-1,y_floor+1],[x_floor,y_floor+1]]
-                elif (y_floor+1) > maxY: #bottom right corner (4 possible)
-                    poss_neighbors=[[x_floor-1,y_floor-1],[x_floor,y_floor-1],[x_floor-1,y_floor],[x_floor,y_floor]]
-                else: #right edge (6 possible)
+                if (y_floor-1) < minY: #top right corner (4 possible) (5 extra to match shape)
+                    poss_neighbors=[[x_floor-1,y_floor],[x_floor,y_floor],[x_floor-1,y_floor+1],[x_floor,y_floor+1],
+                                    [x_floor,y_floor+2],[x_floor+1,y_floor+2],[x_floor,y_floor+3],[x_floor+1,y_floor+3],[x_floor+2,y_floor+2]]
+                elif (y_floor+1) > maxY: #bottom right corner (4 possible) (5 extra to match shape)
+                    poss_neighbors=[[x_floor-1,y_floor-1],[x_floor,y_floor-1],[x_floor-1,y_floor],[x_floor,y_floor],
+                                    [x_floor,y_floor+2],[x_floor+1,y_floor+2],[x_floor,y_floor+3],[x_floor+1,y_floor+3],[x_floor+2,y_floor+2]]
+                else: #right edge (6 possible) (3 extra to match shape)
                     poss_neighbors=[[x_floor-1,y_floor-1],[x_floor,y_floor-1],
                                     [x_floor-1,y_floor],[x_floor,y_floor],
-                                    [x_floor-1,y_floor+1],[x_floor,y_floor+1]]
-            elif (y_floor-1) < minY: #top edge (6 possible)
+                                    [x_floor-1,y_floor+1],[x_floor,y_floor+1],
+                                    [x_floor,y_floor+2],[x_floor+1,y_floor+2],[x_floor+2,y_floor+2]]
+            elif (y_floor-1) < minY: #top edge (6 possible) (3 extra to match shape)
                 poss_neighbors = [[x_floor-1,y_floor],[x_floor,y_floor],[x_floor+1,y_floor],
-                                    [x_floor-1,y_floor+1],[x_floor,y_floor+1],[x_floor+1,y_floor+1]]
-            elif (y_floor+1) > maxY: #bottom edge (6 possible)
+                                    [x_floor-1,y_floor+1],[x_floor,y_floor+1],[x_floor+1,y_floor+1],
+                                    [x_floor,y_floor+2],[x_floor+1,y_floor+2],[x_floor+2,y_floor+2]]
+            elif (y_floor+1) > maxY: #bottom edge (6 possible) (3 extra to match shape)
                 poss_neighbors=[[x_floor-1,y_floor-1],[x_floor,y_floor-1],[x_floor+1,y_floor-1],
-                                [x_floor-1,y_floor],[x_floor,y_floor],[x_floor+1,y_floor]]
+                                [x_floor-1,y_floor],[x_floor,y_floor],[x_floor+1,y_floor],
+                                [x_floor,y_floor+2],[x_floor+1,y_floor+2],[x_floor+2,y_floor+2]]
             else: #all middle cases (9 possible)
                 poss_neighbors=[[x_floor-1,y_floor-1],[x_floor,y_floor-1],[x_floor+1,y_floor-1],
                                 [x_floor-1,y_floor],[x_floor,y_floor],[x_floor+1,y_floor],
                                 [x_floor-1,y_floor+1],[x_floor,y_floor+1],[x_floor+1,y_floor+1]]
-            return poss_neighbors
+            #fill in dist list
+            dists=[]
+            for p_n in poss_neighbors:
+                x_nb = tf.cast(p_n[0],'float32')+0.5
+                y_nb = tf.cast(p_n[1],'float32')+0.5
+                dists.append((x_nb-x)**2+(y_nb-y)**2)
+
+            assert(len(dists)==len(poss_neighbors))
+
+            #now reduce to top 4
+            while len(poss_neighbors) >4:
+                i=4 #assume first 4 are true set and start comparing dists after
+                while i < len(poss_neighbors):
+                    j=0 #compare against first 4
+                    while j < 4:
+                        if dists[i] < dists[j]: #swap if find smaller dist
+                            temp = tf.gather(poss_neighbors,j).numpy()
+                            tf.gather(poss_neighbors,j).numpy()=tf.gather(poss_neighbors,i).numpy()
+                            tf.gather(poss_neighbors,i) = temp
+                            break
+                        j=int(j+1)
+                i=int(i+1)
+            #want to return in order Q11,Q21,Q12,Q22 (i think it does this by design) it doesnt bc swap
+            return poss_neighbors[:4]
+
+        input = [x,y,minX,minY,maxX,maxY]
+        neighbors = tf.py_function(func=get_poss_neighbors,inp=input,Tout = [tf.float32])
 
 
-        neighbors = tf.py_function(func=get_poss_neighbors,inp=[x,y,tf.cast(minX,'int32'),tf.cast(minY,'int32'),tf.cast(maxX,'int32'),tf.cast(maxY,'int32')],
-                                    Tout = [tf.float32])
 
 
+        print("success") #now we have 4 closest neighbor cells
 
-        print("success")
+        @tf.function(experimental_compile=False)
+        def extract_neighbor_info(neighbors):
+            #define quadrants
+            Q11 = (tf.cast(neighbors[0][0],'int32'),tf.cast(neighbors[0][1],'int32'))
+            Q21 = (tf.cast(neighbors[1][0],'int32'),tf.cast(neighbors[1][1],'int32'))
+            Q12 = (tf.cast(neighbors[2][0],'int32'),tf.cast(neighbors[2][1],'int32'))
+            Q22 = (tf.cast(neighbors[3][0],'int32'),tf.cast(neighbors[3][1],'int32'))
 
-        #get distances (and retain orig point)
-        for i,p_n in enumerate(poss_neigbors):
-            poss_neighbors[i].append(np.sqrt((p_n[0]-x)**2+(p_n[1]-y)**2))
+            #define points
+            x1 = neighbors[0][0]+0.5
+            x2 = neighbors[1][0]+0.5
+            y1 = neighbors[0][1]+0.5
+            y2 = neighbors[2][1]+0.5
 
-
-        #get quadrants
-        #sort by distance given neighbor list [x,y,dist]
-        def sort_key(neighbor):
-            return neighbor[2]
-        poss_neighbors=poss_neighbors.sort(key=sort_key)
-
-        #first 4 are closest cells
-        neighbor_cells = poss_neighbors[:4]
-
-        #sort based on x,y - gives order (Q11,Q21,Q12,Q22)
-        def cell_sort_x(cell):
-            return cell[0]
-        def cell_sort_y(cell):
-            return cell[1]
-        neighbor_cells=neighbor_cells.sort(key=cell_sort_x)
-        neighbor_cells=neighbor_cells.sort(key=cell_sort_y)
-
-        Q11 = (m.floor(neighbor_cells[0][0]),m.floor(neighbor_cells[0][1]))
-        Q21 = (m.floor(neighbor_cells[1][0]),m.floor(neighbor_cells[1][1]))
-        Q12 = (m.floor(neighbor_cells[2][0]),m.floor(neighbor_cells[2][1]))
-        Q22 = (m.floor(neighbor_cells[3][0]),m.floor(neighbor_cells[3][1]))
-
-        x1 = neighbor_cells[0][0]
-        x2 = neighbor_cells[1][0]
-        y1 = neighbor_cells[0][1]
-        y2 = neighbor_cells[2][1]
+            return Q11,Q21,Q12,Q22,x1,x2,y1,y2
+        Q11,Q21,Q12,Q22,x1,x2,y1,y2 = tf.py_function(func=extract_neighbor_info,inp=[neighbors],
+        Tout=[tf.int32,tf.int32,tf.int32,tf.int32,tf.float32,tf.float32,tf.float32,tf.float32])
 
         factor = 1/((x2-x1)*(y2-y1))
         X2 = x2-x
@@ -211,10 +227,10 @@ class RoI(keras.layers.Layer):
         Y2 = y2-y
         Y1 = y-y1
 
-        full_tensor = tf.add(tf.scalar_mul(X2,tf.add(tf.scalar_mul(Y2,image[Q11,:]),tf.scalar_mul(Y1,image[Q12,:]))),
-                            tf.scalar_mul(X1,tf.add(tf.scalar_mul(Y2,image[Q21,:]),tf.scalar_mul(Y1,image[Q22,:]))))
-
-        return tf.scalar_mul(factor,full_tensor) #return shape is (num_filters)
+        full_tensor = tf.add(tf.math.multiply(X2,tf.add(tf.math.multiply(Y2,image[Q11,:]),tf.math.multiply(Y1,image[Q12,:]))),
+                            tf.math.multiply(X1,tf.add(tf.math.multiply(Y2,image[Q21,:]),tf.math.multiply(Y1,image[Q22,:]))))
+        final = tf.stop_gradient(tf.math.multiply(factor,full_tensor))
+        return final #return shape is (num_filters)
 
 
 

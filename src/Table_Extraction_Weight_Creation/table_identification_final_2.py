@@ -41,6 +41,7 @@ class RoI(keras.layers.Layer):
     #image_batch_input[batch_size x img_width x img_height]
     #rois_batch_input[batch_size x n_rois_per_image x 4], each roi: [minX,minY,maxX,maxY]
     def call(self,input):
+        tf.print("send help")
         #call function to apply element-wise
         if self.mode == "pool":
             def max_regions(input):
@@ -179,21 +180,12 @@ class RoI(keras.layers.Layer):
 
             assert(len(dists)==len(poss_neighbors))
 
-            #now reduce to top 4
-            while len(poss_neighbors) >4:
-                i=4 #assume first 4 are true set and start comparing dists after
-                while i < len(poss_neighbors):
-                    j=0 #compare against first 4
-                    while j < 4:
-                        if dists[i] < dists[j]: #swap if find smaller dist
-                            temp = tf.gather(poss_neighbors,j).numpy()
-                            tf.gather(poss_neighbors,j).numpy()=tf.gather(poss_neighbors,i).numpy()
-                            tf.gather(poss_neighbors,i) = temp
-                            break
-                        j=int(j+1)
-                i=int(i+1)
+            dists_ind_sorted = tf.argsort(dists) #gives indices of sort
+
+            actual_neighbors = tf.gather(poss_neighbors,dists_ind_sorted)
+
             #want to return in order Q11,Q21,Q12,Q22 (i think it does this by design) it doesnt bc swap
-            return poss_neighbors[:4]
+            return actual_neighbors
 
         input = [x,y,minX,minY,maxX,maxY]
         neighbors = tf.py_function(func=get_poss_neighbors,inp=input,Tout = [tf.float32])
@@ -230,6 +222,7 @@ class RoI(keras.layers.Layer):
         full_tensor = tf.add(tf.math.multiply(X2,tf.add(tf.math.multiply(Y2,image[Q11,:]),tf.math.multiply(Y1,image[Q12,:]))),
                             tf.math.multiply(X1,tf.add(tf.math.multiply(Y2,image[Q21,:]),tf.math.multiply(Y1,image[Q22,:]))))
         final = tf.stop_gradient(tf.math.multiply(factor,full_tensor))
+        tf.keras.backend.print_tensor(final,message = "we made it")
         return final #return shape is (num_filters)
 
 

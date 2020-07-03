@@ -41,18 +41,18 @@ class RoI(keras.layers.Layer):
     #image_batch_input[batch_size x img_width x img_height]
     #rois_batch_input[batch_size x n_rois_per_image x 4], each roi: [minX,minY,maxX,maxY]
     def call(self,input):
-        tf.print("send help")
         #call function to apply element-wise
         if self.mode == "pool":
             def max_regions(input):
                 return RoI.all_rois(input[0],input[1],self.pool_height,self.pool_width)
             final = tf.map_fn(max_regions,input,dtype=tf.float32)
         elif self.mode == "align":
-            def interpol_regions(input):
+\            def interpol_regions(input):
                 return RoI.align_all(input[0],input[1],self.pool_height,self.pool_width)
             final = tf.map_fn(interpol_regions,input,dtype=tf.float32)
         else:
             assert(self.mode == "align" or self.mode == "pool")
+        #final = tf.stop_gradient(final)
         return final
 
     @staticmethod
@@ -91,7 +91,7 @@ class RoI(keras.layers.Layer):
         #align one region at a time
         def align_one_region(roi):
             return RoI.one_region(image,roi,pool_height,pool_width)
-        all_regions = tf.map_fn(align_one_region,rois,dtype="float32")
+        all_regions = tf.map_fn(align_one_region,rois,dtype=tf.float32)
         return all_regions
 
     @staticmethod
@@ -126,14 +126,9 @@ class RoI(keras.layers.Layer):
         #implement as python function
         @tf.function(experimental_compile=False)
         def get_poss_neighbors(x,y,minX,minY,maxX,maxY):
-            x_floor = tf.math.floor(x)
-            y_floor = tf.math.floor(y)
-            x_floor = tf.cast(x_floor,'int32')
-            y_floor = tf.cast(y_floor,'int32')
-            minX = tf.cast(minX,'int32')
-            minY = tf.cast(minY,'int32')
-            maxX = tf.cast(maxX,'int32')
-            maxY = tf.cast(maxY,'int32')
+            x_floor = tf.math.floor(x)+0.5
+            y_floor = tf.math.floor(y)+0.5
+
             poss_neighbors=[]
             if (x_floor-1) < minX:
                 if (y_floor-1) < minY: #top left corner (4 possible)(5 extra to match shape)
@@ -174,17 +169,20 @@ class RoI(keras.layers.Layer):
             #fill in dist list
             dists=[]
             for p_n in poss_neighbors:
-                x_nb = tf.cast(p_n[0],'float32')+0.5
-                y_nb = tf.cast(p_n[1],'float32')+0.5
-                dists.append((x_nb-x)**2+(y_nb-y)**2)
+                dists.append((p_n[0]-x)**2+(p_n[1]-y)**2)
 
             assert(len(dists)==len(poss_neighbors))
 
             dists_ind_sorted = tf.argsort(dists) #gives indices of sort
 
-            actual_neighbors = tf.gather(poss_neighbors,dists_ind_sorted)
+            rel_ind = [0,1,2,3] #gather relavant indicies from sorted
+            dists_rel_sorted = tf.gather(dists_ind_sorted,rel_ind)
+
+
+            actual_neighbors = tf.gather(poss_neighbors,dists_rel_sorted)
 
             #want to return in order Q11,Q21,Q12,Q22 (i think it does this by design) it doesnt bc swap
+            tf.print(np.shape(actual_neighbors))
             return actual_neighbors
 
         input = [x,y,minX,minY,maxX,maxY]
@@ -198,20 +196,22 @@ class RoI(keras.layers.Layer):
         @tf.function(experimental_compile=False)
         def extract_neighbor_info(neighbors):
             #define quadrants
-            Q11 = (tf.cast(neighbors[0][0],'int32'),tf.cast(neighbors[0][1],'int32'))
-            Q21 = (tf.cast(neighbors[1][0],'int32'),tf.cast(neighbors[1][1],'int32'))
-            Q12 = (tf.cast(neighbors[2][0],'int32'),tf.cast(neighbors[2][1],'int32'))
-            Q22 = (tf.cast(neighbors[3][0],'int32'),tf.cast(neighbors[3][1],'int32'))
+            Q11 = (tf.cast(neighbors[0][0][0],'int32'),tf.cast(neighbors[0][0][1],'int32'))
+            Q21 = (tf.cast(neighbors[0][1][0],'int32'),tf.cast(neighbors[0][1][1],'int32'))
+            Q12 = (tf.cast(neighbors[0][2][0],'int32'),tf.cast(neighbors[0][2][1],'int32'))
+            Q22 = (tf.cast(neighbors[0][3][0],'int32'),tf.cast(neighbors[0][3][1],'int32'))
 
             #define points
-            x1 = neighbors[0][0]+0.5
-            x2 = neighbors[1][0]+0.5
-            y1 = neighbors[0][1]+0.5
-            y2 = neighbors[2][1]+0.5
+            x1 = neighbors[0][0][0]
+            x2 = neighbors[0][1][0]
+            y1 = neighbors[0][0][1]
+            y2 = neighbors[0][2][1]
 
             return Q11,Q21,Q12,Q22,x1,x2,y1,y2
         Q11,Q21,Q12,Q22,x1,x2,y1,y2 = tf.py_function(func=extract_neighbor_info,inp=[neighbors],
         Tout=[tf.int32,tf.int32,tf.int32,tf.int32,tf.float32,tf.float32,tf.float32,tf.float32])
+
+        print('after extract info')
 
         factor = 1/((x2-x1)*(y2-y1))
         X2 = x2-x
@@ -221,8 +221,7 @@ class RoI(keras.layers.Layer):
 
         full_tensor = tf.add(tf.math.multiply(X2,tf.add(tf.math.multiply(Y2,image[Q11,:]),tf.math.multiply(Y1,image[Q12,:]))),
                             tf.math.multiply(X1,tf.add(tf.math.multiply(Y2,image[Q21,:]),tf.math.multiply(Y1,image[Q22,:]))))
-        final = tf.stop_gradient(tf.math.multiply(factor,full_tensor))
-        tf.keras.backend.print_tensor(final,message = "we made it")
+        final = tf.math.multiply(factor,full_tensor)
         return final #return shape is (num_filters)
 
 
@@ -824,12 +823,26 @@ if(1): #wrapper
     assert(len(input_image)==len(image_label))
 
 
+    #test just the ROI layer
+    if(1):
+        with tf.compat.v1.Session() as sess:
+
+            in_img = np.expand_dims(np.expand_dims(input_image[0],axis=-1),axis=0)
+            in_roi = np.expand_dims(input_roi[0],axis=0)
+            input = [tf.constant(in_img),tf.constant(in_roi)]
+
+            RoI_layer = RoI(2,2,mode="align")
+            after_layer = RoI_layer(input)
+
+            print(sess.run(after_layer))
+
+
     #x=tf.constant([[[15,2,3],[2,3,4],[1,23,6]],[[2,3,5],[1,2,7],[3,3,10]]])
     #x=tf.constant([2,2,1,3])
     #print(tf.reduce_sum(x))
 
     #PART 3 - testing RoI
-    if(1):
+    if(0):
         x_train,x_valid,y_train,y_valid = train_test_split(input_image,image_label,test_size=0.1,shuffle=False)
         roi_train=[]
         roi_valid=[]
@@ -872,8 +885,8 @@ if(1): #wrapper
         dense = Dense(16, activation="relu")(roi)
         dense = Dense(16,activation="relu")(dense)
         dense = Flatten()(dense)
-        dense_class = Dense(1024, activation="relu")(dense)
-        dense_bound = Dense(1024, activation="relu")(dense)
+        dense_class = Dense(512, activation="relu")(dense)
+        dense_bound = Dense(512, activation="relu")(dense)
         out_classifier = Dense(1,activation="sigmoid",name="classify")(dense_class)
         out_bound_box = Dense(4,activation="relu",name="bound")(dense_bound)
 

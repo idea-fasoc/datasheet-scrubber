@@ -1,6 +1,6 @@
 import keras
 import tensorflow as tf
-from keras.layers import Dense, Conv2D, Permute, MaxPooling2D, Flatten, Reshape, Dropout, Concatenate
+from keras.layers import Dense, Conv2D, Permute, MaxPooling2D, Flatten, Reshape, Dropout, Concatenate, Lambda
 import os
 import numpy as np
 import cv2
@@ -26,7 +26,6 @@ class RoI(keras.layers.Layer):
     def build(self, input_shape):
         return
 
-
     def compute_output_shape(self,input_shape):
         feature_map, rois_shape = input_shape
         batch_size = rois_shape[0]
@@ -40,19 +39,32 @@ class RoI(keras.layers.Layer):
 
     #image_batch_input[batch_size x img_width x img_height]
     #rois_batch_input[batch_size x n_rois_per_image x 4], each roi: [minX,minY,maxX,maxY]
+    @tf.custom_gradient
     def call(self,input):
+        def grad(dy):
+            print(dy)
+            return dy*0,tf.clip_by_value(dy,-1,1)
         #call function to apply element-wise
         if self.mode == "pool":
-            def max_regions(input):
-                return RoI.all_rois(input[0],input[1],self.pool_height,self.pool_width)
-            final = tf.map_fn(max_regions,input,dtype=tf.float32)
+            final =  RoI.call_pool(input,self.pool_height,self.pool_width)
         elif self.mode == "align":
-\            def interpol_regions(input):
-                return RoI.align_all(input[0],input[1],self.pool_height,self.pool_width)
-            final = tf.map_fn(interpol_regions,input,dtype=tf.float32)
+            final = RoI.call_align(input,self.pool_height,self.pool_width)
         else:
             assert(self.mode == "align" or self.mode == "pool")
-        #final = tf.stop_gradient(final)
+        return final,grad
+
+    @staticmethod
+    def call_align(input,pool_height,pool_width):
+        def interpol_regions(input):
+            return RoI.align_all(input[0],input[1],pool_height,pool_width)
+        final = tf.map_fn(interpol_regions,input,dtype=tf.float32)
+        return final
+
+    @staticmethod
+    def call_pool(input,pool_height,pool_width):
+        def max_regions(input):
+            return RoI.all_rois(input[0],input[1],pool_height,pool_width)
+        final = tf.map_fn(max_regions,input,dtype=tf.float32)
         return final
 
     @staticmethod
@@ -92,6 +104,7 @@ class RoI(keras.layers.Layer):
         def align_one_region(roi):
             return RoI.one_region(image,roi,pool_height,pool_width)
         all_regions = tf.map_fn(align_one_region,rois,dtype=tf.float32)
+        print(np.shape(all_regions))
         return all_regions
 
     @staticmethod
@@ -182,7 +195,6 @@ class RoI(keras.layers.Layer):
             actual_neighbors = tf.gather(poss_neighbors,dists_rel_sorted)
 
             #want to return in order Q11,Q21,Q12,Q22 (i think it does this by design) it doesnt bc swap
-            tf.print(np.shape(actual_neighbors))
             return actual_neighbors
 
         input = [x,y,minX,minY,maxX,maxY]
@@ -211,7 +223,6 @@ class RoI(keras.layers.Layer):
         Q11,Q21,Q12,Q22,x1,x2,y1,y2 = tf.py_function(func=extract_neighbor_info,inp=[neighbors],
         Tout=[tf.int32,tf.int32,tf.int32,tf.int32,tf.float32,tf.float32,tf.float32,tf.float32])
 
-        print('after extract info')
 
         factor = 1/((x2-x1)*(y2-y1))
         X2 = x2-x
@@ -824,7 +835,7 @@ if(1): #wrapper
 
 
     #test just the ROI layer
-    if(1):
+    if(0):
         with tf.compat.v1.Session() as sess:
 
             in_img = np.expand_dims(np.expand_dims(input_image[0],axis=-1),axis=0)
@@ -842,7 +853,7 @@ if(1): #wrapper
     #print(tf.reduce_sum(x))
 
     #PART 3 - testing RoI
-    if(0):
+    if(1):
         x_train,x_valid,y_train,y_valid = train_test_split(input_image,image_label,test_size=0.1,shuffle=False)
         roi_train=[]
         roi_valid=[]
@@ -877,7 +888,7 @@ if(1): #wrapper
         conv = Conv2D(16,(3,3),activation="relu",padding="same")(conv)
         conv = Dropout(0.2)(conv)
         conv = keras.models.Model(inputs=image_input,outputs=conv)
-        conv.save(r"/Users/serafinakamp/Desktop/TableExt/opt_branch/datasheet-scrubber/src/cnn_models/conv_test.h5")
+        #conv.save(r"/Users/serafinakamp/Desktop/TableExt/opt_branch/datasheet-scrubber/src/cnn_models/conv_test.h5")
         #tf.keras.backend.print_tensor(conv.output)
 
         roi = RoI(2,2,mode="align")([conv.output,bound_box])

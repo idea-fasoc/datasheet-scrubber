@@ -17,14 +17,15 @@ client = MongoClient()
 #specify the name of the database
 db=client.config
 #specify the name of the collection, here my collection is "test2"
-Digikey_py = db.digikey_transformed
+Digikey_py = db.digikey
 
 
 #Ppython program to check if two  
 # to get unique values from list 
 # using numpy.unique  
 
-  
+def stripNum(str):
+  return float("".join([i for i in str if i in '1234567890.-']))  
 # function to get unique values 
 def unique(list1): 
     x = np.array(list1) 
@@ -45,10 +46,10 @@ for filename in glob.glob(directory):
     colNames_band = [col for col in df.columns if 'Gain Bandwidth Product' in col]
     colNames_freq = [col for col in df.columns if 'Frequency' in col]
     print('colNames_voltage', colNames_voltage)  
-    print('colNames_current', colNames_current)    
-
+    print('colNames_current', colNames_current)
+    #8N3QV01LG-0113CDI8-ND
     try:  
-        df = df.drop(["Quantity Available","Factory Stock", "@ qty","Minimum Quantity" ], axis=1)    
+        df = df.drop(["Quantity Available","Factory Stock", "@ qty","Minimum Quantity", "Packaging", "Part Status", "Image" , "Manufacturer Part Number", "Package / Case", "Supplier Device Package"], axis=1)    
         #Change to path to the folder with all csv files
         start = '/Users/zinebbenameur/Desktop/Desktop - MacBook Pro/Fasoc/filesall/'
         end = '_'
@@ -75,6 +76,20 @@ for filename in glob.glob(directory):
             df['max Sensing Temp (°C)'] = df['max Sensing Temp (°C)'].str.replace(r"\(.*\)","")
             df = df.drop(["Sensing Temperature"], axis=1)
 
+        if 'Current - Peak Output (Source, Sink)' in df.columns:
+            df[['Current - Peak Output Source (A)','Current - Peak Output Sink (A)']] = df['Current - Peak Output (Source, Sink)'].str.split(',',expand=True,)
+            df['Current - Peak Output Source (A)'] = df['Current - Peak Output Source (A)'].str.replace("A", "")
+            df['Current - Peak Output Sink (A)'] = df['Current - Peak Output Sink (A)'].str.replace("A", "")
+            df = df.drop(["Current - Peak Output (Source, Sink)"], axis=1)
+
+
+        if 'Logic Voltage - VIL, VIH' in df.columns:            
+            #print("------Split supply voltage")
+            df[['Logic Voltage - VIL (V)','Logic Voltage - VIH (V)']] = df['Logic Voltage - VIL, VIH'].str.split(',', n = 1, expand=True,)
+            df['Logic Voltage - VIL (V)'] = df['Logic Voltage - VIL (V)'].str.replace("V", "")
+            df['Logic Voltage - VIH (V)'] = df['Logic Voltage - VIH (V)'].str.replace("V", "")
+            df = df.drop(["Logic Voltage - VIL, VIH"], axis=1)
+        
 
         if 'Voltage - Supply' in df.columns:            
             #print("------Split supply voltage")
@@ -104,6 +119,9 @@ for filename in glob.glob(directory):
             df['Temperature Coefficient (ppm/°C)'] = df['Temperature Coefficient'].str.split('ppm/°C').str[0]
             df = df.drop(["Temperature Coefficient"], axis=1)
 
+        if 'Accuracy' in df.columns:
+            df['Accuracy (°C)'] = df['Accuracy'].str.split('°C').str[0]
+
         try:
             for elm in colNames_freq:
                 print("I enter the for loop for : ", str(elm))
@@ -116,7 +134,7 @@ for filename in glob.glob(directory):
                             if str(res[j-1]) == "kHz":
                                 print("case where unit is kHz")
                                 unit = str(res[j-1])
-                                df[str(elm)][k] = 0.001 * float(str(df[str(elm)][k]).replace(unit, ''))
+                                df.at[k,str(elm)] = 0.001 * float(str(df[str(elm)][k]).replace(unit, ''))
                             elif str(res[j-1]) == "MHz":
                                 print("case where unit is MHz")
                                 unit = str(res[j-1])
@@ -141,7 +159,7 @@ for filename in glob.glob(directory):
                             if str(res[j-1]) == "kHz":
                                 print("case where unit is kHz")
                                 unit = str(res[j-1])
-                                df[str(elm)][k] = 0.001 * float(str(df[str(elm)][k]).replace(unit, ''))
+                                df.at[k,str(elm)] = 0.001 * float(str(df[str(elm)][k]).replace(unit, ''))
                             elif str(res[j-1]) == "MHz":
                                 print("case where unit is MHz")
                                 unit = str(res[j-1])
@@ -167,7 +185,7 @@ for filename in glob.glob(directory):
                             if str(res[j-1]) == "µA":
                                 print("case where unit is µA")
                                 unit = str(res[j-1])
-                                df[str(elm)][k] = 0.001 * float(str(df[str(elm)][k]).replace(unit, ''))
+                                df.at[k,str(elm)] = 0.001 * float(str(df[str(elm)][k]).replace(unit, ''))
                                 print("NEW VALUE   : ", df[str(elm)][k] )
                             elif str(res[j-1]) == "A":   
                                 print("case where unit is A")
@@ -188,7 +206,7 @@ for filename in glob.glob(directory):
                             elif str(res[j-1]) == "nA":
                                 print("case where unit is nA")
                                 unit = str(res[j-1])
-                                df[str(elm)][k] = 0.0000010 * float(str(df[str(elm)][k]).replace(unit, ''))
+                                df.at[k,str(elm)] = 0.0000010 * float(str(df[str(elm)][k]).replace(unit, ''))
                                 print("NEW VALUE   : ", df[str(elm)][k] )
                             else:
                                 print("SOMETHING DIFFERENT")
@@ -200,12 +218,9 @@ for filename in glob.glob(directory):
         try:        
             for elm in colNames_voltage:
                 print("I enter the for loop for : ", str(elm))
-                if str(elm) in str(df.columns) and (str(elm) != 'Voltage - Supply' or  str(elm) != 'Voltage - Supply, Single/Dual (±)'):
+                if str(elm) in str(df.columns) and (str(elm) != 'Voltage - Supply' or  str(elm) != 'Voltage - Supply, Single/Dual (±)' or str(elm) != 'Logic Voltage - VIL, VIH'):
                     print("elm is in df.columns", str(elm))
                     for k in range(len(df[str(elm)])):
-                        print("value of k", k)
-                        print('Part number', df['Digi-Key Part Number'][k])
-                        print("SPLITTING this", df[str(elm)][k])
                         if df[str(elm)][k] != "-":
                             print("not - ")
                             res = re.findall('(\d+|\D+)', df[str(elm)][k])
@@ -245,16 +260,32 @@ for filename in glob.glob(directory):
                 else:
                     continue
         except:
-            pass
-
-        #change units in place
-        #df['Discounted_Price'] = df['Cost'] - (0.1 * df['Cost']) 
-        #Delete all element we don't need from the csv files
-        #print("----- Delete all element we don't need from the csv files------",i)
-        #df.columns = df.columns.str.replace("[.]", ",")
+            pass 
+  
+    
     except:
         pass
-
+    
+    colNames_current_new = [col for col in df.columns if 'Current' in col]
+    colNames_voltage_new = [col for col in df.columns if 'Voltage' in col]
+    colNames_temp_new = [col for col in df.columns if 'Temp' in col]
+    colNames_band_new = [col for col in df.columns if 'Gain Bandwidth Product' in col]
+    colNames_freq_new = [col for col in df.columns if 'Frequency' in col]
+    colNames_acc_new = [col for col in df.columns if 'Accuracy' in col]
+    colNames_price_new = [col for col in df.columns if 'Price' in col]
+    colNames_slew_new = [col for col in df.columns if 'Slew' in col]
+    all_columns = colNames_slew_new + colNames_price_new+ colNames_current_new + colNames_voltage_new + colNames_temp_new + colNames_band_new + colNames_freq_new + colNames_acc_new
+    for elm in all_columns:
+        for k in range(len(df[str(elm)])):
+            try:
+                if df.at[k,str(elm)] != '-':
+                    df.at[k,str(elm)] = stripNum(str(df[str(elm)][k]))
+                else:
+                    continue
+                #df[str(elm)] = stripNum(df[str(elm)])
+            except:
+                pass
+        print ("AFTER   : ", df.dtypes)
 
     #Insert record in the DB
     Digikey_py.insert_many(df.to_dict('records'), bypass_document_validation=True)

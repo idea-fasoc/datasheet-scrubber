@@ -36,9 +36,14 @@ import argparse  # arguement parsing
 from keras.models import load_model
 
 from pdf2image import convert_from_path ##poppler needs to be added and added to the path variable
+from PIL import Image
+import time
+import multiprocessing
+#from numba import jit
 
 
 def table_identifier(pixel_data, root, identify_model, identify_model2):
+    #start_time = time.time()
     pTwo_size = 600
     X_size = 800
     Y_size = 64
@@ -117,12 +122,13 @@ def table_identifier(pixel_data, root, identify_model, identify_model2):
     final_splits = []
     for iter in range(len(groups)):
         final_split = original_pixel_data_255[groups[iter][0]:groups[iter][1], groups2[iter][0]:groups2[iter][1]]
-
         final_splits.append(final_split)
         if(0):
             cv2.imshow('image', final_split)
             cv2.waitKey(0)
             cv2.destroyAllWindows()
+    #print("--- %s seconds identify tables ---" % (time.time() - start_time))
+    #time.sleep(1)
     return final_splits
 
 def mean_finder_subroutine(real, infered, infered_quality, precision, group_start, n, final_dist): #TODO BROKEN FIX
@@ -355,9 +361,11 @@ def merging_helper(im_arr): #This is a temporary fix and should not be needed wh
                 if(image[y, x] < 100):
                     black_count += 1
 
-        if(black_count >= 50 and black_count <= 98):	
-            output_array.append(1)	
-        else:	
+            if(black_count > 95):
+                break
+        if(black_count > 95):
+            output_array.append(1)
+        else:
             output_array.append(0)
 
     return output_array
@@ -413,7 +421,7 @@ def concatenate(root, pixel_data, ver_lines_final, hor_lines_final, conc_col_mod
     contains_data = np.zeros((y_len, x_len+1))
     for y in range(y_len): 
         for x in range(x_len): 
-            if(pred[x+y*x_len][0] > .5 and helper_output[x+y*x_len] == 1):
+            if(pred[x+y*x_len][0] > .5 and helper_output == 1):
                 conc_col_2D[y][x] = 1
 
             if(pred2[x+y*x_len][0] > .5):
@@ -508,20 +516,69 @@ def hor_split(x_s, x_e, y_s, y_e, pixel_data_unchanged):
 
     return (wbw_count >= 4), split_loc
 
-def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_width_line, hor_width_line, scale):
+
+def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_width_line, hor_width_line, scale, ver_lines, hor_lines):
     ver_scaled = []
     hor_scaled = []
+    real_ver_lines = []
+    real_hor_lines = []
 
     for i in ver_width_line:
         ver_scaled.append([int(i[0]*scale), int(i[1]*scale)+1])
 
     for i in hor_width_line:
         hor_scaled.append([int(i[0]*scale), int(i[1]*scale)+1])
+    
+    for i in ver_lines:
+        real_ver_lines.append(int(i * scale))
+    
+    for i in hor_lines:
+        real_hor_lines.append(int(i * scale))
 
+    # debug
+    if(0):
+        height, width = pixel_data_unchanged.shape
+        print(height)
+        for ver_line in ver_scaled:
+            print(ver_line)
+            cv2.line(pixel_data_unchanged, (ver_line[0],0), (ver_line[0], height), (0,255,0), 4)
+        for hor_line in hor_scaled:
+            cv2.line(pixel_data_unchanged, (0, hor_line[0]), (width, hor_line[0]), (0,255,0), 4)
+        
+        cv2.imshow("line", pixel_data_unchanged)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+    if(0):
+        height, width = pixel_data_unchanged.shape
+        print(height)
+        for ver_line in real_ver_lines:
+            print(ver_line)
+            cv2.line(pixel_data_unchanged, (ver_line,0), (ver_line, height), (0,255,0), 4)
+        for hor_line in real_hor_lines:
+            cv2.line(pixel_data_unchanged, (0, hor_line), (width, hor_line), (0,255,0), 4)
+        
+        cv2.imshow("line", pixel_data_unchanged)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+    if(0):
+        y = 0
+        x = 0
+        while(y < (len(hor_scaled)-1)):
+            while(x < len(ver_scaled)-1):
+                if(contains_data[y][x]):
+                    cv2.line(pixel_data_unchanged, (ver_scaled[x][0],hor_scaled[y][0]), (ver_scaled[x][0],hor_scaled[y][0]), (0, 255, 0), 3)
+                x += 1
+            y += 1
+        cv2.imshow("line", pixel_data_unchanged)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
-    data_array = [["" for i in range(len(contains_data[0]))] for j in range(len(contains_data))]  
+    data_array = [[["" for k in range(2)] for i in range(len(contains_data[0]))] for j in range(len(contains_data))]
+    #print(data_array)
+
     y = 0
     y_SPLIT_extend = 0
+    
     while(y < (len(hor_scaled)-1)):
         x = 0
         split_holder = []
@@ -544,46 +601,84 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
             y_s = hor_scaled[y-y_merge][0]+hor_scaled[y-y_merge][1]+1
             y_e = hor_scaled[y+1][0]
             
-
+            # mark the line before split
+            if(0):
+                cv2.line(pixel_data_unchanged, (x_s, y_s), (x_s, y_e), (0,255,0), 2)
+                cv2.line(pixel_data_unchanged, (x_e, y_s), (x_e, y_e), (0,255,0), 2)
+                cv2.line(pixel_data_unchanged, (x_s, y_s), (x_e, y_s), (0,255,0), 2)
+                cv2.line(pixel_data_unchanged, (x_s, y_e), (x_e, y_e), (0,255,0), 2)
+            
             SPLIT, split_loc = hor_split(x_s, x_e, y_s, y_e, pixel_data_unchanged) # ==========
 
             if(SPLIT):
+                if(0):
+                    cv2.line(pixel_data_unchanged, (x_s, y_s), (x_s, split_loc), (0,255,0), 2)
+                    cv2.line(pixel_data_unchanged, (x_e, y_s), (x_e, split_loc), (0,255,0), 2)
+                    cv2.line(pixel_data_unchanged, (x_s, y_s), (x_e, y_s), (0,255,0), 2)
+                    cv2.line(pixel_data_unchanged, (x_s, split_loc), (x_e, split_loc), (0,255,0), 2)
+
+                    cv2.line(pixel_data_unchanged, (x_s, split_loc), (x_s, y_e), (0,255,0), 2)
+                    cv2.line(pixel_data_unchanged, (x_e, split_loc), (x_e, y_e), (0,255,0), 2)
+                    cv2.line(pixel_data_unchanged, (x_s, split_loc), (x_e, split_loc), (0,255,0), 2)
+                    cv2.line(pixel_data_unchanged, (x_s, y_e), (x_e, y_e), (0,255,0), 2)
+                
                 ANY_SPLIT = True
-                slice = pixel_data_unchanged[y_s:split_loc, x_s:x_e]
-                w, h = slice.shape
-                slice2 = pixel_data_unchanged[split_loc:y_e, x_s:x_e] 
+                slice = [pixel_data_unchanged[y_s:split_loc, x_s:x_e], [x_s, x_e, y_s, split_loc]]
+                w, h = slice[0].shape
+                slice2 = [pixel_data_unchanged[split_loc:y_e, x_s:x_e],[x_s, x_e, split_loc, y_e]] 
                 #loc2 = os.path.join(root, "TempImages", "i_B" + str(y) +"_" + str(x) + ".jpg")
                 loc2 = os.path.join(TempImages_dir, "i_B" + str(y) +"_" + str(x) + ".jpg")
-                cv2.imwrite(loc2,slice2)   
-                split_holder.append(pytesseract.image_to_string(loc2, config='--psm 7'))
+                cv2.imwrite(loc2,slice2[0])   
+                #p_img = Image.fromarray(slice2)
+                #split_holder.append(pytesseract.image_to_string(loc2, config='--psm 7'))
+                split_holder.append([pytesseract.image_to_string(loc2, config='--psm 7'), slice2[1]]) # for future merge
+                #split_holder.append(pytesseract.image_to_string(p_img, config='--psm 7'))
             else:
-                slice = pixel_data_unchanged[y_s:y_e, x_s:x_e]
-                w, h = slice.shape
+                if(0):
+                    cv2.line(pixel_data_unchanged, (x_s, y_s), (x_s, y_e), (0,255,0), 2)
+                    cv2.line(pixel_data_unchanged, (x_e, y_s), (x_e, y_e), (0,255,0), 2)
+                    cv2.line(pixel_data_unchanged, (x_s, y_s), (x_e, y_s), (0,255,0), 2)
+                    cv2.line(pixel_data_unchanged, (x_s, y_e), (x_e, y_e), (0,255,0), 2)
+                
+                slice = [pixel_data_unchanged[y_s:y_e, x_s:x_e],[x_s, x_e, y_s, y_e]]
+                w, h = slice[0].shape
                 if(data_exists and w > 0 and h > 0):
-                    split_holder.append("^ EXTEND")
+                    split_holder.append(["^ EXTEND", [-1, -1, -1, -1]])
                 else:
-                    split_holder.append("")
-
+                    split_holder.append(["", [0, 0, 0, 0]])
+            if(0):
+                cv2.imshow("mark", pixel_data_unchanged)
+                cv2.waitKey(0)
+                cv2.destroyAllWindows()
 
             if(data_exists and w > 0 and h > 0):
-                cv2.imwrite(loc,slice)
-                data_array[y-y_merge+y_SPLIT_extend][x] = pytesseract.image_to_string(loc, config='--psm 7')
+                cv2.imwrite(loc,slice[0])
+                data_array[y-y_merge+y_SPLIT_extend][x][0] = pytesseract.image_to_string(loc, config='--psm 7')
+                data_array[y-y_merge+y_SPLIT_extend][x][1] = slice[1]
+                #p_img = Image.fromarray(slice)
+                #data_array[y-y_merge+y_SPLIT_extend][x] = pytesseract.image_to_string(loc, config='--psm 7')
+                #data_array[y-y_merge+y_SPLIT_extend][x] = pytesseract.image_to_string(p_img, config='--psm 7')
 
             if(y_merge):
-                data_array[y+y_SPLIT_extend][x] = "^ EXTEND" 
+                data_array[y+y_SPLIT_extend][x][0] = "^ EXTEND"
+                data_array[y+y_SPLIT_extend][x][1] = [-1, -1, -1, -1]
+             
             while(x < temp_x):
-                split_holder.append("^ EXTEND")
-                data_array[y-y_merge+y_SPLIT_extend][x+1] = "< EXTEND"
+                split_holder.append(["^ EXTEND", [-1, -1, -1, -1]])
+                data_array[y-y_merge+y_SPLIT_extend][x+1][0] = "< EXTEND"
+                data_array[y-y_merge+y_SPLIT_extend][x+1][1] = [-1, -1, -1, -1]
                 if(y_merge):
-                    data_array[y+y_SPLIT_extend][x+1] = "^ EXTEND"  
+                    data_array[y+y_SPLIT_extend][x+1][0] = "^ EXTEND"
+                    data_array[y+y_SPLIT_extend][x+1][1] = [-1, -1, -1, -1]  
                 x += 1
             x += 1
         y += 1
         if(ANY_SPLIT):
             data_array.insert(y+y_SPLIT_extend, split_holder)
             y_SPLIT_extend += 1
-
+    #print(data_array)
     ####ARRAY CLEANUP
+    
     cleaned_data_array = []
     if(len(data_array) > 0):
         row_valid = [False for y in range(len(data_array))]
@@ -592,7 +687,8 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
 
         for y in range(len(data_array)):
             for x in range(len(data_array[0])):
-                if(data_array[y][x] != "" and data_array[y][x] != "< EXTEND" and data_array[y][x] != "^ EXTEND"):
+                #print(data_array[y][x])
+                if(data_array[y][x][0] != "" and data_array[y][x][0] != "< EXTEND" and data_array[y][x][0] != "^ EXTEND"):
                     col_valid[x] = True
                     row_valid[y] = True
 
@@ -603,8 +699,75 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
                     if(col_valid[x]):
                         temp_array.append(data_array[y][x])
                 cleaned_data_array.append(temp_array)
-    ################
-    return cleaned_data_array
+    ### merge multiple rows ###
+    height, width = pixel_data_unchanged.shape
+    final_merge = []
+
+    if(not real_hor_lines):
+        for row in cleaned_data_array:
+            temp_row = []
+            for cell_cor in row:
+                temp_row.append(cell_cor[0])
+            final_merge.append(temp_row)
+        print(final_merge)
+        return final_merge
+    
+    real_intervals = []
+    interval_it = 0
+    real_intervals.append([0, real_hor_lines[0]])
+    while(interval_it < (len(real_hor_lines) - 1)):
+        real_intervals.append([real_hor_lines[interval_it], real_hor_lines[interval_it + 1]])
+        interval_it += 1
+    real_intervals.append([real_hor_lines[interval_it], height])
+    print(real_intervals)
+
+    row_intervals = []
+    for row in cleaned_data_array:
+        temp_row = []
+        hor_top = 0
+        hor_bot = 0
+        for cell_cor in row:
+            if(cell_cor[0]):
+                hor_top = cell_cor[1][2]
+                hor_bot = cell_cor[1][3]
+            temp_row.append(cell_cor[0])
+        real_it = 0;
+        row_num = -1;
+        while(real_it < len(real_intervals)):
+            if(hor_top >= real_intervals[real_it][0] and hor_bot <= real_intervals[real_it][1]):
+                row_num = real_it
+                break
+            real_it += 1
+        row_intervals.append([temp_row, [hor_top, hor_bot], row_num])
+    
+    row_it = 0
+    while(row_it < len(row_intervals)):
+        print(row_intervals[row_it])
+        cell_num = len(row_intervals[row_it][0])
+        row_num = row_intervals[row_it][2]
+        temp_merge = row_intervals[row_it][0]
+        temp_it = row_it + 1
+        CHANGE = False
+        while(temp_it < len(row_intervals) and row_intervals[temp_it][2] == row_num):
+            MERGE = False
+            for i in range(cell_num):
+                if(not row_intervals[temp_it][0][i]):
+                    MERGE = True
+                    break
+            if(MERGE):
+                for i in range(cell_num):
+                    temp_merge[i] = temp_merge[i] + ' ' + row_intervals[temp_it][0][i]
+                    CHANGE = True
+            temp_it += 1
+        # print(temp_merge)
+        final_merge.append(temp_merge)
+        if(CHANGE):
+            row_it = temp_it
+        else:
+            row_it += 1
+
+    #return
+    return final_merge
 
 def debug(root, height, width, pixel_data, hor_lines, ver_lines, hor_lines_final, ver_lines_final, inferred_hor_lines, inferred_ver_lines, guarenteed_inf_vers, conc_col_2D, ver_width_line, hor_width_line):
     pixel_data = cv2.cvtColor(pixel_data,cv2.COLOR_GRAY2RGB)
@@ -644,10 +807,33 @@ def debug(root, height, width, pixel_data, hor_lines, ver_lines, hor_lines_final
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
+def helper_time_measure(count, height, width, pixel_data):
+    print("table " + str(count))
+    hor_time_start = time.time()
+    hor_lines = horizontal_line_finder(height, width, pixel_data) #cannot use margin_lines, but it is fine table cells are usally wider than they are tall
+    hor_margin_lines = real_line_margins(hor_lines, 5)
+    hor_time_end = time.time()
+    print("--- %s seconds finding horizontal lines---" % (hor_time_end - hor_time_start))
+
+    ver_time_start = time.time()
+    ver_lines = vertical_line_finder(height, width, pixel_data, hor_margin_lines)
+    ver_margin_lines = real_line_margins(ver_lines, 5)
+    ver_time_end = time.time()
+    print("--- %s seconds finding vertical lines---" % (ver_time_end - ver_time_start))
+
+
 def run_main(image, root, identify_model, identify_model2, conc_col_model, valid_cells_model):
     conc_pixel_data = table_identifier(image, root, identify_model, identify_model2)
+    # for each page, the pixel data of possible tables - finish identifying all the tables
     final_data = []
+    count = 0
     for pixel_data in conc_pixel_data:
+        # for testing
+        if(0):
+            count += 1
+            height, width = pixel_data.shape
+            helper_time_measure(count, height, width, pixel_data)
+
         pixel_data_unchanged = np.copy(pixel_data)
 
         height, width = pixel_data.shape
@@ -655,31 +841,49 @@ def run_main(image, root, identify_model, identify_model2, conc_col_model, valid
         pixel_data = cv2.resize(pixel_data,(800, int(height/scale)))  #800 width, variable height
         height, width = pixel_data.shape
 
+        hor_time_start = time.time()
         hor_lines = horizontal_line_finder(height, width, pixel_data) #cannot use margin_lines, but it is fine table cells are usally wider than they are tall
         hor_margin_lines = real_line_margins(hor_lines, 5)
-        
+        hor_time_end = time.time()
+        print("--- %s seconds finding horizontal lines---" % (hor_time_end - hor_time_start))
+
+        ver_time_start = time.time()
         ver_lines = vertical_line_finder(height, width, pixel_data, hor_margin_lines)
         ver_margin_lines = real_line_margins(ver_lines, 5)
+        ver_time_end = time.time()
+        print("--- %s seconds finding vertical lines---" % (ver_time_end - ver_time_start))
 
-        required_dist = .85 #TODO find a number that balances speed and accuracy
+        #count += 1
+        if(0):
+            for hor_line in hor_lines:
+                print(hor_line)
+                cv2.line(pixel_data, (0, hor_line), (width, hor_line), (0,255,0), 4)
+            cv2.imshow("scaled", pixel_data)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+
+        infer_ver_start = time.time()
+        required_dist = .95 #TODO find a number that balances speed and accuracy
         prev_groups = -1
         inferred_hor_lines = []
         inferred_hor_quality = []
         while(1): #Horizontal
             inferred_hor_lines_temp, inferred_hor_quality_temp = inferred_horizontal_line_finder(height, width, pixel_data, required_dist, ver_margin_lines) #inferred
-            groups = num_of_groups(inferred_hor_lines_temp, 7)
+            groups = num_of_groups(inferred_hor_lines_temp, 7) # amount of separable groups of inferred lines that exist within the possible inferred lines.
             required_dist += .04 #TODO find a number that balances speed and accuracy
             if(prev_groups > groups or groups == 0):
                 break
             prev_groups = groups
             inferred_hor_lines = inferred_hor_lines_temp
             inferred_hor_quality = inferred_hor_quality_temp
+        infer_ver_end = time.time()
+        print("--- %s seconds finding inferred vertical lines---" % (infer_ver_end - infer_ver_start))
 
+        infer_hor_start = time.time()
         required_dist = .65 #TODO find a number that balances speed and accuracy
         prev_groups = -1
         inferred_ver_lines = []
         inferred_ver_quality = []
-
         while(1): #Vertical
             inferred_ver_lines_temp, inferred_ver_quality_temp = inferred_vertical_line_finder(height, width, pixel_data, required_dist, 8, hor_margin_lines) #inferred
             groups = num_of_groups(inferred_ver_lines_temp, 15)
@@ -689,7 +893,8 @@ def run_main(image, root, identify_model, identify_model2, conc_col_model, valid
             prev_groups = groups
             inferred_ver_lines = inferred_ver_lines_temp
             inferred_ver_quality = inferred_ver_quality_temp
-
+        infer_hor_end = time.time()
+        print("--- %s seconds finding inferred horizontal lines---" % (infer_hor_end - infer_hor_start))
 
         guarenteed_inf_ver, guarenteed_ver_quality = inferred_vertical_line_finder(height, width, pixel_data, .98, 8, hor_lines) #inject inf_ver that might have been wrongfully removed; Thicker line required USED TO BE .99
         tempv = mean_finder(ver_lines, ([0] + guarenteed_inf_ver  + [width-1]), ([1] + guarenteed_ver_quality + [1]), 10, width) #TODO find a good number   
@@ -697,33 +902,49 @@ def run_main(image, root, identify_model, identify_model2, conc_col_model, valid
         ver_lines_final = mean_finder(tempv, inferred_ver_lines, inferred_ver_quality, 15, width) #this is precision not resolution add lines to the left and right //TODO find a good precision
         hor_lines_final = mean_finder(hor_lines, ([0] + inferred_hor_lines + [height-1]), ([1] + inferred_hor_quality + [1]), 7, height) #this is precision not resolution
 
+        concatenate_start = time.time()
         conc_col_2D = []
         contains_data, conc_col_2D = concatenate(root, pixel_data, ver_lines_final, hor_lines_final, conc_col_model, valid_cells_model)
         ver_width_line, hor_width_line = lines_with_widths(ver_lines_final, hor_lines_final)
+        concatenate_end = time.time()
+        print("--- %s seconds cacatenating---" % (concatenate_end - concatenate_start))
 
-        final_data.append(image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_width_line, hor_width_line, scale))
+        ocr_start = time.time()
+        final_data.append(image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_width_line, hor_width_line, scale, ver_lines, hor_lines))
+        ocr_end = time.time()
+        print("--- %s seconds transferring to text---" % (ocr_end - ocr_start) + "\n")
+        #print(final_data)
     return final_data 
 
-#######################START########################    
-pyth_dir = os.path.dirname(__file__)
+#######################START########################
+# count time
+start_time = time.time()
 
-parser = argparse.ArgumentParser(description='Table Extractor Tool')
-parser.add_argument('--weight_dir', required=True, help='weight directory')
-parser.add_argument('--pdf_dir', required=True, help='pdf directory')
-parser.add_argument('--work_dir', required=True, help='main work and output directory')
-parser.add_argument('--first_table_page', required=True, help='The first page that you want table extraction begins with')
-parser.add_argument('--last_table_page', required=True, help='The last page that you want table extraction ends with')
-args = parser.parse_args()
+pyth_dir = os.path.dirname(__file__)
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = '2'
+#parser = argparse.ArgumentParser(description='Table Extractor Tool')
+#parser.add_argument('--weight_dir', required=True, help='weight directory')
+#parser.add_argument('--pdf_dir', required=True, help='pdf directory')
+#parser.add_argument('--work_dir', required=True, help='main work and output directory')
+#parser.add_argument('--first_table_page', required=True, help='The first page that you want table extraction begins with')
+#parser.add_argument('--last_table_page', required=True, help='The last page that you want table extraction ends with')
+#args = parser.parse_args()
 
 concatenate_clean = True
 
-root = args.weight_dir
-pdf_loc = (args.pdf_dir).lower()
-start = int(args.first_table_page)
-cap = int(args.last_table_page)
+#root = args.weight_dir
+root = r"/Users/Renee/Desktop/research/Data_Scrubber/Table_extract_robust"
+#pdf_loc = (args.pdf_dir).lower()
+pdf_loc = r"/Users/Renee/Desktop/research/Data_Scrubber/Table_extract_robust/test_pdfs/test1.pdf"
+#print(pdf_loc)
+#start = int(args.first_table_page)
+start = 1
+#cap = int(args.last_table_page)
+cap = 8
 pages = convert_from_path(pdf_loc, 300, first_page=start, last_page=cap)
 
-TempImages_dir = os.path.join(args.work_dir, "TempImages")
+#TempImages_dir = os.path.join(args.work_dir, "TempImages")
+TempImages_dir = os.path.join(r"/Users/Renee/Desktop/work_output", "TempImages")
 try:
     os.makedirs(TempImages_dir)
     print("Directory " , TempImages_dir ,  " Created ") 
@@ -747,21 +968,22 @@ for image_num, image in enumerate(pages):
     image = np.array(image)	
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     temp_array = run_main(image, root, identify_model, identify_model2, conc_col_model, valid_cells_model)
-
+    #print(temp_array)
     a = []
     for small_array in temp_array:
         a += small_array
-
     if(not concatenate_clean):
+        print("entered!")
         with open(os.path.join(root, ("P" + str(page_num) + ".csv")), "w", newline="") as f:
             writer = csv.writer(f)
             writer.writerows(a)
     else:
         array += a
-
+#print(array)
 if(concatenate_clean):
     cleaned_array = []
     for row in array:
+        #print(row) what if the length of row is larger than 9 ?
         if(len(row) < 9):
             has_extend = False
             for cell in row:
@@ -774,7 +996,12 @@ if(concatenate_clean):
                         cleaned_array[-1][cell_num] += (" " + cell)
             else:
                 cleaned_array.append(row)
+        # try
+        #else:
+        #    cleaned_array.append(row)
     
-    with open(os.path.join(args.work_dir, "concatenate_table.csv"), "w", newline="") as f:
+    #with open(os.path.join(args.work_dir, "concatenate_table.csv"), "w", newline="") as f:
+    with open(os.path.join(r"/Users/Renee/Desktop/work_output", "concatenate_table.csv"), "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerows(cleaned_array)
+print("--- %s seconds ---" % (time.time() - start_time))

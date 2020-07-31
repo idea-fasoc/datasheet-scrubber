@@ -1,27 +1,3 @@
-#!/usr/bin/env python3
-
-# MIT License
-
-# Copyright (c) 2018 The University of Michigan
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-
 import sys
 import pytesseract
 import statistics
@@ -36,10 +12,9 @@ import argparse  # arguement parsing
 from keras.models import load_model
 
 from pdf2image import convert_from_path ##poppler needs to be added and added to the path variable
-from PIL import Image
+from numba import jit
 import time
 import multiprocessing
-#from numba import jit
 
 
 def table_identifier(pixel_data, root, identify_model, identify_model2):
@@ -516,7 +491,6 @@ def hor_split(x_s, x_e, y_s, y_e, pixel_data_unchanged):
 
     return (wbw_count >= 4), split_loc
 
-
 def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_width_line, hor_width_line, scale, ver_lines, hor_lines):
     ver_scaled = []
     hor_scaled = []
@@ -548,8 +522,7 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
         cv2.imshow("line", pixel_data_unchanged)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
-    if(0):
-        height, width = pixel_data_unchanged.shape
+
         print(height)
         for ver_line in real_ver_lines:
             print(ver_line)
@@ -560,7 +533,7 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
         cv2.imshow("line", pixel_data_unchanged)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
-    if(0):
+
         y = 0
         x = 0
         while(y < (len(hor_scaled)-1)):
@@ -611,17 +584,6 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
             SPLIT, split_loc = hor_split(x_s, x_e, y_s, y_e, pixel_data_unchanged) # ==========
 
             if(SPLIT):
-                if(0):
-                    cv2.line(pixel_data_unchanged, (x_s, y_s), (x_s, split_loc), (0,255,0), 2)
-                    cv2.line(pixel_data_unchanged, (x_e, y_s), (x_e, split_loc), (0,255,0), 2)
-                    cv2.line(pixel_data_unchanged, (x_s, y_s), (x_e, y_s), (0,255,0), 2)
-                    cv2.line(pixel_data_unchanged, (x_s, split_loc), (x_e, split_loc), (0,255,0), 2)
-
-                    cv2.line(pixel_data_unchanged, (x_s, split_loc), (x_s, y_e), (0,255,0), 2)
-                    cv2.line(pixel_data_unchanged, (x_e, split_loc), (x_e, y_e), (0,255,0), 2)
-                    cv2.line(pixel_data_unchanged, (x_s, split_loc), (x_e, split_loc), (0,255,0), 2)
-                    cv2.line(pixel_data_unchanged, (x_s, y_e), (x_e, y_e), (0,255,0), 2)
-                
                 ANY_SPLIT = True
                 slice = [pixel_data_unchanged[y_s:split_loc, x_s:x_e], [x_s, x_e, y_s, split_loc]]
                 w, h = slice[0].shape
@@ -634,22 +596,12 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
                 split_holder.append([pytesseract.image_to_string(loc2, config='--psm 7'), slice2[1]]) # for future merge
                 #split_holder.append(pytesseract.image_to_string(p_img, config='--psm 7'))
             else:
-                if(0):
-                    cv2.line(pixel_data_unchanged, (x_s, y_s), (x_s, y_e), (0,255,0), 2)
-                    cv2.line(pixel_data_unchanged, (x_e, y_s), (x_e, y_e), (0,255,0), 2)
-                    cv2.line(pixel_data_unchanged, (x_s, y_s), (x_e, y_s), (0,255,0), 2)
-                    cv2.line(pixel_data_unchanged, (x_s, y_e), (x_e, y_e), (0,255,0), 2)
-                
                 slice = [pixel_data_unchanged[y_s:y_e, x_s:x_e],[x_s, x_e, y_s, y_e]]
                 w, h = slice[0].shape
                 if(data_exists and w > 0 and h > 0):
                     split_holder.append(["^ EXTEND", [-1, -1, -1, -1]])
                 else:
                     split_holder.append(["", [0, 0, 0, 0]])
-            if(0):
-                cv2.imshow("mark", pixel_data_unchanged)
-                cv2.waitKey(0)
-                cv2.destroyAllWindows()
 
             if(data_exists and w > 0 and h > 0):
                 cv2.imwrite(loc,slice[0])
@@ -709,7 +661,7 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
             for cell_cor in row:
                 temp_row.append(cell_cor[0])
             final_merge.append(temp_row)
-        print(final_merge)
+        #print(final_merge)
         return final_merge
     
     real_intervals = []
@@ -719,7 +671,7 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
         real_intervals.append([real_hor_lines[interval_it], real_hor_lines[interval_it + 1]])
         interval_it += 1
     real_intervals.append([real_hor_lines[interval_it], height])
-    print(real_intervals)
+    #print(real_intervals)
 
     row_intervals = []
     for row in cleaned_data_array:
@@ -742,7 +694,7 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
     
     row_it = 0
     while(row_it < len(row_intervals)):
-        print(row_intervals[row_it])
+        #print(row_intervals[row_it])
         cell_num = len(row_intervals[row_it][0])
         row_num = row_intervals[row_it][2]
         temp_merge = row_intervals[row_it][0]
@@ -766,7 +718,6 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
         else:
             row_it += 1
 
-    #return
     return final_merge
 
 def debug(root, height, width, pixel_data, hor_lines, ver_lines, hor_lines_final, ver_lines_final, inferred_hor_lines, inferred_ver_lines, guarenteed_inf_vers, conc_col_2D, ver_width_line, hor_width_line):
@@ -806,202 +757,186 @@ def debug(root, height, width, pixel_data, hor_lines, ver_lines, hor_lines_final
     cv2.imshow('image',pixel_data)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+ 
+#def multiprocessing_unit(image_num, image, root, identify_model, identify_model2, conc_col_model, valid_cells_model):
+def multiprocessing_unit_separate_tables(image_num, image, root):
+    #load_model now in seperating processes
+    #print("entered_tables")
+    identify_model = load_model(os.path.join(root, r"Identification_Models", "stage1.h5"))
+    identify_model2 = load_model(os.path.join(root, r"Identification_Models", "stage2.h5"))
 
-def helper_time_measure(count, height, width, pixel_data):
-    print("table " + str(count))
-    hor_time_start = time.time()
-    hor_lines = horizontal_line_finder(height, width, pixel_data) #cannot use margin_lines, but it is fine table cells are usally wider than they are tall
-    hor_margin_lines = real_line_margins(hor_lines, 5)
-    hor_time_end = time.time()
-    print("--- %s seconds finding horizontal lines---" % (hor_time_end - hor_time_start))
-
-    ver_time_start = time.time()
-    ver_lines = vertical_line_finder(height, width, pixel_data, hor_margin_lines)
-    ver_margin_lines = real_line_margins(ver_lines, 5)
-    ver_time_end = time.time()
-    print("--- %s seconds finding vertical lines---" % (ver_time_end - ver_time_start))
-
-
-def run_main(image, root, identify_model, identify_model2, conc_col_model, valid_cells_model):
-    conc_pixel_data = table_identifier(image, root, identify_model, identify_model2)
-    # for each page, the pixel data of possible tables - finish identifying all the tables
-    final_data = []
-    count = 0
-    for pixel_data in conc_pixel_data:
-        # for testing
-        if(0):
-            count += 1
-            height, width = pixel_data.shape
-            helper_time_measure(count, height, width, pixel_data)
-
-        pixel_data_unchanged = np.copy(pixel_data)
-
-        height, width = pixel_data.shape
-        scale = width/800
-        pixel_data = cv2.resize(pixel_data,(800, int(height/scale)))  #800 width, variable height
-        height, width = pixel_data.shape
-
-        hor_time_start = time.time()
-        hor_lines = horizontal_line_finder(height, width, pixel_data) #cannot use margin_lines, but it is fine table cells are usally wider than they are tall
-        hor_margin_lines = real_line_margins(hor_lines, 5)
-        hor_time_end = time.time()
-        print("--- %s seconds finding horizontal lines---" % (hor_time_end - hor_time_start))
-
-        ver_time_start = time.time()
-        ver_lines = vertical_line_finder(height, width, pixel_data, hor_margin_lines)
-        ver_margin_lines = real_line_margins(ver_lines, 5)
-        ver_time_end = time.time()
-        print("--- %s seconds finding vertical lines---" % (ver_time_end - ver_time_start))
-
-        #count += 1
-        if(0):
-            for hor_line in hor_lines:
-                print(hor_line)
-                cv2.line(pixel_data, (0, hor_line), (width, hor_line), (0,255,0), 4)
-            cv2.imshow("scaled", pixel_data)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
-
-        infer_ver_start = time.time()
-        required_dist = .95 #TODO find a number that balances speed and accuracy
-        prev_groups = -1
-        inferred_hor_lines = []
-        inferred_hor_quality = []
-        while(1): #Horizontal
-            inferred_hor_lines_temp, inferred_hor_quality_temp = inferred_horizontal_line_finder(height, width, pixel_data, required_dist, ver_margin_lines) #inferred
-            groups = num_of_groups(inferred_hor_lines_temp, 7) # amount of separable groups of inferred lines that exist within the possible inferred lines.
-            required_dist += .04 #TODO find a number that balances speed and accuracy
-            if(prev_groups > groups or groups == 0):
-                break
-            prev_groups = groups
-            inferred_hor_lines = inferred_hor_lines_temp
-            inferred_hor_quality = inferred_hor_quality_temp
-        infer_ver_end = time.time()
-        print("--- %s seconds finding inferred vertical lines---" % (infer_ver_end - infer_ver_start))
-
-        infer_hor_start = time.time()
-        required_dist = .65 #TODO find a number that balances speed and accuracy
-        prev_groups = -1
-        inferred_ver_lines = []
-        inferred_ver_quality = []
-        while(1): #Vertical
-            inferred_ver_lines_temp, inferred_ver_quality_temp = inferred_vertical_line_finder(height, width, pixel_data, required_dist, 8, hor_margin_lines) #inferred
-            groups = num_of_groups(inferred_ver_lines_temp, 15)
-            required_dist += .03 #TODO find a number that balances speed and accuracy
-            if(prev_groups > groups or groups == 0):
-                break
-            prev_groups = groups
-            inferred_ver_lines = inferred_ver_lines_temp
-            inferred_ver_quality = inferred_ver_quality_temp
-        infer_hor_end = time.time()
-        print("--- %s seconds finding inferred horizontal lines---" % (infer_hor_end - infer_hor_start))
-
-        guarenteed_inf_ver, guarenteed_ver_quality = inferred_vertical_line_finder(height, width, pixel_data, .98, 8, hor_lines) #inject inf_ver that might have been wrongfully removed; Thicker line required USED TO BE .99
-        tempv = mean_finder(ver_lines, ([0] + guarenteed_inf_ver  + [width-1]), ([1] + guarenteed_ver_quality + [1]), 10, width) #TODO find a good number   
-
-        ver_lines_final = mean_finder(tempv, inferred_ver_lines, inferred_ver_quality, 15, width) #this is precision not resolution add lines to the left and right //TODO find a good precision
-        hor_lines_final = mean_finder(hor_lines, ([0] + inferred_hor_lines + [height-1]), ([1] + inferred_hor_quality + [1]), 7, height) #this is precision not resolution
-
-        concatenate_start = time.time()
-        conc_col_2D = []
-        contains_data, conc_col_2D = concatenate(root, pixel_data, ver_lines_final, hor_lines_final, conc_col_model, valid_cells_model)
-        ver_width_line, hor_width_line = lines_with_widths(ver_lines_final, hor_lines_final)
-        concatenate_end = time.time()
-        print("--- %s seconds cacatenating---" % (concatenate_end - concatenate_start))
-
-        ocr_start = time.time()
-        final_data.append(image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_width_line, hor_width_line, scale, ver_lines, hor_lines))
-        ocr_end = time.time()
-        print("--- %s seconds transferring to text---" % (ocr_end - ocr_start) + "\n")
-        #print(final_data)
-    return final_data 
-
-#######################START########################
-# count time
-start_time = time.time()
-
-pyth_dir = os.path.dirname(__file__)
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = '2'
-#parser = argparse.ArgumentParser(description='Table Extractor Tool')
-#parser.add_argument('--weight_dir', required=True, help='weight directory')
-#parser.add_argument('--pdf_dir', required=True, help='pdf directory')
-#parser.add_argument('--work_dir', required=True, help='main work and output directory')
-#parser.add_argument('--first_table_page', required=True, help='The first page that you want table extraction begins with')
-#parser.add_argument('--last_table_page', required=True, help='The last page that you want table extraction ends with')
-#args = parser.parse_args()
-
-concatenate_clean = True
-
-#root = args.weight_dir
-root = r"/Users/Renee/Desktop/research/Data_Scrubber/Table_extract_robust"
-#pdf_loc = (args.pdf_dir).lower()
-pdf_loc = r"/Users/Renee/Desktop/research/Data_Scrubber/Table_extract_robust/test_pdfs/test1.pdf"
-#print(pdf_loc)
-#start = int(args.first_table_page)
-start = 1
-#cap = int(args.last_table_page)
-cap = 8
-pages = convert_from_path(pdf_loc, 300, first_page=start, last_page=cap)
-
-#TempImages_dir = os.path.join(args.work_dir, "TempImages")
-TempImages_dir = os.path.join(r"/Users/Renee/Desktop/work_output", "TempImages")
-try:
-    os.makedirs(TempImages_dir)
-    print("Directory " , TempImages_dir ,  " Created ") 
-except FileExistsError:
-    print("Directory " , TempImages_dir ,  " already exists")
-    print("Cleaning ipxact directory ...")
-    if len(os.listdir(TempImages_dir)) != 0:
-        for file in os.listdir(TempImages_dir):
-            os.remove(os.path.join(TempImages_dir,file))
-
-identify_model = load_model(os.path.join(root, r"Identification_Models", "stage1.h5"))
-identify_model2 = load_model(os.path.join(root, r"Identification_Models", "stage2.h5"))
-conc_col_model = load_model(os.path.join(root, "conc_col.h5"))
-valid_cells_model = load_model(os.path.join(root, "valid_cells.h5"))
-
-array = []
-for image_num, image in enumerate(pages):
-    page_num = image_num + start
-    print("\n\nStarting page: ", page_num)
+    #page_num = image_num + start
+    #print("\n\nStarting page: ", page_num)
 
     image = np.array(image)	
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    temp_array = run_main(image, root, identify_model, identify_model2, conc_col_model, valid_cells_model)
-    #print(temp_array)
-    a = []
-    for small_array in temp_array:
-        a += small_array
-    if(not concatenate_clean):
-        print("entered!")
-        with open(os.path.join(root, ("P" + str(page_num) + ".csv")), "w", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerows(a)
-    else:
-        array += a
-#print(array)
-if(concatenate_clean):
-    cleaned_array = []
-    for row in array:
-        #print(row) what if the length of row is larger than 9 ?
-        if(len(row) < 9):
-            has_extend = False
-            for cell in row:
-                if(cell == "^ EXTEND"):
-                    has_extend = True
+    temp_pixel_data = table_identifier(image, root, identify_model, identify_model2)
+    return temp_pixel_data
 
-            if(has_extend):
-                for cell_num, cell in enumerate(row):
-                    if(cell != "^ EXTEND" and cell_num < len(cleaned_array[-1])):
-                        cleaned_array[-1][cell_num] += (" " + cell)
-            else:
-                cleaned_array.append(row)
-        # try
-        #else:
-        #    cleaned_array.append(row)
+def multiprocessing_unit_identify_cells(pixel_data, root):
+    #print("entered_cells")
+    conc_col_model = load_model(os.path.join(root, "conc_col.h5"))
+    valid_cells_model = load_model(os.path.join(root, "valid_cells.h5"))
+    final_data_per_table = []
+
+    pixel_data_unchanged = np.copy(pixel_data)
+
+    height, width = pixel_data.shape
+    scale = width/800
+    pixel_data = cv2.resize(pixel_data,(800, int(height/scale)))  #800 width, variable height
+    height, width = pixel_data.shape
+
+    hor_lines = horizontal_line_finder(height, width, pixel_data) #cannot use margin_lines, but it is fine table cells are usally wider than they are tall
+    hor_margin_lines = real_line_margins(hor_lines, 5)
+        
+    ver_lines = vertical_line_finder(height, width, pixel_data, hor_margin_lines)
+    ver_margin_lines = real_line_margins(ver_lines, 5)
+
+    required_dist = .95 #TODO find a number that balances speed and accuracy
+    prev_groups = -1
+    inferred_hor_lines = []
+    inferred_hor_quality = []
+    while(1): #Horizontal
+        inferred_hor_lines_temp, inferred_hor_quality_temp = inferred_horizontal_line_finder(height, width, pixel_data, required_dist, ver_margin_lines) #inferred
+        groups = num_of_groups(inferred_hor_lines_temp, 7) # amount of separable groups of inferred lines that exist within the possible inferred lines.
+        required_dist += .04 #TODO find a number that balances speed and accuracy
+        if(prev_groups > groups or groups == 0):
+            break
+        prev_groups = groups
+        inferred_hor_lines = inferred_hor_lines_temp
+        inferred_hor_quality = inferred_hor_quality_temp
+
+    required_dist = .65 #TODO find a number that balances speed and accuracy
+    prev_groups = -1
+    inferred_ver_lines = []
+    inferred_ver_quality = []
+
+    while(1): #Vertical
+        inferred_ver_lines_temp, inferred_ver_quality_temp = inferred_vertical_line_finder(height, width, pixel_data, required_dist, 8, hor_margin_lines) #inferred
+        groups = num_of_groups(inferred_ver_lines_temp, 15)
+        required_dist += .03 #TODO find a number that balances speed and accuracy
+        if(prev_groups > groups or groups == 0):
+            break
+        prev_groups = groups
+        inferred_ver_lines = inferred_ver_lines_temp
+        inferred_ver_quality = inferred_ver_quality_temp
+
+    guarenteed_inf_ver, guarenteed_ver_quality = inferred_vertical_line_finder(height, width, pixel_data, .98, 8, hor_lines) #inject inf_ver that might have been wrongfully removed; Thicker line required USED TO BE .99
+    tempv = mean_finder(ver_lines, ([0] + guarenteed_inf_ver  + [width-1]), ([1] + guarenteed_ver_quality + [1]), 10, width) #TODO find a good number   
+
+    ver_lines_final = mean_finder(tempv, inferred_ver_lines, inferred_ver_quality, 15, width) #this is precision not resolution add lines to the left and right //TODO find a good precision
+    hor_lines_final = mean_finder(hor_lines, ([0] + inferred_hor_lines + [height-1]), ([1] + inferred_hor_quality + [1]), 7, height) #this is precision not resolution
+
+    conc_col_2D = []
+    contains_data, conc_col_2D = concatenate(root, pixel_data, ver_lines_final, hor_lines_final, conc_col_model, valid_cells_model)
+    ver_width_line, hor_width_line = lines_with_widths(ver_lines_final, hor_lines_final)
+
+    final_data_per_table = image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_width_line, hor_width_line, scale, ver_lines, hor_lines)
+    return final_data_per_table
+
+
+
+#######################START########################
+if __name__ == '__main__':
+    # count time
+    start_main_time = time.time()
+
+    pyth_dir = os.path.dirname(__file__)
+    os.environ["TF_CPP_MIN_LOG_LEVEL"] = '2'
+    parser = argparse.ArgumentParser(description='Table Extractor Tool')
+    parser.add_argument('--weight_dir', required=True, help='weight directory')
+    parser.add_argument('--pdf_dir', required=True, help='pdf directory')
+    parser.add_argument('--work_dir', required=True, help='main work and output directory')
+    parser.add_argument('--first_table_page', required=True, help='The first page that you want table extraction begins with')
+    parser.add_argument('--last_table_page', required=True, help='The last page that you want table extraction ends with')
+    args = parser.parse_args()
+
+    concatenate_clean = True
+
+    root = args.weight_dir
+    #root = r"/Users/Renee/Desktop/research/Data_Scrubber/Table_extract_robust"
+    pdf_loc = (args.pdf_dir).lower()
+    #pdf_loc = r"/Users/Renee/Desktop/research/Data_Scrubber/Table_extract_robust/test_pdfs/test1.pdf"
+    #print(pdf_loc)
+    start = int(args.first_table_page)
+    #start = 1
+    cap = int(args.last_table_page)
+    #cap = 8
+    pages = convert_from_path(pdf_loc, 300, first_page=start, last_page=cap)
+
+    TempImages_dir = os.path.join(args.work_dir, "TempImages")
+    #TempImages_dir = os.path.join(r"/Users/Renee/Desktop/work_output", "TempImages")
+    try:
+        os.makedirs(TempImages_dir)
+        print("Directory " , TempImages_dir ,  " Created ") 
+    except FileExistsError:
+        print("Directory " , TempImages_dir ,  " already exists")
+        print("Cleaning ipxact directory ...")
+        if len(os.listdir(TempImages_dir)) != 0:
+            for file in os.listdir(TempImages_dir):
+                os.remove(os.path.join(TempImages_dir,file))
+
+    print("Multiprocesses start: \n")
+
+    cpu_num = multiprocessing.cpu_count()
+    pool1 = multiprocessing.Pool(processes= cpu_num)
+    temp_storage = []
+    for image_num, image in enumerate(pages):
+        print("Start Idendifying Tables on Page " + str(image_num + start))
+        temp_result = pool1.apply_async(multiprocessing_unit_separate_tables, args= (image_num, image, root))
+        temp_storage.append(temp_result)
+    pool1.close()
+    pool1.join()
+
+    print("\n")
+
+    pool2 = multiprocessing.Pool(processes= cpu_num)
+    all_tables = []
+    count = 0
+    for tables in temp_storage:
+        count += 1
+        print("Start Extracting Content in Table " + str(count))
+        for table_pixel in tables.get():
+            #print(table_pixel)
+            temp_data_per_table = pool2.apply_async(multiprocessing_unit_identify_cells, args= (table_pixel, root))
+            all_tables.append(temp_data_per_table)
+    pool2.close()
+    pool2.join()
+
+    array = []
+    for temp in all_tables:
+        temp_row = temp.get()
+        #print(temp_tables)
+        for cell in temp_row:
+            array.append(cell)
+
+    #debug part
+    if(0):
+        print(len(all_tables))
+        for table in all_tables:
+            cv2.imshow('image', table)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+
+    if(concatenate_clean):
+        cleaned_array = []
+        for row in array:
+            if(len(row) < 9):
+                has_extend = False
+                for cell in row:
+                    if(cell == "^ EXTEND"):
+                        has_extend = True
+
+                if(has_extend):
+                    for cell_num, cell in enumerate(row):
+                        if(cell != "^ EXTEND" and cell_num < len(cleaned_array[-1])):
+                            cleaned_array[-1][cell_num] += (" " + cell)
+                else:
+                    cleaned_array.append(row)
     
-    #with open(os.path.join(args.work_dir, "concatenate_table.csv"), "w", newline="") as f:
-    with open(os.path.join(r"/Users/Renee/Desktop/work_output", "concatenate_table.csv"), "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerows(cleaned_array)
-print("--- %s seconds ---" % (time.time() - start_time))
+        with open(os.path.join(args.work_dir, "concatenate_table.csv"), "w", newline="") as f:
+        #with open(os.path.join(r"/Users/Renee/Desktop/work_output", "concatenate_table.csv"), "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerows(cleaned_array)
+    
+    print("--- %s seconds ---" % (time.time() - start_main_time))

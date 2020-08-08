@@ -878,18 +878,12 @@ if __name__ == '__main__':
     concatenate_clean = True
 
     root = args.weight_dir
-    #root = r"/Users/Renee/Desktop/research/Data_Scrubber/Table_extract_robust"
     pdf_loc = (args.pdf_dir).lower()
-    #pdf_loc = r"/Users/Renee/Desktop/research/Data_Scrubber/Table_extract_robust/test_pdfs/test1.pdf"
-    #print(pdf_loc)
     start = int(args.first_table_page)
-    #start = 1
     cap = int(args.last_table_page)
-    #cap = 8
     pages = convert_from_path(pdf_loc, 300, first_page=start, last_page=cap)
 
     TempImages_dir = os.path.join(args.work_dir, "TempImages")
-    #TempImages_dir = os.path.join(r"/Users/Renee/Desktop/work_output", "TempImages")
     try:
         os.makedirs(TempImages_dir)
         print("Directory " , TempImages_dir ,  " Created ") 
@@ -959,7 +953,6 @@ if __name__ == '__main__':
                     cleaned_array.append(row)
     
         with open(os.path.join(args.work_dir, "concatenate_table.csv"), "w", newline="") as f:
-        #with open(os.path.join(r"/Users/Renee/Desktop/work_output", "concatenate_table.csv"), "w", newline="") as f:
             writer = csv.writer(f)
             writer.writerows(cleaned_array)
     

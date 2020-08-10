@@ -35,9 +35,13 @@ To use YOLOv3 backend for table detection (precision/recall is 0.94)
     ```bash
     python3 Detector.py --input_path path/to/image --output path/to/output/results --yolo_model path/to/downloaded/weights --postfix "_table"
     ```
-4. to see results, navigate to TrainYourOwnYOLO/Data/Source_Images and run:
+4. to see results, navigate to TrainYourOwnYOLO/Data/Source_Images and update yolo_results.sh to match:
     ```bash
-    python3 show_results.py
+    python3 show_results.py -y path/to/Detection_Results.csv -t path/to/images/from/detection -x path/to/test/xmls
+    ```
+    then run (uncomment indicated lines in combined_models.py to see results on test images):
+    ```bash
+    ./yolo_results.sh
     ```
 5. alternatively, to use combined method of current cnns+yolo, instead of step 4, navigate to TrainYourOwnYOLO/Data/Source_Images and update detect_tables.sh to match:
     ```bash

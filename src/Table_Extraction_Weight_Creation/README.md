@@ -23,7 +23,7 @@ Table_Extracter_robust_row 	(NOT USED CURRENTLY):
 Table_extracter_robust_concatenate:			
   Creates the model that identifies if data exists within the cells
   
-Table_extracter_robust_concatenate:			
+Table_extracter_robust_concatenate_conc:			
   Creates the model that can concatenate two cells over a vertical line
 
 table_identification_final_2.py				

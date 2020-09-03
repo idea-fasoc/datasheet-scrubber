@@ -18,3 +18,5 @@ Requirements: Python 3.6 (packages pytesseract, pdf2image, opencv-python, numpy,
 3. Download [Poppler](https://poppler.freedesktop.org/), and [Tesseract](https://tesseract-ocr.github.io/tessdoc/Home.html). Reference the software in your system variables.
       
 4.  Run the code and follow the terminal prompts.
+
+5. If using the combined yolo/cnn detection model, download the following two files and add them to yolo_helpers/keras_yolov3

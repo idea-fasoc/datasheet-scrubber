@@ -34,11 +34,246 @@ import copy
 import numpy as np
 import argparse  # arguement parsing
 from keras.models import load_model
+import fix_pdf
+import Detector
+import tensorflow as tf
 
 from pdf2image import convert_from_path ##poppler needs to be added and added to the path variable
 from numba import jit
 import time
 import multiprocessing
+
+from keras.layers import Dense, Conv2D, Permute, MaxPooling2D, AveragePooling2D, LSTM, Reshape, Flatten, Dropout
+from keras.layers import multiply, add, average, maximum, Concatenate, Lambda
+import keras
+
+tf.compat.v1.enable_eager_execution()
+#print(tf.executing_eagerly())
+
+##calculate the IoU between two regions
+def calc_IoU(xml,proposed):
+    intersection = 0
+    xmlMinX = xml[0]
+    xmlMinY = xml[1]
+    xmlMaxX = xml[2]
+    xmlMaxY = xml[3]
+    propMinX = proposed[0]
+    propMinY = proposed[1]
+    propMaxX = proposed[2]
+    propMaxY = proposed[3]
+    width_shared = min(propMaxX,xmlMaxX) - max(propMinX,xmlMinX)
+    height_shared = min(propMaxY,xmlMaxY) - max(propMinY,xmlMinY)
+    if width_shared > 0 and height_shared > 0:
+        intersection = width_shared*height_shared
+    xmlArea = (xmlMaxX-xmlMinX)*(xmlMaxY-xmlMinY)
+    propArea = (propMaxX-propMinX)*(propMaxY-propMinY)
+    union = xmlArea + propArea -intersection
+    return intersection/union
+
+#for now assume picture is detected in yolo before being processe here
+def yolo_model_improve(yolo_model,pdf_loc,page_num,delta=5):
+
+    #run detection
+    #os.system("python3 fix_pdf.py -p "+pdf_loc+" -n "+str(page_num))
+    fix_pdf.extract_jpg(pdf_loc,page_num)
+    input_paths = "../../src/table_extraction/TempPDF"
+    output_path = "../../src/table_extraction"
+    #model_path = "/Users/serafinakamp/Desktop/YOLO_test/TrainYourOwnYOLO/Data/Model_Weights/trained_weights_1915_final.h5"
+    classes_path = "../../src/table_extraction/yolo_helpers/data_classes.txt"
+    anchors_path = "../../src/table_extraction/yolo_helpers/keras_yolo3/model_data/yolo_anchors.txt"
+    Detector.detect_func(input_paths, output_path, yolo_model,classes_path,anchors_path)
+    #os.system("python3 ../../../../../YOLO_test/TrainYourOwnYOLO/3_Inference/Detector.py --input_path /Users/serafinakamp/Desktop/TableExt/opt_branch/datasheet-scrubber/src/table_extraction/TempPDF --output /Users/serafinakamp/Desktop/TableExt/opt_branch/datasheet-scrubber/src/table_extraction --yolo_model /Users/serafinakamp/Desktop/YOLO_test/TrainYourOwnYOLO/Data/Model_Weights/trained_weights_1915_final.h5")
+
+    tables_on_page={}
+    num = 0
+    with open("../../src/table_extraction/Detection_results.csv","r") as csvfile:
+        reader = csv.reader(csvfile)
+        for row in reader:
+            if row[0]=="image":
+                continue ##skip header lines
+            key = str(num)
+            page_width = int(row[8])
+            page_height = int(row[9])
+            proposed=[max(int(row[2])-delta,0),max(int(row[3])-delta,0),min(int(row[4])+delta,page_width),min(int(row[5])+delta,page_height)]#minX minY maxX maxY
+            top_left = (proposed[0],proposed[1])
+            bot_right = (proposed[2],proposed[3])
+
+            confidence = float(row[7])
+
+            if key in tables_on_page:
+                max_iou = 0
+                prop_overlap=[]
+                found_ind = 0
+                for i,prop in enumerate(tables_on_page[key]):
+
+                    iou = calc_IoU(prop[0],proposed)
+                    if iou>max_iou:
+                        max_iou = iou
+                        prop_overlap = prop[0]
+                        found_ind = i
+                if max_iou < 0.1: #doesn't overlap with already proposed tables
+                    tables_on_page[key].append([proposed,confidence])
+
+                elif prop[1] < confidence: #confidence is higher, so delete previous table
+                    tables_on_page[key].append([proposed,confidence])
+                    del tables_on_page[key][found_ind]
+                    #print("new table is more confident")
+                #else:
+                    #print("overlap and less confident")
+
+            else: #add new key
+                tables_on_page[key] = [[proposed,confidence]]
+            num+=1
+
+    return tables_on_page #return dict containing processed tables for each image
+
+#detecting tables using current cnns
+def cnn_detect(model1,model2,i):
+    X_size = 800 #part1
+    Y_size = 64 #part1
+
+    pTwo_size = 600 #part2
+    cuts_labels = 60 #part2
+    label_precision = 8 #AMOUNT OF PIXELS BETWEEN LABELS, GOES FROM 1/4th to 3/4ths
+
+    y_fail_num = 2
+    pixel_data = i
+    original_pixel_data_255 = pixel_data.copy()
+    pixel_data = cv2.normalize(pixel_data, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+    original_pixel_data = pixel_data.copy()
+
+    height, width = pixel_data.shape
+    scale = X_size/width
+
+    pixel_data = cv2.resize(pixel_data, (X_size, int(height*scale))) #X, then Y
+    bordered_pixel_data = cv2.copyMakeBorder(pixel_data,top=int(Y_size/4),bottom=int(Y_size/4),left=0,right=0,borderType=cv2.BORDER_CONSTANT,value=1)
+
+    slice_skip_size = int(Y_size/2)
+    iter = 0
+    slices = []
+    while((iter*slice_skip_size + Y_size) < int(height*scale+Y_size/2)):
+        s_iter = iter*slice_skip_size
+        slices.append(bordered_pixel_data[int(s_iter):int(s_iter+Y_size)])
+        iter += 1
+
+    slices = np.array(np.expand_dims(slices,  axis = -1))
+
+    data = model1.predict(slices)
+
+    conc_data = []
+    for single_array in data:
+        for single_data in single_array:
+            conc_data.append(single_data)
+    conc_data += [0 for i in range(y_fail_num+1)] #Still needed
+    groups = []
+    fail = y_fail_num
+    group_start = 1 #start at 1 to prevent numbers below zero in groups
+    for iter in range(len(conc_data)-1):
+        if(conc_data[iter] < .5):
+            fail += 1
+        else:
+            fail = 0
+
+        if(fail >= y_fail_num):
+            if(iter - group_start >= 4):
+                groups.append((max(int((group_start-1)*label_precision/scale),0), int((iter+1-y_fail_num)*label_precision/scale)))
+            group_start = iter
+
+
+
+    groups2 = []
+    for group in groups:
+        temp_final_original = cv2.resize(original_pixel_data[group[0]:group[1]], (pTwo_size, pTwo_size))
+        temp_final = np.expand_dims(np.expand_dims(temp_final_original,  axis = 0), axis = -1)
+        data_final = model2.predict(temp_final)
+
+        hor_start = -1
+        hor_finish = 10000
+        pointless, original_width = original_pixel_data.shape
+
+        for iter in range(len(data_final[0])):
+            if(data_final[0][iter] > .5 and hor_start == -1):
+                if(iter > 0):
+                    hor_start = int((iter-0.5)*original_width/cuts_labels)
+                else:
+                    hor_start = int(iter*original_width/cuts_labels)
+
+            if(data_final[0][iter] > .5):
+                hor_finish = int((iter+0.5)*original_width/cuts_labels)
+
+        if(1 and hor_finish - hor_start > (0.7 * original_width)): #Fix for tables that cover the entire image
+            groups2.append((0, original_width))
+        else:
+            groups2.append((hor_start, hor_finish))
+
+
+    return groups, groups2 #returns all detected y vals,x vals
+
+
+def cnn_yolo_combined(pdf_loc,page_num,im,model1,model2,yolo_model):
+    processed_tables = yolo_model_improve(yolo_model,pdf_loc,page_num)
+    yolo_tables=[]
+    all_y,all_x = cnn_detect(model1,model2,im)
+
+    num=0
+    key=str(num)
+    while key in processed_tables:
+        yolo_tables.append(processed_tables[key])
+        num+=1
+        key=str(num)
+    height = im.shape[0]
+    width = im.shape[1]
+
+    final_tables=[]
+    #prune
+    for table in yolo_tables:
+        print(table)
+        maxiou = 0
+        cnn_found=[]
+        yolo_coords=table[0]
+
+        for i in range(len(all_y)):
+            cnn_coords = [all_x[i][0],all_y[i][0],all_x[i][1],all_y[i][1]]
+            top_left_cnn = (cnn_coords[0],cnn_coords[1])
+            bot_right_cnn = (cnn_coords[2],cnn_coords[3])
+
+            top_left_yolo = (yolo_coords[0][0],yolo_coords[0][1])
+            bot_right_yolo = (yolo_coords[0][2],yolo_coords[0][3])
+
+            iou = calc_IoU(cnn_coords,yolo_coords[0])
+            if iou > maxiou:
+                maxiou = iou
+                cnn_found=cnn_coords
+
+        if maxiou >=0.76:
+            final_min_x = min(cnn_found[0],yolo_coords[0][0])
+            final_min_y = min(cnn_found[1],yolo_coords[0][1])
+            final_max_x = max(cnn_found[2],yolo_coords[0][2])
+            final_max_y = max(cnn_found[3],yolo_coords[0][3])
+
+            final_tables.append([final_min_x,final_min_y,final_max_x,final_max_y])
+        else:#prefer yolo if no overlap
+            final_tables.append(yolo_coords[0])
+    #if no yolo tables take all cnn tables
+    if len(yolo_tables) == 0:
+        for i in range(len(all_y)):
+            cnn_coords = [all_x[i][0],all_y[i][0],all_x[i][1],all_y[i][1]]
+            final_tables.append(cnn_coords)
+    #get final final_splits
+    final_splits = []
+    for table in final_tables:
+        final_split = im[table[1]:table[3],table[0]:table[2]]
+        #cv2.imshow("im",final_split)
+        #cv2.waitKey(0)
+        #cv2.destroyAllWindows()
+        final_splits.append(final_split)
+    return final_splits
+
+
+
+def table_identifier(pixel_data, root, identify_model, identify_model2):
+    start_time = time.time()
+
 
 
 def table_identifier(pixel_data, root, identify_model, identify_model2):
@@ -53,7 +288,7 @@ def table_identifier(pixel_data, root, identify_model, identify_model2):
     original_pixel_data_255 = pixel_data.copy()
     pixel_data = cv2.normalize(pixel_data, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
     original_pixel_data = pixel_data.copy()
- 
+
     height, width = pixel_data.shape
     scale = X_size/width
 
@@ -66,11 +301,11 @@ def table_identifier(pixel_data, root, identify_model, identify_model2):
     while((iter*slice_skip_size + Y_size) < int(height*scale+Y_size/2)):
         s_iter = iter*slice_skip_size
         slices.append(bordered_pixel_data[int(s_iter):int(s_iter+Y_size)])
-        iter += 1  
+        iter += 1
 
     slices = np.array(np.expand_dims(slices,  axis = -1))
     data = identify_model.predict(slices)
-        
+
     conc_data = []
     for single_array in data:
         for single_data in single_array:
@@ -91,7 +326,7 @@ def table_identifier(pixel_data, root, identify_model, identify_model2):
             group_start = iter
 
 
- 
+
 
     groups2 = []
     for group in groups:
@@ -126,13 +361,14 @@ def table_identifier(pixel_data, root, identify_model, identify_model2):
             cv2.imshow('image', final_split)
             cv2.waitKey(0)
             cv2.destroyAllWindows()
+
     #print("--- %s seconds identify tables ---" % (time.time() - start_time))
     #time.sleep(1)
     return final_splits
 
 def mean_finder_subroutine(real, infered, infered_quality, precision, group_start, n, final_dist): #TODO BROKEN FIX
     bool_add = True
-    for a in real:    
+    for a in real:
         if(a > (infered[group_start] - precision)  and a < (infered[n] + precision)): #a real line is within y units of the group
             bool_add = False
     if(bool_add):
@@ -148,7 +384,7 @@ def mean_finder_subroutine(real, infered, infered_quality, precision, group_star
                 average_array.append(temp_value)
                 if(temp_value > max_value):
                     max_value = temp_value
-            
+
             threshold = (max_value * .99)
             first_value = -1
             for iter in range(len(average_array)):
@@ -156,7 +392,7 @@ def mean_finder_subroutine(real, infered, infered_quality, precision, group_star
                     first_value = iter
                 if(average_array[iter] > threshold):
                     last_value = iter
-            line_loc = int((first_value+last_value)/2 + infered[group_start])  
+            line_loc = int((first_value+last_value)/2 + infered[group_start])
         else:
             line_loc = int((infered[n] + infered[group_start])/2)
         final_dist.append(line_loc)
@@ -189,13 +425,13 @@ def num_of_groups(infered, i):
     return groups
 
 def horizontal_line_finder(height, width, pixel_data): #normal finds black lines
-    final_out = [] 
-    search_dist = 3 
+    final_out = []
+    search_dist = 3
     for y in range(search_dist, height-search_dist):
         short_line = 0
         line_dist = 0
-        fails = 0 
-        for x in range(width): 
+        fails = 0
+        for x in range(width):
             top = 0
             bot = 0
             for y2 in range(y-search_dist,y-1):
@@ -216,12 +452,12 @@ def horizontal_line_finder(height, width, pixel_data): #normal finds black lines
                 line_dist = 0
 
             if(line_dist > width/8 or short_line >= 4):
-                final_out.append(y)  
+                final_out.append(y)
                 break
     return final_out
 
 def vertical_line_finder(height, width, pixel_data, hor_margin_lines): #normal finds black lines
-    final_out = [] 
+    final_out = []
     search_dist = 3
     for x in range(search_dist, width-search_dist):
         line_dist = 0
@@ -245,11 +481,11 @@ def vertical_line_finder(height, width, pixel_data, hor_margin_lines): #normal f
                 elif(fails < 1): #tolerate x fails
                     fails += height/8
                 else:
-                    line_dist = 0 
+                    line_dist = 0
 
                 if(line_dist > height/8):
-                    final_out.append(x)  
-                    break      
+                    final_out.append(x)
+                    break
     return final_out
 
 def real_line_margins(lines, margin_size_pixels):
@@ -259,21 +495,21 @@ def real_line_margins(lines, margin_size_pixels):
             if(i not in margin_lines and i >= lines[0] and i <= lines[-1]):
                 margin_lines.append(i)
     return margin_lines
-     
+
 def inferred_horizontal_line_finder(height, width, pixel_data, required_dist, ver_margin_lines): #finds white lines
     past_array_depth = int(width/100)
     required_distance = (width) * required_dist
 
-    inferred_line_dists = []  
+    inferred_line_dists = []
     inferred_quality = []
     inferred_line_thickness = 0
     for y in range(height):
-        inferred_line_dist = 0 
+        inferred_line_dist = 0
         inferred_line_dist_max = 0
 
         past_array = [0 for i in range(past_array_depth)] #### Together these find the amount of black values in the last y squares
         black_encountered = 0 ##################
-                   
+
         for x in range(width):
             inferred_line_dist += 1
 
@@ -302,7 +538,7 @@ def inferred_horizontal_line_finder(height, width, pixel_data, required_dist, ve
         if(inferred_line_thickness >=  1):
             inferred_line_dists.append(y)
             inferred_quality.append(inferred_line_dist_max/width)
-    
+
     return inferred_line_dists, inferred_quality
 
 def inferred_vertical_line_finder(height, width, pixel_data, required_dist, required_thick, hor_margin_lines):
@@ -314,9 +550,9 @@ def inferred_vertical_line_finder(height, width, pixel_data, required_dist, requ
     inferred_line_thickness = 0
 
     lenth_req = height * required_dist
-    
-    for x in range(width):  
-        inferred_line_dist = 0 
+
+    for x in range(width):
+        inferred_line_dist = 0
         inferred_line_dist_max = 0
         past_array = [0 for i in range(past_array_depth)] #### Together these find the amount of black values in the last y squares
         black_encountered = 0 ##################
@@ -344,7 +580,7 @@ def inferred_vertical_line_finder(height, width, pixel_data, required_dist, requ
             inferred_line_thickness += 1
         else:
             inferred_line_thickness = 0
-            
+
         if(inferred_line_thickness >= required_thick):
                 infer_line_dists.append(x - int(required_thick/2)) #add the line where it actually is
                 inferred_quality.append(inferred_line_dist_max/height)
@@ -378,14 +614,14 @@ def concatenate(root, pixel_data, ver_lines_final, hor_lines_final, conc_col_mod
     for i in range(1, len(ver_lines_final)):
         if(ver_lines_final[i] != ver_lines_final[i-1]+1):
             ver_lines_no_dup.append(int((start + ver_lines_final[i-1])/2))
-            start = ver_lines_final[i] 
+            start = ver_lines_final[i]
     ver_lines_no_dup.append(int((start + ver_lines_final[-1])/2))
 
     start = hor_lines_final[0]
     for i in range(1, len(hor_lines_final)):
          if(hor_lines_final[i] != hor_lines_final[i-1]+1):
             hor_lines_no_dup.append(int((start + hor_lines_final[i-1])/2))
-            start = hor_lines_final[i] 
+            start = hor_lines_final[i]
     hor_lines_no_dup.append(int((start + hor_lines_final[-1])/2))
 
 
@@ -395,7 +631,7 @@ def concatenate(root, pixel_data, ver_lines_final, hor_lines_final, conc_col_mod
             top_left = cv2.resize(norm_pixel_data[hor_lines_no_dup[y]:hor_lines_no_dup[y+1], ver_lines_no_dup[x]:ver_lines_no_dup[x+1]], (100, 100)) #these steps makes sure the merge line is in the same place
             top_right = cv2.resize(norm_pixel_data[hor_lines_no_dup[y]:hor_lines_no_dup[y+1], ver_lines_no_dup[x+1]:ver_lines_no_dup[x+2]], (100, 100))
             merged_data = cv2.hconcat([top_left,top_right])
-            im_arr.append(merged_data) 
+            im_arr.append(merged_data)
             if(0):
                 temp_data = np.expand_dims(np.array([merged_data]), axis= -1)
                 print(conc_col_model.predict(temp_data))
@@ -414,7 +650,7 @@ def concatenate(root, pixel_data, ver_lines_final, hor_lines_final, conc_col_mod
     helper_output = merging_helper(im_arr)
     pred = conc_col_model.predict(im_arr)
     pred2 = valid_cells_model.predict(im_arr)
-   
+
 
     conc_col_2D = np.zeros((y_len, x_len)) #Y then X
     contains_data = np.zeros((y_len, x_len+1))
@@ -438,9 +674,9 @@ def horizontal_line_crossover(hor_line, x_s, x_e, pixel_data_unchanged):
         black_pixel = 0
 
         wbw = 0 #white_black_white
-        while(iter < x_e): 
+        while(iter < x_e):
             if(pixel_data_unchanged[line, iter] < 127):
-                black_pixel += 1 
+                black_pixel += 1
                 if(wbw % 2 == 1):
                     wbw += 1
             else:
@@ -451,7 +687,7 @@ def horizontal_line_crossover(hor_line, x_s, x_e, pixel_data_unchanged):
 
         white_pixel /= ((1 + x_e - x_s))
         black_pixel /= ((1 + x_e - x_s))
-        
+
         if(not(white_pixel > .05 and black_pixel > .02 and wbw >= 3)): #more than 2% of the pixels are black and more than 5% are white// white is larger so it doesnt mess up when the box perimeters are not continuous
             return False
     return True
@@ -464,14 +700,14 @@ def lines_with_widths(ver_lines_final, hor_lines_final):
     for i in range(1, len(ver_lines_final)):
         if(ver_lines_final[i] != ver_lines_final[i-1]+1):
             ver_width_line.append([start, ver_lines_final[i-1]-start+1])
-            start = ver_lines_final[i] 
+            start = ver_lines_final[i]
     ver_width_line.append([start, ver_lines_final[-1]-start+1])
 
     start = hor_lines_final[0]
     for i in range(1, len(hor_lines_final)):
          if(hor_lines_final[i] != hor_lines_final[i-1]+1):
             hor_width_line.append([start, hor_lines_final[i-1]-start+1])
-            start = hor_lines_final[i] 
+            start = hor_lines_final[i]
     hor_width_line.append([start, hor_lines_final[-1]-start+1])
     return ver_width_line, hor_width_line
 
@@ -570,21 +806,65 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
+
+    for i in ver_lines:
+        real_ver_lines.append(int(i * scale))
+
+    for i in hor_lines:
+        real_hor_lines.append(int(i * scale))
+
+    # debug
+    if(0):
+        height, width = pixel_data_unchanged.shape
+        print(height)
+        for ver_line in ver_scaled:
+            print(ver_line)
+            cv2.line(pixel_data_unchanged, (ver_line[0],0), (ver_line[0], height), (0,255,0), 4)
+        for hor_line in hor_scaled:
+            cv2.line(pixel_data_unchanged, (0, hor_line[0]), (width, hor_line[0]), (0,255,0), 4)
+
+        cv2.imshow("line", pixel_data_unchanged)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+        print(height)
+        for ver_line in real_ver_lines:
+            print(ver_line)
+            cv2.line(pixel_data_unchanged, (ver_line,0), (ver_line, height), (0,255,0), 4)
+        for hor_line in real_hor_lines:
+            cv2.line(pixel_data_unchanged, (0, hor_line), (width, hor_line), (0,255,0), 4)
+
+        cv2.imshow("line", pixel_data_unchanged)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+        y = 0
+        x = 0
+        while(y < (len(hor_scaled)-1)):
+            while(x < len(ver_scaled)-1):
+                if(contains_data[y][x]):
+                    cv2.line(pixel_data_unchanged, (ver_scaled[x][0],hor_scaled[y][0]), (ver_scaled[x][0],hor_scaled[y][0]), (0, 255, 0), 3)
+                x += 1
+            y += 1
+        cv2.imshow("line", pixel_data_unchanged)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
     data_array = [[["" for k in range(2)] for i in range(len(contains_data[0]))] for j in range(len(contains_data))]
     #print(data_array)
 
     y = 0
     y_SPLIT_extend = 0
-    
+
     while(y < (len(hor_scaled)-1)):
         x = 0
         split_holder = []
         ANY_SPLIT = False
         while(x < len(ver_scaled)-1):
-            #loc = os.path.join(root, "TempImages", "i" + str(y) +"_" + str(x) + ".jpg")
-            loc = os.path.join(TempImages_dir, "i" + str(y) +"_" + str(x) + ".jpg")
+            loc = os.path.join(root, "../table_extraction/TempImages", "i" + str(y) +"_" + str(x) + ".jpg")
+            #loc = os.path.join(TempImages_dir, "i" + str(y) +"_" + str(x) + ".jpg")
             data_exists = contains_data[y][x]
-            temp_x = x  
+            temp_x = x
             while(temp_x < len(ver_scaled)-2 and conc_col_2D[y][temp_x]):
                 temp_x += 1
                 data_exists = data_exists or contains_data[y][temp_x] #atleast one cell has data in the merged data
@@ -597,24 +877,31 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
             x_e = ver_scaled[temp_x+1][0]
             y_s = hor_scaled[y-y_merge][0]+hor_scaled[y-y_merge][1]+1
             y_e = hor_scaled[y+1][0]
-            
+
             # mark the line before split
             if(0):
                 cv2.line(pixel_data_unchanged, (x_s, y_s), (x_s, y_e), (0,255,0), 2)
                 cv2.line(pixel_data_unchanged, (x_e, y_s), (x_e, y_e), (0,255,0), 2)
                 cv2.line(pixel_data_unchanged, (x_s, y_s), (x_e, y_s), (0,255,0), 2)
                 cv2.line(pixel_data_unchanged, (x_s, y_e), (x_e, y_e), (0,255,0), 2)
-            
+
             SPLIT, split_loc = hor_split(x_s, x_e, y_s, y_e, pixel_data_unchanged) # ==========
 
             if(SPLIT):
                 ANY_SPLIT = True
                 slice = [pixel_data_unchanged[y_s:split_loc, x_s:x_e], [x_s, x_e, y_s, split_loc]]
                 w, h = slice[0].shape
+
+                slice2 = [pixel_data_unchanged[split_loc:y_e, x_s:x_e],[x_s, x_e, split_loc, y_e]]
+                loc2 = os.path.join(root, "../table_extraction/TempImages", "i_B" + str(y) +"_" + str(x) + ".jpg")
+                #loc2 = os.path.join(TempImages_dir, "i_B" + str(y) +"_" + str(x) + ".jpg")
+                cv2.imwrite(loc2,slice2[0])
+
                 slice2 = [pixel_data_unchanged[split_loc:y_e, x_s:x_e],[x_s, x_e, split_loc, y_e]] 
                 #loc2 = os.path.join(root, "TempImages", "i_B" + str(y) +"_" + str(x) + ".jpg")
                 loc2 = os.path.join(TempImages_dir, "i_B" + str(y) +"_" + str(x) + ".jpg")
                 cv2.imwrite(loc2,slice2[0])   
+
                 #p_img = Image.fromarray(slice2)
                 #split_holder.append(pytesseract.image_to_string(loc2, config='--psm 7'))
                 split_holder.append([pytesseract.image_to_string(loc2, config='--psm 7'), slice2[1]]) # for future merge
@@ -638,14 +925,18 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
             if(y_merge):
                 data_array[y+y_SPLIT_extend][x][0] = "^ EXTEND"
                 data_array[y+y_SPLIT_extend][x][1] = [-1, -1, -1, -1]
-             
+
             while(x < temp_x):
                 split_holder.append(["^ EXTEND", [-1, -1, -1, -1]])
                 data_array[y-y_merge+y_SPLIT_extend][x+1][0] = "< EXTEND"
                 data_array[y-y_merge+y_SPLIT_extend][x+1][1] = [-1, -1, -1, -1]
                 if(y_merge):
                     data_array[y+y_SPLIT_extend][x+1][0] = "^ EXTEND"
+
+                    data_array[y+y_SPLIT_extend][x+1][1] = [-1, -1, -1, -1]
+
                     data_array[y+y_SPLIT_extend][x+1][1] = [-1, -1, -1, -1]  
+  
                 x += 1
             x += 1
         y += 1
@@ -654,7 +945,7 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
             y_SPLIT_extend += 1
     #print(data_array)
     ####ARRAY CLEANUP
-    
+
     cleaned_data_array = []
     if(len(data_array) > 0):
         row_valid = [False for y in range(len(data_array))]
@@ -687,7 +978,7 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
             final_merge.append(temp_row)
         #print(final_merge)
         return final_merge
-    
+
     real_intervals = []
     interval_it = 0
     real_intervals.append([0, real_hor_lines[0]])
@@ -715,7 +1006,7 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
                 break
             real_it += 1
         row_intervals.append([temp_row, [hor_top, hor_bot], row_num])
-    
+
     row_it = 0
     while(row_it < len(row_intervals)):
         #print(row_intervals[row_it])
@@ -776,7 +1067,7 @@ def debug(root, height, width, pixel_data, hor_lines, ver_lines, hor_lines_final
                     cv2.line(pixel_data, (ver_width_line[line_num+1][0], hor_width_line[row_num][0]), (ver_width_line[line_num+1][0], hor_width_line[row_num+1][0]), (255,255,255), 1)
 
     if(0): #write debug image
-        cv2.imwrite(os.path.join(root, "DEBUG_IMAGE.png"), pixel_data) 
+        cv2.imwrite(os.path.join(root, "DEBUG_IMAGE.png"), pixel_data)
 
     cv2.imshow('image',pixel_data)
     cv2.waitKey(0)
@@ -788,6 +1079,49 @@ def multiprocessing_unit_separate_tables(image_num, image, root):
     #print("entered_tables")
     identify_model = load_model(os.path.join(root, r"Identification_Models", "stage1.h5"))
     identify_model2 = load_model(os.path.join(root, r"Identification_Models", "stage2.h5"))
+
+
+def image_handle(image):
+    import cv2
+    image = np.array(image)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    return image
+
+
+#def multiprocessing_unit(image_num, image, root, identify_model, identify_model2, conc_col_model, valid_cells_model):
+def multiprocessing_unit_separate_tables_reg(pdf_loc,page_num, image, root,identify_model,identify_model2):
+    #load_model now in seperating processes
+
+    #page_num = image_num + start
+    print("\n\nStarting page: ", page_num)
+
+    temp_pixel_data = table_identifier(image, root, identify_model, identify_model2)
+    return temp_pixel_data
+def multiprocessing_unit_separate_tables_yolo(pdf_loc,page_num, image, root,identify_model,identify_model2,yolo_model):
+    #load_model now in seperating processes
+
+    #page_num = image_num + start
+    print("\n\nStarting page: ", page_num)
+
+    temp_pixel_data = cnn_yolo_combined(pdf_loc,page_num,image,identify_model,identify_model2,yolo_model)
+    return temp_pixel_data
+
+def multiprocessing_unit_identify_cells(pixel_data, root):
+    #print("entered_cells")
+    conc_col_model = load_model(os.path.join(root,"conc_col.h5"))
+    valid_cells_model = load_model(os.path.join(root, "valid_cells.h5"))
+    final_data_per_table = []
+
+    pixel_data_unchanged = np.copy(pixel_data)
+
+    height, width = pixel_data.shape
+    scale = width/800
+    pixel_data = cv2.resize(pixel_data,(800, int(height/scale)))  #800 width, variable height
+    height, width = pixel_data.shape
+
+    hor_lines = horizontal_line_finder(height, width, pixel_data) #cannot use margin_lines, but it is fine table cells are usally wider than they are tall
+    hor_margin_lines = real_line_margins(hor_lines, 5)
+
 
     #page_num = image_num + start
     #print("\n\nStarting page: ", page_num)
@@ -813,6 +1147,7 @@ def multiprocessing_unit_identify_cells(pixel_data, root):
     hor_lines = horizontal_line_finder(height, width, pixel_data) #cannot use margin_lines, but it is fine table cells are usally wider than they are tall
     hor_margin_lines = real_line_margins(hor_lines, 5)
         
+
     ver_lines = vertical_line_finder(height, width, pixel_data, hor_margin_lines)
     ver_margin_lines = real_line_margins(ver_lines, 5)
 
@@ -821,6 +1156,7 @@ def multiprocessing_unit_identify_cells(pixel_data, root):
     inferred_hor_lines = []
     inferred_hor_quality = []
     while(1): #Horizontal
+
         inferred_hor_lines_temp, inferred_hor_quality_temp = inferred_horizontal_line_finder(height, width, pixel_data, required_dist, ver_margin_lines) #inferred
         groups = num_of_groups(inferred_hor_lines_temp, 7) # amount of separable groups of inferred lines that exist within the possible inferred lines.
         required_dist += .04 #TODO find a number that balances speed and accuracy
@@ -846,7 +1182,11 @@ def multiprocessing_unit_identify_cells(pixel_data, root):
         inferred_ver_quality = inferred_ver_quality_temp
 
     guarenteed_inf_ver, guarenteed_ver_quality = inferred_vertical_line_finder(height, width, pixel_data, .98, 8, hor_lines) #inject inf_ver that might have been wrongfully removed; Thicker line required USED TO BE .99
+
+    tempv = mean_finder(ver_lines, ([0] + guarenteed_inf_ver  + [width-1]), ([1] + guarenteed_ver_quality + [1]), 10, width) #TODO find a good number
+
     tempv = mean_finder(ver_lines, ([0] + guarenteed_inf_ver  + [width-1]), ([1] + guarenteed_ver_quality + [1]), 10, width) #TODO find a good number   
+
 
     ver_lines_final = mean_finder(tempv, inferred_ver_lines, inferred_ver_quality, 15, width) #this is precision not resolution add lines to the left and right //TODO find a good precision
     hor_lines_final = mean_finder(hor_lines, ([0] + inferred_hor_lines + [height-1]), ([1] + inferred_hor_quality + [1]), 7, height) #this is precision not resolution
@@ -873,6 +1213,9 @@ if __name__ == '__main__':
     parser.add_argument('--work_dir', required=True, help='main work and output directory')
     parser.add_argument('--first_table_page', required=True, help='The first page that you want table extraction begins with')
     parser.add_argument('--last_table_page', required=True, help='The last page that you want table extraction ends with')
+    parser.add_argument('--use_yolo',required=False,help='Use the combined yolo/cnn model to detect tables, default is False',default=False,action="store_true")
+    parser.add_argument('--yolo_model',required=False,help='Path to weights of trained yolo model')
+
     args = parser.parse_args()
 
     concatenate_clean = True
@@ -881,12 +1224,27 @@ if __name__ == '__main__':
     pdf_loc = (args.pdf_dir).lower()
     start = int(args.first_table_page)
     cap = int(args.last_table_page)
+    yolo = args.use_yolo
+    if yolo:
+        if not args.yolo_model:
+            print("Path to yolo model required if using yolo detection, use --yolo_model path/to/yolo/weights")
+            exit()
+        yolo_model = args.yolo_model
     pages = convert_from_path(pdf_loc, 300, first_page=start, last_page=cap)
+    identify_model = load_model(os.path.join(root, "stage1.h5"))
+    identify_model2 = load_model(os.path.join(root, "stage2.h5"))
+
+    pages = convert_from_path(pdf_loc, 300, first_page=start, last_page=cap)
+
 
     TempImages_dir = os.path.join(args.work_dir, "TempImages")
     try:
         os.makedirs(TempImages_dir)
+
+        print("Directory " , TempImages_dir ,  " Created ")
+
         print("Directory " , TempImages_dir ,  " Created ") 
+
     except FileExistsError:
         print("Directory " , TempImages_dir ,  " already exists")
         print("Cleaning ipxact directory ...")
@@ -897,11 +1255,30 @@ if __name__ == '__main__':
     print("Multiprocesses start: \n")
 
     cpu_num = multiprocessing.cpu_count()
+    print("CPU NUM",cpu_num)
+
+    images=[]
+    for i,image in enumerate(pages):
+        images.append(image_handle(image))
+
+    print("done handling images")
+    pool1 = multiprocessing.Pool(processes= cpu_num)
+    temp_storage = []
+    for image_num, image in enumerate(images):
+        print("Start Idendifying Tables on Page " + str(image_num + start))
+        if yolo:
+            temp_result = pool1.apply_async(multiprocessing_unit_separate_tables_yolo, args= (pdf_loc, image_num+start, image, root,identify_model,identify_model2,yolo_model))
+        else:
+            temp_result = pool1.apply_async(multiprocessing_unit_separate_tables_reg, args= (pdf_loc, image_num+start, image, root,identify_model,identify_model2))
+
+
+    cpu_num = multiprocessing.cpu_count()
     pool1 = multiprocessing.Pool(processes= cpu_num)
     temp_storage = []
     for image_num, image in enumerate(pages):
         print("Start Idendifying Tables on Page " + str(image_num + start))
         temp_result = pool1.apply_async(multiprocessing_unit_separate_tables, args= (image_num, image, root))
+
         temp_storage.append(temp_result)
     pool1.close()
     pool1.join()
@@ -951,9 +1328,20 @@ if __name__ == '__main__':
                             cleaned_array[-1][cell_num] += (" " + cell)
                 else:
                     cleaned_array.append(row)
+
+        with open(os.path.join(args.work_dir, "concatenate_table_original.csv"), "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerows(cleaned_array)
+    end_main_time = time.time()
+    total_time = end_main_time-start_main_time
+    minutes = float(total_time)/60
+    print("--- %s seconds ---" % total_time)
+    print("--- %s minutes ---" % minutes)
+
     
         with open(os.path.join(args.work_dir, "concatenate_table.csv"), "w", newline="") as f:
             writer = csv.writer(f)
             writer.writerows(cleaned_array)
     
     print("--- %s seconds ---" % (time.time() - start_main_time))
+

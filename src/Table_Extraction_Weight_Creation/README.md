@@ -29,6 +29,7 @@ Table_extracter_robust_concatenate_conc:
 table_identification_final_2.py				
   Creates 2 models that together identify the location of a table on a page
   
+
   ### YOLO Table Detection
  
 To use YOLOv3 backend for table detection (precision/recall is 0.94)
@@ -83,8 +84,3 @@ To retrain with new data, follow the format of the xml files, then perform the f
     ```bash 
     python3 Train_YOLO.py
     ```
- 
-
-
-
-

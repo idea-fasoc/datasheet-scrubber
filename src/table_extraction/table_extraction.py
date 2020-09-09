@@ -42,6 +42,7 @@ from pdf2image import convert_from_path ##poppler needs to be added and added to
 from numba import jit
 import time
 import multiprocessing
+
 from keras.layers import Dense, Conv2D, Permute, MaxPooling2D, AveragePooling2D, LSTM, Reshape, Flatten, Dropout
 from keras.layers import multiply, add, average, maximum, Concatenate, Lambda
 import keras
@@ -272,6 +273,11 @@ def cnn_yolo_combined(pdf_loc,page_num,im,model1,model2,yolo_model):
 
 def table_identifier(pixel_data, root, identify_model, identify_model2):
     start_time = time.time()
+
+
+
+def table_identifier(pixel_data, root, identify_model, identify_model2):
+    #start_time = time.time()
     pTwo_size = 600
     X_size = 800
     Y_size = 64
@@ -355,7 +361,8 @@ def table_identifier(pixel_data, root, identify_model, identify_model2):
             cv2.imshow('image', final_split)
             cv2.waitKey(0)
             cv2.destroyAllWindows()
-    print("--- %s seconds identify tables ---" % (time.time() - start_time))
+
+    #print("--- %s seconds identify tables ---" % (time.time() - start_time))
     #time.sleep(1)
     return final_splits
 
@@ -647,8 +654,8 @@ def concatenate(root, pixel_data, ver_lines_final, hor_lines_final, conc_col_mod
 
     conc_col_2D = np.zeros((y_len, x_len)) #Y then X
     contains_data = np.zeros((y_len, x_len+1))
-    for y in range(y_len):
-        for x in range(x_len):
+    for y in range(y_len): 
+        for x in range(x_len): 
             if(pred[x+y*x_len][0] > .5 and helper_output == 1):
                 conc_col_2D[y][x] = 1
 
@@ -755,6 +762,50 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
 
     for i in hor_width_line:
         hor_scaled.append([int(i[0]*scale), int(i[1]*scale)+1])
+    
+    for i in ver_lines:
+        real_ver_lines.append(int(i * scale))
+    
+    for i in hor_lines:
+        real_hor_lines.append(int(i * scale))
+
+    # debug
+    if(0):
+        height, width = pixel_data_unchanged.shape
+        print(height)
+        for ver_line in ver_scaled:
+            print(ver_line)
+            cv2.line(pixel_data_unchanged, (ver_line[0],0), (ver_line[0], height), (0,255,0), 4)
+        for hor_line in hor_scaled:
+            cv2.line(pixel_data_unchanged, (0, hor_line[0]), (width, hor_line[0]), (0,255,0), 4)
+        
+        cv2.imshow("line", pixel_data_unchanged)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+        print(height)
+        for ver_line in real_ver_lines:
+            print(ver_line)
+            cv2.line(pixel_data_unchanged, (ver_line,0), (ver_line, height), (0,255,0), 4)
+        for hor_line in real_hor_lines:
+            cv2.line(pixel_data_unchanged, (0, hor_line), (width, hor_line), (0,255,0), 4)
+        
+        cv2.imshow("line", pixel_data_unchanged)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+        y = 0
+        x = 0
+        while(y < (len(hor_scaled)-1)):
+            while(x < len(ver_scaled)-1):
+                if(contains_data[y][x]):
+                    cv2.line(pixel_data_unchanged, (ver_scaled[x][0],hor_scaled[y][0]), (ver_scaled[x][0],hor_scaled[y][0]), (0, 255, 0), 3)
+                x += 1
+            y += 1
+        cv2.imshow("line", pixel_data_unchanged)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
 
     for i in ver_lines:
         real_ver_lines.append(int(i * scale))
@@ -840,10 +891,17 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
                 ANY_SPLIT = True
                 slice = [pixel_data_unchanged[y_s:split_loc, x_s:x_e], [x_s, x_e, y_s, split_loc]]
                 w, h = slice[0].shape
+
                 slice2 = [pixel_data_unchanged[split_loc:y_e, x_s:x_e],[x_s, x_e, split_loc, y_e]]
                 loc2 = os.path.join(root, "../table_extraction/TempImages", "i_B" + str(y) +"_" + str(x) + ".jpg")
                 #loc2 = os.path.join(TempImages_dir, "i_B" + str(y) +"_" + str(x) + ".jpg")
                 cv2.imwrite(loc2,slice2[0])
+
+                slice2 = [pixel_data_unchanged[split_loc:y_e, x_s:x_e],[x_s, x_e, split_loc, y_e]] 
+                #loc2 = os.path.join(root, "TempImages", "i_B" + str(y) +"_" + str(x) + ".jpg")
+                loc2 = os.path.join(TempImages_dir, "i_B" + str(y) +"_" + str(x) + ".jpg")
+                cv2.imwrite(loc2,slice2[0])   
+
                 #p_img = Image.fromarray(slice2)
                 #split_holder.append(pytesseract.image_to_string(loc2, config='--psm 7'))
                 split_holder.append([pytesseract.image_to_string(loc2, config='--psm 7'), slice2[1]]) # for future merge
@@ -874,7 +932,11 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
                 data_array[y-y_merge+y_SPLIT_extend][x+1][1] = [-1, -1, -1, -1]
                 if(y_merge):
                     data_array[y+y_SPLIT_extend][x+1][0] = "^ EXTEND"
+
                     data_array[y+y_SPLIT_extend][x+1][1] = [-1, -1, -1, -1]
+
+                    data_array[y+y_SPLIT_extend][x+1][1] = [-1, -1, -1, -1]  
+  
                 x += 1
             x += 1
         y += 1
@@ -1010,6 +1072,14 @@ def debug(root, height, width, pixel_data, hor_lines, ver_lines, hor_lines_final
     cv2.imshow('image',pixel_data)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+ 
+#def multiprocessing_unit(image_num, image, root, identify_model, identify_model2, conc_col_model, valid_cells_model):
+def multiprocessing_unit_separate_tables(image_num, image, root):
+    #load_model now in seperating processes
+    #print("entered_tables")
+    identify_model = load_model(os.path.join(root, r"Identification_Models", "stage1.h5"))
+    identify_model2 = load_model(os.path.join(root, r"Identification_Models", "stage2.h5"))
+
 
 def image_handle(image):
     import cv2
@@ -1052,6 +1122,32 @@ def multiprocessing_unit_identify_cells(pixel_data, root):
     hor_lines = horizontal_line_finder(height, width, pixel_data) #cannot use margin_lines, but it is fine table cells are usally wider than they are tall
     hor_margin_lines = real_line_margins(hor_lines, 5)
 
+
+    #page_num = image_num + start
+    #print("\n\nStarting page: ", page_num)
+
+    image = np.array(image)	
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    temp_pixel_data = table_identifier(image, root, identify_model, identify_model2)
+    return temp_pixel_data
+
+def multiprocessing_unit_identify_cells(pixel_data, root):
+    #print("entered_cells")
+    conc_col_model = load_model(os.path.join(root, "conc_col.h5"))
+    valid_cells_model = load_model(os.path.join(root, "valid_cells.h5"))
+    final_data_per_table = []
+
+    pixel_data_unchanged = np.copy(pixel_data)
+
+    height, width = pixel_data.shape
+    scale = width/800
+    pixel_data = cv2.resize(pixel_data,(800, int(height/scale)))  #800 width, variable height
+    height, width = pixel_data.shape
+
+    hor_lines = horizontal_line_finder(height, width, pixel_data) #cannot use margin_lines, but it is fine table cells are usally wider than they are tall
+    hor_margin_lines = real_line_margins(hor_lines, 5)
+        
+
     ver_lines = vertical_line_finder(height, width, pixel_data, hor_margin_lines)
     ver_margin_lines = real_line_margins(ver_lines, 5)
 
@@ -1060,7 +1156,7 @@ def multiprocessing_unit_identify_cells(pixel_data, root):
     inferred_hor_lines = []
     inferred_hor_quality = []
     while(1): #Horizontal
-        #print("finding horiz")
+
         inferred_hor_lines_temp, inferred_hor_quality_temp = inferred_horizontal_line_finder(height, width, pixel_data, required_dist, ver_margin_lines) #inferred
         groups = num_of_groups(inferred_hor_lines_temp, 7) # amount of separable groups of inferred lines that exist within the possible inferred lines.
         required_dist += .04 #TODO find a number that balances speed and accuracy
@@ -1076,7 +1172,6 @@ def multiprocessing_unit_identify_cells(pixel_data, root):
     inferred_ver_quality = []
 
     while(1): #Vertical
-        #print("finding vert")
         inferred_ver_lines_temp, inferred_ver_quality_temp = inferred_vertical_line_finder(height, width, pixel_data, required_dist, 8, hor_margin_lines) #inferred
         groups = num_of_groups(inferred_ver_lines_temp, 15)
         required_dist += .03 #TODO find a number that balances speed and accuracy
@@ -1087,7 +1182,11 @@ def multiprocessing_unit_identify_cells(pixel_data, root):
         inferred_ver_quality = inferred_ver_quality_temp
 
     guarenteed_inf_ver, guarenteed_ver_quality = inferred_vertical_line_finder(height, width, pixel_data, .98, 8, hor_lines) #inject inf_ver that might have been wrongfully removed; Thicker line required USED TO BE .99
+
     tempv = mean_finder(ver_lines, ([0] + guarenteed_inf_ver  + [width-1]), ([1] + guarenteed_ver_quality + [1]), 10, width) #TODO find a good number
+
+    tempv = mean_finder(ver_lines, ([0] + guarenteed_inf_ver  + [width-1]), ([1] + guarenteed_ver_quality + [1]), 10, width) #TODO find a good number   
+
 
     ver_lines_final = mean_finder(tempv, inferred_ver_lines, inferred_ver_quality, 15, width) #this is precision not resolution add lines to the left and right //TODO find a good precision
     hor_lines_final = mean_finder(hor_lines, ([0] + inferred_hor_lines + [height-1]), ([1] + inferred_hor_quality + [1]), 7, height) #this is precision not resolution
@@ -1116,6 +1215,7 @@ if __name__ == '__main__':
     parser.add_argument('--last_table_page', required=True, help='The last page that you want table extraction ends with')
     parser.add_argument('--use_yolo',required=False,help='Use the combined yolo/cnn model to detect tables, default is False',default=False,action="store_true")
     parser.add_argument('--yolo_model',required=False,help='Path to weights of trained yolo model')
+
     args = parser.parse_args()
 
     concatenate_clean = True
@@ -1134,10 +1234,17 @@ if __name__ == '__main__':
     identify_model = load_model(os.path.join(root, "stage1.h5"))
     identify_model2 = load_model(os.path.join(root, "stage2.h5"))
 
+    pages = convert_from_path(pdf_loc, 300, first_page=start, last_page=cap)
+
+
     TempImages_dir = os.path.join(args.work_dir, "TempImages")
     try:
         os.makedirs(TempImages_dir)
+
         print("Directory " , TempImages_dir ,  " Created ")
+
+        print("Directory " , TempImages_dir ,  " Created ") 
+
     except FileExistsError:
         print("Directory " , TempImages_dir ,  " already exists")
         print("Cleaning ipxact directory ...")
@@ -1146,6 +1253,7 @@ if __name__ == '__main__':
                 os.remove(os.path.join(TempImages_dir,file))
 
     print("Multiprocesses start: \n")
+
     cpu_num = multiprocessing.cpu_count()
     print("CPU NUM",cpu_num)
 
@@ -1162,6 +1270,15 @@ if __name__ == '__main__':
             temp_result = pool1.apply_async(multiprocessing_unit_separate_tables_yolo, args= (pdf_loc, image_num+start, image, root,identify_model,identify_model2,yolo_model))
         else:
             temp_result = pool1.apply_async(multiprocessing_unit_separate_tables_reg, args= (pdf_loc, image_num+start, image, root,identify_model,identify_model2))
+
+
+    cpu_num = multiprocessing.cpu_count()
+    pool1 = multiprocessing.Pool(processes= cpu_num)
+    temp_storage = []
+    for image_num, image in enumerate(pages):
+        print("Start Idendifying Tables on Page " + str(image_num + start))
+        temp_result = pool1.apply_async(multiprocessing_unit_separate_tables, args= (image_num, image, root))
+
         temp_storage.append(temp_result)
     pool1.close()
     pool1.join()
@@ -1220,3 +1337,11 @@ if __name__ == '__main__':
     minutes = float(total_time)/60
     print("--- %s seconds ---" % total_time)
     print("--- %s minutes ---" % minutes)
+
+    
+        with open(os.path.join(args.work_dir, "concatenate_table.csv"), "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerows(cleaned_array)
+    
+    print("--- %s seconds ---" % (time.time() - start_main_time))
+

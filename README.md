@@ -19,7 +19,7 @@ The FASoC Datasheet Scrubber is a utility that scrubs through large sets of PDF 
 The FASoC database contains more than 700,000 records of Integrated Circuits (ICs) components collected from [Digikey](https://www.digikey.com/products/ics/en). 
 ### Database Web Application
 
-In order to access a sample of this collection, visit our [web application](https://fasoc.herokuapp.com/) or proceed [here](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/tests/web-app-db).
+In order to access a sample of this collection, visit our [web application](https://fasoc.herokuapp.com/) or proceed [here](https://github.com/idea-fasoc/fasoc-webapp).
 ### Raw Database
 To have access to the entire collection of components, please visit [here](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/src/Database).
 

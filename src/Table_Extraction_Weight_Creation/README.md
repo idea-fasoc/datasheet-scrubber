@@ -21,12 +21,16 @@ Table_Extracter_robust_row 	(NOT USED CURRENTLY):
   Identifies the locations of all rows within a table, needs more training data to be accurate
 
 Table_extracter_robust_concatenate:			
-  Creates the model that can concatenate two cells over a vertical line also creates the model that identifies data within the cells
+  Creates the model that identifies if data exists within the cells
+  
+Table_extracter_robust_concatenate_conc:			
+  Creates the model that can concatenate two cells over a vertical line
 
 table_identification_final_2.py				
   Creates 2 models that together identify the location of a table on a page
   
- ### YOLO Table Detection
+
+  ### YOLO Table Detection
  
 To use YOLOv3 backend for table detection (precision/recall is 0.94)
 1. fork or clone [this repository](https://github.com/serafibk/TrainYourOwnYOLO)
@@ -80,7 +84,3 @@ To retrain with new data, follow the format of the xml files, then perform the f
     ```bash 
     python3 Train_YOLO.py
     ```
- 
-
-
-

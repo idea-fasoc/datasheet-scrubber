@@ -1,8 +1,5 @@
 from Address import Address
-from page_classification import page_classification
-from paragraph_classification import paragraph_classification
-from subparagraph_classification import subparagraph_classification
-from sentence_classification import sentence_classification
+from single_layer_classification import page_classification, paragraph_classification, subparagraph_classification, sentence_classification
 from os.path import isdir
 import os
 import shutil

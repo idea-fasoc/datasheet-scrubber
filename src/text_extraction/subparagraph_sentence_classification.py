@@ -1,4 +1,4 @@
-"""This function is to classify perfect sentences from paragraphs; feedback loop implemented"""
+"""This function is the original implementation of feedback loop. It is inconsistent with the current classification structure."""
 from Address import Address
 from subparagraph_classification import subparagraph_classification
 from sentence_classification_loop import sentence_classification

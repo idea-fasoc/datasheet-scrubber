@@ -19,8 +19,12 @@ Requirements: Python 3.6 (packages pytesseract, pdf2image, opencv-python, numpy,
       
 4.  Run the code and follow the terminal prompts.
 
-5. If using the combined yolo/cnn detection model, download the following two files and add them to yolo_helpers/keras_yolo3
-    - [yolo.h5](https://drive.google.com/file/d/1jo1KO_DW2ifGaaX_o4jOrbGV-g6bouQL/view?usp=sharing)
-    - [yolov3.weights](https://drive.google.com/file/d/1DVVlHgmebYInJE7Gyj58fqWq-NVL8RsH/view?usp=sharing)
+5. If using the combined yolo/cnn detection model, please clone [keras-yolo3](https://github.com/qqwweee/keras-yolo3) or simply write 
+    ```bash
+   git clone git@github.com:qqwweee/keras-yolo3.git
+    ```
+    Then download the following two files and add them to keras_yolo3 directory.
+     - [yolo.h5](https://drive.google.com/file/d/1jo1KO_DW2ifGaaX_o4jOrbGV-g6bouQL/view?usp=sharing)
+     - [yolov3.weights](https://drive.google.com/file/d/1DVVlHgmebYInJE7Gyj58fqWq-NVL8RsH/view?usp=sharing)
 
-Then download the weights for the yolo model [here](https://drive.google.com/file/d/11Gx_LFV3YlbU2ui7uLOiNqFJkujommzD/view?usp=sharing) and add the path with the command line option --yolo_model path/to/yolo/weights
+    Next, download the [weights](https://drive.google.com/file/d/11Gx_LFV3YlbU2ui7uLOiNqFJkujommzD/view?usp=sharing) for the yolo model and add their path with the command line option --yolo_model path/to/yolo/weights.

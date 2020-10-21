@@ -1,12 +1,13 @@
 import os
 import sys
+
 def get_parent_dir(n=1):
-    """ returns the n-th parent dicrectory of the current
-    working directory """
+#returns the n-th parent dicrectory of the current working directory
     current_path = os.path.dirname(os.path.abspath(__file__))
     for k in range(n):
         current_path = os.path.dirname(current_path)
     return current_path
+
 src_path = os.path.join(get_parent_dir(1), "2_Training", "src")
 utils_path = os.path.join(get_parent_dir(1), "Utils")
 sys.path.append(src_path)
@@ -72,6 +73,7 @@ def detect_func(input_paths, output_path, model_path,classes_path,anchors_path):
         )
         start = timer()
         text_out = ""
+
         # This is for images
         for i, img_path in enumerate(input_image_paths):
             print(img_path)
@@ -139,9 +141,6 @@ model_weights = os.path.join(model_folder, "trained_weights_1915_final.h5")
 model_classes = os.path.join(model_folder, "data_classes.txt")
 anchors_path = os.path.join(src_path, "keras_yolo3", "model_data", "yolo_anchors.txt")
 FLAGS = None
-
-
-
 
 if __name__ == "__main__":
     # Delete all default flags

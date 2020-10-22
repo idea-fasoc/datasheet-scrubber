@@ -20,12 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-"""This function is to train a classifier and do the testing"""
-"""
-Input:
-input_SOURCES: An array containing [path, label] arrays for all classes
-test_directory: contains txt files waiting to be tested
-"""
+# This function is to train a classifier and do the testing"""
+# Input:
+# input_SOURCES: An array containing [path, label] arrays for all classes
+# test_directory: contains txt files waiting to be tested
 
 import os
 import numpy
@@ -38,12 +36,15 @@ from sklearn.model_selection import KFold  # Modified to be compatible with pyth
 from sklearn.metrics import confusion_matrix, f1_score
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import BernoulliNB
-from Address import Address
+#from Address import Address
 from statistics import stdev
 
 
 # Text cleaning
 def supervised_classifier_ngram(input_SOURCES, test_directory):
+    code_dir = os.path.dirname(__file__)
+    main_dir = os.path.relpath(os.path.join(code_dir,"../.."))
+
     NEWLINE = '\n'
     SKIP_FILES = {'cmds'}
 
@@ -90,8 +91,9 @@ def supervised_classifier_ngram(input_SOURCES, test_directory):
     # Training
     # Assigning classes to training set (label training dataset)
 
-    Path_extracted = Address(1).split("\n")
-    Path_extracted1 = Path_extracted[0]
+    # Path_extracted = Address(1).split("\n")
+    # Path_extracted1 = Path_extracted[0]
+    Path_extracted1 = main_dir
     SOURCES = input_SOURCES
 
     data = DataFrame({'text': [], 'class': []})

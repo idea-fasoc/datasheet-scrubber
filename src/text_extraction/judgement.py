@@ -1,3 +1,27 @@
+#!/usr/bin/env python3
+
+# MIT License
+
+# Copyright (c) 2018 The University of Michigan
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 import os
 import numpy
 from pandas import DataFrame
@@ -10,12 +34,15 @@ from sklearn.model_selection import KFold  # Modified to be compatible with pyth
 from sklearn.metrics import confusion_matrix, f1_score
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import BernoulliNB
-from Address import Address
+#from Address import Address
 from statistics import stdev
 
 
 # Text cleaning
 def supervised_classifier(input_SOURCES, test_directory):
+    code_dir = os.path.dirname(__file__)
+    main_dir = os.path.relpath(os.path.join(code_dir,"../.."))
+
     NEWLINE = '\n'
     SKIP_FILES = {'cmds'}
 
@@ -62,8 +89,9 @@ def supervised_classifier(input_SOURCES, test_directory):
     # Training
     # Assigning classes to training set (label training dataset)
 
-    Path_extracted = Address(1).split("\n")
-    Path_extracted1 = Path_extracted[0]
+    #Path_extracted = Address(1).split("\n")
+    #Path_extracted1 = Path_extracted[0]
+    Path_extracted1 = main_dir
     SOURCES = input_SOURCES
 
     data = DataFrame({'text': [], 'class': []})

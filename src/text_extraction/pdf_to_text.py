@@ -27,9 +27,11 @@ from pdfminer.layout import LAParams
 from pdfminer.pdfpage import PDFPage
 import os
 import sys, getopt
-from Address import Address
+#from Address import Address
 def pdf_to_text(sourth_path,destin_path):
-
+    code_dir = os.path.dirname(__file__)
+    main_dir   = os.path.relpath(os.path.join(code_dir,"../.."))
+    
     def convert(fname, pages=None):
         if not pages:
             pagenums = set()
@@ -70,8 +72,9 @@ def pdf_to_text(sourth_path,destin_path):
                 '''add utf-8'''
                 textFile.write(text) #write text to text file
 
-    Path_extracted=Address(1).split("\n")
-    Path_extracted1=Path_extracted[0]
+    #Path_extracted=Address(1).split("\n")
+    #Path_extracted1=Path_extracted[0]
+    Path_extracted1 = main_dir
     pdfDir=os.path.join(Path_extracted1,sourth_path)
     txtDir=os.path.join(Path_extracted1,destin_path)
     convertMultiple(pdfDir, txtDir)

@@ -1,28 +1,51 @@
+#!/usr/bin/env python3
+
+# MIT License
+
+# Copyright (c) 2018 The University of Michigan
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 from pdf_to_text import pdf_to_text
 from supervised_classifier_ngram import supervised_classifier_ngram
 from judgement import supervised_classifier
-from Address import Address
+#from Address import Address
 import pdf_cropper_for_extraction
 from os.path import isdir
 from os.path import join as p_join
 from os import mkdir, listdir, remove
 from shutil import rmtree
 
-"""This function is to classify perfect pages from datasheets"""
-"""
-Input:
-testing_folder: datasheets we want to extract (absolute path)
-training_folder: all pages labelled in three folders (absolute path)
-"""
-"""
-Output:
-An array with [paragraph_name, pred] tuples; paragraph_name without ".txt".
-"""
+#This function is to classify perfect pages from datasheets"""
+# Input:
+# testing_folder: datasheets we want to extract (absolute path)
+# training_folder: all pages labelled in three folders (absolute path)
+# Output:
+# An array with [paragraph_name, pred] tuples; paragraph_name without ".txt".
 
 
 def page_classification(training_folder, testing_folder):
-    path_extracted = Address(1).split("\n")
-    base_dir = path_extracted[0]
+    # path_extracted = Address(1).split("\n")
+    # base_dir = path_extracted[0]
+    code_dir = os.path.dirname(__file__)
+    main_dir = os.path.relpath(os.path.join(code_dir,"../.."))
+    base_dir = main_dir
     pages_pdf_dir = p_join(base_dir, 'tmp_pdf')  # create a temporary directory to split pages
     pages_txt_dir = p_join(base_dir, 'tmp_txt')  # create a temporary directory to convert into texts
     if isdir(pages_pdf_dir):

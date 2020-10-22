@@ -1,5 +1,29 @@
-"""This function is the original implementation of feedback loop. It is inconsistent with the current classification structure."""
-from Address import Address
+#!/usr/bin/env python3
+
+# MIT License
+
+# Copyright (c) 2018 The University of Michigan
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+# This function is the original implementation of feedback loop. It is inconsistent with the current classification structure."""
+#from Address import Address
 from subparagraph_classification import subparagraph_classification
 from sentence_classification_loop import sentence_classification
 import os
@@ -7,8 +31,11 @@ import shutil
 
 
 def subparagraph_sentence_classification(training_folder, testing_folder):
-    Path_extracted = Address(1).split("\n")
-    Path_extracted1 = Path_extracted[0]
+    # Path_extracted = Address(1).split("\n")
+    # Path_extracted1 = Path_extracted[0]
+    code_dir = os.path.dirname(__file__)
+    main_dir = os.path.relpath(os.path.join(code_dir,"../.."))
+    Path_extracted1 = main_dir
     # a list of paths
     all_paragraph_folder = 'All_subparagraph_folders/ADC'  # folders with paragraph name, containing subparagraphs
     all_subparagraph_folder = 'both_subparagraph_sentence_folders/ADC'  # folders with subparagraph name, containing sentences

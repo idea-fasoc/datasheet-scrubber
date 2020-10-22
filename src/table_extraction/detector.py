@@ -16,9 +16,9 @@ import argparse
 from yolo_helpers.keras_yolo3.yolo import YOLO, detect_video
 from PIL import Image
 from timeit import default_timer as timer
-from yolo_helpers.Utils.utils import load_extractor_model, load_features, parse_input, detect_object
+from yolo_helpers.utils import load_extractor_model, load_features, parse_input, detect_object
 import test
-import yolo_helpers.Utils.utils
+import yolo_helpers.utils
 import pandas as pd
 import numpy as np
 from yolo_helpers.Utils.Get_File_Paths import GetFileList

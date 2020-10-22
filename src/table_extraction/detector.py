@@ -21,7 +21,7 @@ import test
 import yolo_helpers.utils
 import pandas as pd
 import numpy as np
-from yolo_helpers.Utils.Get_File_Paths import GetFileList
+from yolo_helpers.get_File_Paths import GetFileList
 import random
 
 def detect_func(input_paths, output_path, model_path,classes_path,anchors_path):

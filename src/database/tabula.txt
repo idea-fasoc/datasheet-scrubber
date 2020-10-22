@@ -1,0 +1,43 @@
+#1
+double(41,2)
+  "" Program Memory Data Memory,,Timers,
+  Device  ,I/O,,Comparator
+  "" Flash (words) SRAM (bytes),,8-bit,
+  PIC10F200 256 16,4,1,0
+  PIC10F202 512 24,4,1,0
+  PIC10F204 256 16,4,1,1
+  PIC10F206 512 24,4,1,1
+  High-Performance RISC CPU:  "- 100 nA @ 2V, typical"
+  • Only 33 Single-Word Instructions to Learn • "Low-Power, High-Speed Flash Technology:"
+  • All Single-Cycle Instructions except for Program  "- 100,000 Flash endurance"
+  "Branches  which are Two-Cycle" ,- > 40 year retention
+  • 12-Bit Wide Instructions • Fully Static Design
+  • 2-Level Deep Hardware Stack • Wide Operating Voltage Range: 2.0V to 5.5V
+  "• Direct  Indirect and Relative Addressing modes" •,Wide Temperature Range:
+  for Data and Instructions  - Industrial: -40C to +85C
+  • 8-Bit Wide Data Path  - Extended: -40C to +125C
+  • Eight Special Function Hardware Registers Peripheral Features (PIC10F200/202): 
+  • Operating Speed:  
+  "" • Four I/O Pins:
+  - 4 MHz internal clock  
+  - 1 s instruction cycle  - Three I/O pins with individual direction control
+  ""  - One input-only pin
+  Special Microcontroller Features:  - High current sink/source for direct LED drive
+  ""  - Wake-on-change
+  • 4 MHz Precision Internal Oscillator:  - Weak pull-ups
+  - Factory calibrated to ±1% • 8-Bit Real-Time Clock/Counter (TMR0) with 8-Bit
+  • In-Circuit Serial ProgrammingTM (ICSPTM)  Programmable Prescaler
+  • In-Circuit Debugging (ICD) Support  
+  "" Peripheral Features (PIC10F204/206): 
+  • Power-on Reset (POR)  
+  • Device Reset Timer (DRT) • Four I/O Pins:
+  • Watchdog Timer (WDT) with Dedicated On-Chip  - Three I/O pins with individual direction control
+  RC Oscillator for Reliable Operation  - One input-only pin
+  • Programmable Code Protection  - High current sink/source for direct LED drive
+  ""  - Wake-on-change
+  • Multiplexed MCLR Input Pin  
+  ""  - Weak pull-ups
+  • Internal Weak Pull-ups on I/O Pins  
+  "" • 8-Bit Real-Time Clock/Counter (TMR0) with 8-Bit
+  • Power-Saving Sleep mode  Programmable Prescaler
+  • Wake-up from Sleep on Pin Change • One Comparator:

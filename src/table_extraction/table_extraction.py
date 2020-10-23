@@ -35,7 +35,7 @@ import numpy as np
 import argparse  # arguement parsing
 from keras.models import load_model
 import fix_pdf
-import Detector
+import detector
 import tensorflow as tf
 
 from pdf2image import convert_from_path ##poppler needs to be added and added to the path variable
@@ -80,7 +80,7 @@ def yolo_model_improve(yolo_model,pdf_loc,page_num,delta=5):
     #model_path = "/Users/serafinakamp/Desktop/YOLO_test/TrainYourOwnYOLO/Data/Model_Weights/trained_weights_1915_final.h5"
     classes_path = "../../src/table_extraction/yolo_helpers/data_classes.txt"
     anchors_path = "../../src/table_extraction/yolo_helpers/keras_yolo3/model_data/yolo_anchors.txt"
-    Detector.detect_func(input_paths, output_path, yolo_model,classes_path,anchors_path)
+    detector.detect_func(input_paths, output_path, yolo_model,classes_path,anchors_path)
     #os.system("python3 ../../../../../YOLO_test/TrainYourOwnYOLO/3_Inference/Detector.py --input_path /Users/serafinakamp/Desktop/TableExt/opt_branch/datasheet-scrubber/src/table_extraction/TempPDF --output /Users/serafinakamp/Desktop/TableExt/opt_branch/datasheet-scrubber/src/table_extraction --yolo_model /Users/serafinakamp/Desktop/YOLO_test/TrainYourOwnYOLO/Data/Model_Weights/trained_weights_1915_final.h5")
 
     tables_on_page={}

@@ -29,22 +29,31 @@
 
 
 import sys
-from subprocess import call
-""" sys.path.insert(1, '/Users/zinebbenameur/Desktop/datasheet-scrubber/src/Category-Recognition/PDF_wrapper.py')
 
-import PDF_wrapper
-from PDF_wrapper import pdf_location
- """
-
-pdf_location = input("Enter a PDF's location and name: ")
 from PyPDF2 import PdfFileReader
-pdf = PdfFileReader(open(pdf_location,'rb'))
-print("number of pages in the pdf", pdf.getNumPages())
+from subprocess import call
+import importlib.util
 
-#construct argument for table_extraction script
-#should include first page and last page
-#path to pdf again
 
-argument = ''
-#call scripts
-call(["python3", "/Users/zinebbenameur/Desktop/datasheet-scrubber/src/Category-Recognition/PDF_wrapper.py"]);call("python3 /Users/zinebbenameur/Desktop/datasheet-scrubber/src/table_extraction/table_extraction.py --weight_dir /Users/zinebbenameur/Desktop/datasheet-scrubber/src/Table_extract_robust --pdf_dir /Users/zinebbenameur/Desktop/datasheet-scrubber/tests/table_extraction/test.pdf --work_dir ./ --first_table_page 2 --last_table_page 4", shell=True)
+
+#pdf_location = str(sys.argv[1])
+def get_pdf():
+    return input("Enter a PDF's location and name: ")
+
+def announce():
+    print("Imported!")
+
+#get module for python file, this is for the wrapper
+def module_from_file(module_name, file_path):
+    spec = importlib.util.spec_from_file_location(module_name, file_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+#call the module
+wrapper = module_from_file("PDF_wrapper", "/Users/zinebbenameur/clean/datasheet-scrubber/src/category-recognition/PDF_wrapper.py")
+
+#build arguments for table extraction
+argumets="--weight_dir /Users/zinebbenameur/Desktop/datasheet-scrubber/src/Table_extract_robust --pdf_dir /Users/zinebbenameur/Desktop/datasheet-scrubber/tests/table_extraction/test.pdf --work_dir ./ --first_table_page 2 --last_table_page 4"
+#call table extraction
+call("python3 /Users/zinebbenameur/Desktop/datasheet-scrubber/src/table_extraction/table_extraction.py"+" "+argumets, shell=True)

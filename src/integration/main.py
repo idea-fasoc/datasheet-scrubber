@@ -33,12 +33,24 @@ import sys
 from PyPDF2 import PdfFileReader
 from subprocess import call
 import importlib.util
+import gdown
+
+url_model1 = 'https://umich.box.com/s/bchj5h09tjtes6gyhbmosz6w7a15ehfv'
+output = 'TEXT_IDENTIFY_MODEL_long.h5'
+gdown.download(url_model1, output, quiet=False) 
+print("EXT_IDENTIFY_MODEL_long.h5 was succesfully downloaded")
+
+
+url_model2 ="https://umich.box.com/s/tbby5r2xrck10hnd0z9hzmnx60l3e8c1"
+output = 'tokenizer_long.pickle'
+gdown.download(url_model2, output, quiet=False)
+
+print("okenizer_long.pickle was succesfully downloaded")
 
 
 
 #pdf_location = str(sys.argv[1])
-def get_pdf():
-    return input("Enter a PDF's location and name: ")
+
 
 def announce():
     print("Imported!")
@@ -53,7 +65,19 @@ def module_from_file(module_name, file_path):
 #call the module
 wrapper = module_from_file("PDF_wrapper", "/Users/zinebbenameur/clean/datasheet-scrubber/src/category-recognition/PDF_wrapper.py")
 
+#Get number of pages from wrapper module
+pdf = wrapper.get_number_pages()
+number_pages= pdf.getNumPages()
+
+first_page = 1
+last_page = number_pages
+
+arguments_weights= "--weight_dir /Users/zinebbenameur/Desktop/datasheet-scrubber/src/Table_extract_robust "
+arguments_pdf = "--pdf_dir /Users/zinebbenameur/Desktop/datasheet-scrubber/tests/table_extraction/test.pdf "
+arguments_dir = "--work_dir ./ "
+argument_pages = "--first_table_page "+ str(first_page)+" --last_table_page "+str(last_page)
+
 #build arguments for table extraction
-argumets="--weight_dir /Users/zinebbenameur/Desktop/datasheet-scrubber/src/Table_extract_robust --pdf_dir /Users/zinebbenameur/Desktop/datasheet-scrubber/tests/table_extraction/test.pdf --work_dir ./ --first_table_page 2 --last_table_page 4"
+argumets= arguments_weights + arguments_pdf + arguments_dir + argument_pages
 #call table extraction
 call("python3 /Users/zinebbenameur/Desktop/datasheet-scrubber/src/table_extraction/table_extraction.py"+" "+argumets, shell=True)

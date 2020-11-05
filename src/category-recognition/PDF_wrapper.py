@@ -17,6 +17,7 @@ import math
 import os
 import pickle
 import re
+import sys
 
 def custom_sig(x):
     return (K.sigmoid(x) + math.pow(.1, 6))
@@ -43,7 +44,11 @@ tokenizer_location = r"D:\tokenizer_long.pickle" #Change to the location of the 
 
 
 #pdf_location = r"D:/Full_Dataset/ADC/PDFs/ad7819.pdf" #Change to the current pdf
-pdf_location = input("Enter a PDF's location and name: ")
+
+#Get the pdf location from the main script
+pdf_location = str(sys.argv)
+#print("------pdf_location-------",pdf_location)
+#pdf_location = input("Enter a PDF's location and name: ")
 
 
 word_amount = 256

@@ -63,7 +63,7 @@ def module_from_file(module_name, file_path):
     return module
 
 #call the module
-wrapper = module_from_file("PDF_wrapper", "/Users/zinebbenameur/clean/datasheet-scrubber/src/category-recognition/PDF_wrapper.py")
+wrapper = module_from_file("category_recognizer", "/Users/zinebbenameur/clean/datasheet-scrubber/src/category-recognition/category_recognizer.py")
 
 #Get number of pages from wrapper module
 pdf = wrapper.get_number_pages()

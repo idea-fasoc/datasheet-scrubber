@@ -11,3 +11,12 @@ After pulling the table extraction code, download the required neural network mo
  - Download the folder "Models" inside the folder "PDF_IDEN".
  - Update the "model_location" and "tokenizer_location" variables within the wrapper.
     Additionally, enter the location of the PDF you wish to identify.
+    
+    
+### TESTING
+
+In order to test the model:
+
+ - Navigate to [here](https://umich.app.box.com/s/64pqr725gbz538q1htgb60x3alrxrkiy).
+ - Download the folder "Full_Dataset" inside the folder "PDF_IDEN".
+ - Update the "root_folder" in PDF_Iden_Training.py then run the code

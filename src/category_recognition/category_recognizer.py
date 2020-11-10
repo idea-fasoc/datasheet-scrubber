@@ -64,11 +64,11 @@ def convert(fname, word_amount):
 
 print("------LOOK FOR PATHS TO MODEL FILES-------")
 #get urls to models files using the main script
-#model_location = str(find_file("TEXT_IDENTIFY_MODEL_long.h5","/Users/zinebbenameur/clean/datasheet-scrubber/src"))
-#tokenizer_location = str(find_file("tokenizer_long.pickle","/Users/zinebbenameur/clean/datasheet-scrubber/src"))
+#model_location = find_file("TEXT_IDENTIFY_MODEL_long.h5","/Users/zinebbenameur/clean/datasheet-scrubber/src")
+#tokenizer_location = find_file("tokenizer_long.pickle","/Users/zinebbenameur/clean/datasheet-scrubber/src")
 
-model_location = "/Users/zinebbenameur/clean/datasheet-scrubber/src/Table_extract_robust/TEXT_IDENTIFY_MODEL_long.h5" #Change to the location of the model 
-tokenizer_location = "/Users/zinebbenameur/clean/datasheet-scrubber/src/Table_extract_robust/tokenizer_long.pickle" #Change to the location of the tokenizer
+model_location = "/Users/zinebbenameur/clean/datasheet-scrubber/TEXT_IDENTIFY_MODEL_long.h5" #Change to the location of the model 
+tokenizer_location = "/Users/zinebbenameur/clean/datasheet-scrubber/tokenizer_long.pickle" #Change to the location of the tokenizer
 
 
 print(str(model_location),str(tokenizer_location))

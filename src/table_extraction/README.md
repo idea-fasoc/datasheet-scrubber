@@ -27,6 +27,7 @@ Requirements: Python 3.6 (packages pytesseract, pdf2image, opencv-python, numpy,
      - [yolo.h5](https://drive.google.com/file/d/1jo1KO_DW2ifGaaX_o4jOrbGV-g6bouQL/view?usp=sharing)
      - [yolov3.weights](https://drive.google.com/file/d/1DVVlHgmebYInJE7Gyj58fqWq-NVL8RsH/view?usp=sharing)
      - [yolo.py](https://drive.google.com/file/d/1QTo0anpbvmxd0sNBdNyv-Ld30iDvyxmY/view?usp=sharing)
+     
     Add the keras_yolo3 directory to the yolo_helpers directory
 
     Next, download the [weights](https://drive.google.com/file/d/11Gx_LFV3YlbU2ui7uLOiNqFJkujommzD/view?usp=sharing) for the yolo model and add their path with the command line option --yolo_model path/to/yolo/weights.

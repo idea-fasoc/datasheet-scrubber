@@ -73,15 +73,11 @@ def calc_IoU(xml,proposed):
 def yolo_model_improve(yolo_model,pdf_loc,page_num,delta=5):
 
     #run detection
-    #os.system("python3 fix_pdf.py -p "+pdf_loc+" -n "+str(page_num))
     fix_pdf.extract_jpg(pdf_loc,page_num)
-    input_paths = "../../src/table_extraction/TempPDF"
-    output_path = "../../src/table_extraction"
-    #model_path = "/Users/serafinakamp/Desktop/YOLO_test/TrainYourOwnYOLO/Data/Model_Weights/trained_weights_1915_final.h5"
-    classes_path = "../../src/table_extraction/yolo_helpers/data_classes.txt"
-    anchors_path = "../../src/table_extraction/yolo_helpers/keras_yolo3/model_data/yolo_anchors.txt"
-    detector.detect_func(input_paths, output_path, yolo_model,classes_path,anchors_path)
+    model_path = "/Users/serafinakamp/Desktop/YOLO_test/TrainYourOwnYOLO/Data/Model_Weights/trained_weights_1915_final.h5"
     #os.system("python3 ../../../../../YOLO_test/TrainYourOwnYOLO/3_Inference/Detector.py --input_path /Users/serafinakamp/Desktop/TableExt/opt_branch/datasheet-scrubber/src/table_extraction/TempPDF --output /Users/serafinakamp/Desktop/TableExt/opt_branch/datasheet-scrubber/src/table_extraction --yolo_model /Users/serafinakamp/Desktop/YOLO_test/TrainYourOwnYOLO/Data/Model_Weights/trained_weights_1915_final.h5")
+    call = "python3 ../../src/table_extraction/detector.py --yolo_model "+model_path
+    os.system(call)
 
     tables_on_page={}
     num = 0

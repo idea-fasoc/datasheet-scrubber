@@ -5,7 +5,7 @@ import numpy as np
 import argparse
 
 def extract_jpg(pdf,page):
-    TempImages_dir = "TempPDF"
+    TempImages_dir = "../../src/table_extraction/TempPDF"
     try:
         os.makedirs(TempImages_dir)
     except FileExistsError:
@@ -16,7 +16,7 @@ def extract_jpg(pdf,page):
     image = convert_from_path(pdf, 300, first_page=page, last_page=page)
 
     for im in image:
-        cv2.imwrite("TempPDF/temp.jpg",np.array(im))
+        cv2.imwrite("../../src/table_extraction/TempPDF/temp.jpg",np.array(im))
 
 
 if __name__ == "__main__":

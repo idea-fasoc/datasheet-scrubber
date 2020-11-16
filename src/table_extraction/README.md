@@ -23,7 +23,7 @@ Requirements: Python 3.6 (packages pytesseract, pdf2image, opencv-python, numpy,
     ```bash
    git clone git@github.com:qqwweee/keras-yolo3.git
     ```
-    Then download the following two files and add them to keras_yolo3 directory.
+    Then download the following three files and add them to keras_yolo3 directory.
      - [yolo.h5](https://drive.google.com/file/d/1jo1KO_DW2ifGaaX_o4jOrbGV-g6bouQL/view?usp=sharing)
      - [yolov3.weights](https://drive.google.com/file/d/1DVVlHgmebYInJE7Gyj58fqWq-NVL8RsH/view?usp=sharing)
      - [yolo.py](https://drive.google.com/file/d/1QTo0anpbvmxd0sNBdNyv-Ld30iDvyxmY/view?usp=sharing)

@@ -18,3 +18,7 @@ In other words, we will be able to store the output of the datasheet scrubber in
 1. run the script *main.py*
     - Model files: tokenizer_long.pickle and TEXT_IDENTIFY_MODEL_long.h5 will be downloaded from UMICH Mbox and added to you current repository
     - PDF datasheet: a message will ask you to provide the path to your PDF in order to apply category recognition and table extraction 
+2. after step 1, you should be able csv files "concatenate_table*.csv"
+3- run the script *csv_cleaning.py*
+    - The script will allow to clean up the csv from the table extractor and only keep the elements needed for the database (according to componenets scrapped from Digikey)
+    - The script will then insert the clean data into a database (to configure in the python script)

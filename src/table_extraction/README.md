@@ -19,7 +19,7 @@ Requirements: Python 3.6 (packages pytesseract, pdf2image, opencv-python, numpy,
       
 4.  Run the code and follow the terminal prompts.
 
-5. If using the combined yolo/cnn detection model, please clone [keras-yolo3](https://github.com/qqwweee/keras-yolo3) or simply write 
+5. If using the combined yolo/cnn detection model, please clone [keras_yolo3](https://github.com/qqwweee/keras-yolo3) or simply write 
     ```bash
    git clone git@github.com:qqwweee/keras-yolo3.git
     ```

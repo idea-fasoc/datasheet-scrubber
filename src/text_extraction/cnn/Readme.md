@@ -1,4 +1,4 @@
-1. Download the folder "Text_extract" from https://umich.app.box.com/folder/81602232677
+1. Download the folder "Text_extract" from https://umich.box.com/s/pu4vzbkk0nhn2le9998kq5xtaa7b9pmc
 2. Download the required packages: Tensorflow, Keras, Sklearn, pdfminer, and nltk
 3. Using the NLTK Downloader tool, get all of the additional files
 4. Change the paths to your local Text_extract path

@@ -31,6 +31,7 @@ from os.path import isdir
 from os.path import join as p_join
 from os import mkdir, listdir, remove
 from shutil import rmtree
+import os
 
 #This function is to classify perfect pages from datasheets"""
 # Input:
@@ -44,14 +45,17 @@ def page_classification(training_folder, testing_folder):
     # path_extracted = Address(1).split("\n")
     # base_dir = path_extracted[0]
     code_dir = os.path.dirname(__file__)
-    main_dir = os.path.relpath(os.path.join(code_dir,"../.."))
-    base_dir = main_dir
+    #main_dir = os.path.relpath(os.path.join(code_dir,"../.."))
+    #base_dir = main_dir
+    base_dir = code_dir
     pages_pdf_dir = p_join(base_dir, 'tmp_pdf')  # create a temporary directory to split pages
     pages_txt_dir = p_join(base_dir, 'tmp_txt')  # create a temporary directory to convert into texts
     if isdir(pages_pdf_dir):
         rmtree(pages_pdf_dir)
+    mkdir(pages_pdf_dir)
     if isdir(pages_txt_dir):
         rmtree(pages_txt_dir)
+    mkdir(pages_txt_dir)
     # labels and training directory
     perfect_label = 'perfect'
     bad_label = 'bad'

@@ -37,6 +37,7 @@ from keras.models import load_model
 import fix_pdf
 import detector
 import tensorflow as tf
+#tf.compat.v1.disable_eager_execution()
 
 from pdf2image import convert_from_path ##poppler needs to be added and added to the path variable
 from numba import jit
@@ -46,8 +47,7 @@ from keras.layers import Dense, Conv2D, Permute, MaxPooling2D, AveragePooling2D,
 from keras.layers import multiply, add, average, maximum, Concatenate, Lambda
 import keras
 
-tf.compat.v1.enable_eager_execution()
-#print(tf.executing_eagerly())
+#tf.compat.v1.enable_eager_execution()
 
 ##calculate the IoU between two regions
 def calc_IoU(xml,proposed):
@@ -1133,8 +1133,8 @@ if __name__ == '__main__':
             exit()
         yolo_model = args.yolo_model
     pages = convert_from_path(pdf_loc, 300, first_page=start, last_page=cap)
-    identify_model = load_model(os.path.join(root, "stage1.h5"))
-    identify_model2 = load_model(os.path.join(root, "stage2.h5"))
+    identify_model = load_model(os.path.join(root, "Identification_Models", "stage1.h5"))
+    identify_model2 = load_model(os.path.join(root, "Identification_Models", "stage2.h5"))
 
     TempImages_dir = os.path.join(args.work_dir, "TempImages")
     try:
@@ -1164,13 +1164,11 @@ if __name__ == '__main__':
             temp_result = pool1.apply_async(multiprocessing_unit_separate_tables_yolo, args= (pdf_loc, image_num+start, image, root,identify_model,identify_model2,yolo_model))
         else:
             temp_result = pool1.apply_async(multiprocessing_unit_separate_tables_reg, args= (pdf_loc, image_num+start, image, root,identify_model,identify_model2))
-
         temp_storage.append(temp_result)
     pool1.close()
     pool1.join()
 
     print("\n")
-
     pool2 = multiprocessing.Pool(processes= cpu_num)
     all_tables = []
     count = 0
@@ -1178,7 +1176,7 @@ if __name__ == '__main__':
         count += 1
         print("Start Extracting Content in Table " + str(count))
         for table_pixel in tables.get():
-            #print(table_pixel)
+            print(table_pixel)
             temp_data_per_table = pool2.apply_async(multiprocessing_unit_identify_cells, args= (table_pixel, root))
             all_tables.append(temp_data_per_table)
     pool2.close()
@@ -1187,7 +1185,6 @@ if __name__ == '__main__':
     array = []
     for temp in all_tables:
         temp_row = temp.get()
-        #print(temp_tables)
         for cell in temp_row:
             array.append(cell)
 

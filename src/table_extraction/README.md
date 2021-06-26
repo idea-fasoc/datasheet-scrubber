@@ -2,32 +2,28 @@
 
 A majority of a datasheet’s relevant specifications are found within their various tables. Our tool identifies the location of tables and extracts information within them.
 
-### Environment Setup
+## Environment Setup
 
-Requirements: Python 3.6 (packages pytesseract, pdf2image, opencv-python, numpy, keras, tensorflow). Python versions below 3.6 are not supported.
+Requirements: Python 3.6.9 or [Anaconda4.10.1](https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html) (Packages: [tesseract](https://anaconda.org/conda-forge/tesseract), [pytesseract](https://anaconda.org/conda-forge/pytesseract), [pdf2image](https://anaconda.org/conda-forge/pdf2image), [opencv](https://anaconda.org/conda-forge/opencv), [keras2.3.1](https://anaconda.org/conda-forge/keras), [poppler](https://anaconda.org/conda-forge/poppler), [matplotlib](https://anaconda.org/conda-forge/matplotlib), [pandas](https://anaconda.org/anaconda/pandas), [numba](https://anaconda.org/numba/numba), [gdown](https://anaconda.org/conda-forge/gdown), [libicinv](https://anaconda.org/conda-forge/libiconv/), [tenserflow1.14](https://anaconda.org/conda-forge/tensorflow)). Python versions below 3.6 are not supported.
 
-1.  After pulling the table extraction code, download the required neural network models by following the instructions below.
+After pulling the table extraction code, please initialize the environment:
 
-    - Navigate to [here](https://umich.app.box.com/s/64pqr725gbz538q1htgb60x3alrxrkiy).
+`cd src/table_extraction`
 
-    - Download the folder "Table_extract_robust" inside the folder "Tablext".
-  
-2.  Update the "root" variable within Main_code to your local location of "Table_extract_robust." 
-  e.g. r"C:/Users/User/Downloads/Table_extract_robust".
-  
-3. Download [Poppler](https://poppler.freedesktop.org/), and [Tesseract](https://tesseract-ocr.github.io/tessdoc/Home.html). Reference the software in your system variables.
-      
-4.  Run the code and follow the terminal prompts.
+`make init`
 
-5. If using the combined yolo/cnn detection model, please clone [keras_yolo3](https://github.com/qqwweee/keras-yolo3) or simply write 
-    ```bash
-   git clone git@github.com:qqwweee/keras-yolo3.git
-    ```
-    Then download the following three files and add them to keras_yolo3 directory.
-     - [yolo.h5](https://drive.google.com/file/d/1jo1KO_DW2ifGaaX_o4jOrbGV-g6bouQL/view?usp=sharing)
-     - [yolov3.weights](https://drive.google.com/file/d/1DVVlHgmebYInJE7Gyj58fqWq-NVL8RsH/view?usp=sharing)
-     - [yolo.py](https://drive.google.com/file/d/1QTo0anpbvmxd0sNBdNyv-Ld30iDvyxmY/view?usp=sharing)
-     
-    Add the keras_yolo3 directory to the yolo_helpers directory
+## Testing
+For using the code, you can see [here](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/tests/table_extraction) as an example.
+### Test Modes
+- `cnn`: Our normal table extraction method which uses CNN
 
-    Next, download the [weights](https://drive.google.com/file/d/11Gx_LFV3YlbU2ui7uLOiNqFJkujommzD/view?usp=sharing) for the yolo model and add their path with the command line option --yolo_model path/to/yolo/weights.
+- `cnn_yolo`: Applying YOLO to our CNN-based method
+
+### Arguments
+- `--pdf_dir`: The directory of the PDF file that you want to extract
+
+- `--work_dir`: The directory that you want to save the results e.g. output CSV file in
+
+- `--first_table_page`: Statring page that you want to extract tables within from your input PDF file
+
+- `--last_table_page`: Last page that you want to extract tables within from your input PDF file

@@ -4,7 +4,7 @@ A majority of a datasheet’s relevant specifications are found within their var
 
 ## Environment Setup
 
-Requirements: Python 3.6.9 or [Anaconda4.10.1](https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html) (Packages: [tesseract](https://anaconda.org/conda-forge/tesseract), [pytesseract](https://anaconda.org/conda-forge/pytesseract), [pdf2image](https://anaconda.org/conda-forge/pdf2image), [opencv](https://anaconda.org/conda-forge/opencv), [keras2.3.1](https://anaconda.org/conda-forge/keras), [poppler](https://anaconda.org/conda-forge/poppler), [matplotlib](https://anaconda.org/conda-forge/matplotlib), [pandas](https://anaconda.org/anaconda/pandas), [numba](https://anaconda.org/numba/numba), [gdown](https://anaconda.org/conda-forge/gdown), [libicinv](https://anaconda.org/conda-forge/libiconv/), [tenserflow1.14](https://anaconda.org/conda-forge/tensorflow)). Python versions below 3.6 are not supported.
+Requirements: Python 3.6.9 or [Anaconda4.10.1](https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html) (Packages: [tesseract](https://anaconda.org/conda-forge/tesseract), [pytesseract](https://anaconda.org/conda-forge/pytesseract), [pdf2image](https://anaconda.org/conda-forge/pdf2image), [opencv](https://anaconda.org/conda-forge/opencv), [keras2.3.1](https://anaconda.org/conda-forge/keras), [poppler](https://anaconda.org/conda-forge/poppler), [matplotlib](https://anaconda.org/conda-forge/matplotlib), [pandas](https://anaconda.org/anaconda/pandas), [numba](https://anaconda.org/numba/numba), [gdown](https://anaconda.org/conda-forge/gdown), [libicinv](https://anaconda.org/conda-forge/libiconv/), [tenserflow2.5.0](https://anaconda.org/conda-forge/tensorflow)). Python versions below 3.6 are not supported.
 
 After pulling the table extraction code, please initialize the environment:
 
@@ -15,8 +15,8 @@ After pulling the table extraction code, please initialize the environment:
 ## Testing
 For using the code, you can see [here](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/tests/table_extraction) as an example.
 ### Test Modes
-- `cnn`: Our normal table extraction method which uses CNN
-
+- `cnn_basic`: Our normal table extraction method which uses CNN
+- `cnn_advanced`: Our advanced version of table extraction method which uses CNN
 - `cnn_yolo`: Applying YOLO to our CNN-based method
 
 ### Arguments

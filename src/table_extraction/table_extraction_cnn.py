@@ -33,9 +33,10 @@ import functools
 import copy
 import numpy as np
 import argparse  # arguement parsing
-from keras.models import load_model
+import tensorflow as tf
+from tensorflow.keras.models import load_model
 
-from pdf2image import convert_from_path ##poppler needs to be added and added to the path variable
+from pdf2image import convert_from_path #poppler needs to be added and added to the path variable
 
 
 def table_identifier(pixel_data, root, identify_model, identify_model2):
@@ -710,7 +711,7 @@ def run_main(image, root, identify_model, identify_model2, conc_col_model, valid
 pyth_dir = os.path.dirname(__file__)
 
 parser = argparse.ArgumentParser(description='Table Extractor Tool')
-parser.add_argument('--weight_dir', required=True, help='weight directory')
+#parser.add_argument('--weight_dir', required=True, help='weight directory')
 parser.add_argument('--pdf_dir', required=True, help='pdf directory')
 parser.add_argument('--work_dir', required=True, help='main work and output directory')
 parser.add_argument('--first_table_page', required=True, help='The first page that you want table extraction begins with')
@@ -719,7 +720,7 @@ args = parser.parse_args()
 
 concatenate_clean = True
 
-root = args.weight_dir
+root = os.path.join(pyth_dir,'Table_extract_robust')
 pdf_loc = (args.pdf_dir).lower()
 start = int(args.first_table_page)
 cap = int(args.last_table_page)

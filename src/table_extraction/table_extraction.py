@@ -33,21 +33,23 @@ import functools
 import copy
 import numpy as np
 import argparse  # arguement parsing
-from keras.models import load_model
 import fix_pdf
 import detector
 import tensorflow as tf
-#tf.compat.v1.disable_eager_execution()
+from tensorflow.keras.models import load_model
 
-from pdf2image import convert_from_path ##poppler needs to be added and added to the path variable
+from pdf2image import convert_from_path #poppler needs to be added and added to the path variable
 from numba import jit
 import time
 import multiprocessing
-from keras.layers import Dense, Conv2D, Permute, MaxPooling2D, AveragePooling2D, LSTM, Reshape, Flatten, Dropout
-from keras.layers import multiply, add, average, maximum, Concatenate, Lambda
-import keras
+from multiprocessing import Pool
+from multiprocessing.pool import ThreadPool as Pool
 
-#tf.compat.v1.enable_eager_execution()
+import dill
+from tensorflow.keras.layers import Dense, Conv2D, Permute, MaxPooling2D, AveragePooling2D, LSTM, Reshape, Flatten, Dropout
+from tensorflow.keras.layers import multiply, add, average, maximum, Concatenate, Lambda
+from tensorflow.keras.models import load_model
+tf.compat.v1.enable_eager_execution()
 
 ##calculate the IoU between two regions
 def calc_IoU(xml,proposed):
@@ -70,18 +72,19 @@ def calc_IoU(xml,proposed):
     return intersection/union
 
 #for now assume picture is detected in yolo before being processe here
-def yolo_model_improve(yolo_model,pdf_loc,page_num,delta=5):
+def yolo_model_improve(yolo_model_dir,pdf_loc,page_num,delta=5):
 
     #run detection
     fix_pdf.extract_jpg(pdf_loc,page_num)
-    model_path = "/Users/serafinakamp/Desktop/YOLO_test/TrainYourOwnYOLO/Data/Model_Weights/trained_weights_1915_final.h5"
-    #os.system("python3 ../../../../../YOLO_test/TrainYourOwnYOLO/3_Inference/Detector.py --input_path /Users/serafinakamp/Desktop/TableExt/opt_branch/datasheet-scrubber/src/table_extraction/TempPDF --output /Users/serafinakamp/Desktop/TableExt/opt_branch/datasheet-scrubber/src/table_extraction --yolo_model /Users/serafinakamp/Desktop/YOLO_test/TrainYourOwnYOLO/Data/Model_Weights/trained_weights_1915_final.h5")
-    call = "python3 ../../src/table_extraction/detector.py --yolo_model "+model_path
+    #model_path = "/Users/serafinakamp/Desktop/YOLO_test/TrainYourOwnYOLO/Data/Model_Weights/trained_weights_1915_final.h5"
+    #call = "python3 ../../src/table_extraction/detector.py --yolo_model " + model_path
+    call = "python3 ../../src/table_extraction/detector.py --yolo_model " + yolo_model_dir
     os.system(call)
 
     tables_on_page={}
     num = 0
-    with open("../../src/table_extraction/Detection_results.csv","r") as csvfile:
+    #with open("../../src/table_extraction/Detection_results.csv","r") as csvfile:
+    with open(os.path.join(work_loc,"Detection_results.csv"),"r") as csvfile:
         reader = csv.reader(csvfile)
         for row in reader:
             if row[0]=="image":
@@ -112,9 +115,9 @@ def yolo_model_improve(yolo_model,pdf_loc,page_num,delta=5):
                 elif prop[1] < confidence: #confidence is higher, so delete previous table
                     tables_on_page[key].append([proposed,confidence])
                     del tables_on_page[key][found_ind]
-                    #print("new table is more confident")
-                #else:
-                    #print("overlap and less confident")
+                    print("new table is more confident")
+                else:
+                    print("overlap and less confident")
 
             else: #add new key
                 tables_on_page[key] = [[proposed,confidence]]
@@ -205,8 +208,8 @@ def cnn_detect(model1,model2,i):
     return groups, groups2 #returns all detected y vals,x vals
 
 
-def cnn_yolo_combined(pdf_loc,page_num,im,model1,model2,yolo_model):
-    processed_tables = yolo_model_improve(yolo_model,pdf_loc,page_num)
+def cnn_yolo_combined(pdf_loc,page_num,im,model1,model2,yolo_model_dir,work_loc):
+    processed_tables = yolo_model_improve(yolo_model_dir,pdf_loc,page_num,work_loc)
     yolo_tables=[]
     all_y,all_x = cnn_detect(model1,model2,im)
 
@@ -222,7 +225,6 @@ def cnn_yolo_combined(pdf_loc,page_num,im,model1,model2,yolo_model):
     final_tables=[]
     #prune
     for table in yolo_tables:
-        print(table)
         maxiou = 0
         cnn_found=[]
         yolo_coords=table[0]
@@ -765,9 +767,9 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
     # debug
     if(0):
         height, width = pixel_data_unchanged.shape
-        print(height)
+        #print(height)
         for ver_line in ver_scaled:
-            print(ver_line)
+            #print(ver_line)
             cv2.line(pixel_data_unchanged, (ver_line[0],0), (ver_line[0], height), (0,255,0), 4)
         for hor_line in hor_scaled:
             cv2.line(pixel_data_unchanged, (0, hor_line[0]), (width, hor_line[0]), (0,255,0), 4)
@@ -776,9 +778,9 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
-        print(height)
+        #print(height)
         for ver_line in real_ver_lines:
-            print(ver_line)
+            #print(ver_line)
             cv2.line(pixel_data_unchanged, (ver_line,0), (ver_line, height), (0,255,0), 4)
         for hor_line in real_hor_lines:
             cv2.line(pixel_data_unchanged, (0, hor_line), (width, hor_line), (0,255,0), 4)
@@ -800,7 +802,6 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
         cv2.destroyAllWindows()
 
     data_array = [[["" for k in range(2)] for i in range(len(contains_data[0]))] for j in range(len(contains_data))]
-    #print(data_array)
 
     y = 0
     y_SPLIT_extend = 0
@@ -810,8 +811,7 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
         split_holder = []
         ANY_SPLIT = False
         while(x < len(ver_scaled)-1):
-            loc = os.path.join(root, "../table_extraction/TempImages", "i" + str(y) +"_" + str(x) + ".jpg")
-            #loc = os.path.join(TempImages_dir, "i" + str(y) +"_" + str(x) + ".jpg")
+            loc = os.path.join(TempImages_dir, "i" + str(y) +"_" + str(x) + ".jpg")
             data_exists = contains_data[y][x]
             temp_x = x
             while(temp_x < len(ver_scaled)-2 and conc_col_2D[y][temp_x]):
@@ -841,8 +841,7 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
                 slice = [pixel_data_unchanged[y_s:split_loc, x_s:x_e], [x_s, x_e, y_s, split_loc]]
                 w, h = slice[0].shape
                 slice2 = [pixel_data_unchanged[split_loc:y_e, x_s:x_e],[x_s, x_e, split_loc, y_e]]
-                loc2 = os.path.join(root, "../table_extraction/TempImages", "i_B" + str(y) +"_" + str(x) + ".jpg")
-                #loc2 = os.path.join(TempImages_dir, "i_B" + str(y) +"_" + str(x) + ".jpg")
+                loc2 = os.path.join(TempImages_dir, "i_B" + str(y) +"_" + str(x) + ".jpg")
                 cv2.imwrite(loc2,slice2[0])
                 #p_img = Image.fromarray(slice2)
                 #split_holder.append(pytesseract.image_to_string(loc2, config='--psm 7'))
@@ -881,7 +880,6 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
         if(ANY_SPLIT):
             data_array.insert(y+y_SPLIT_extend, split_holder)
             y_SPLIT_extend += 1
-    #print(data_array)
     ####ARRAY CLEANUP
 
     cleaned_data_array = []
@@ -892,7 +890,6 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
 
         for y in range(len(data_array)):
             for x in range(len(data_array[0])):
-                #print(data_array[y][x])
                 if(data_array[y][x][0] != "" and data_array[y][x][0] != "< EXTEND" and data_array[y][x][0] != "^ EXTEND"):
                     col_valid[x] = True
                     row_valid[y] = True
@@ -914,7 +911,6 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
             for cell_cor in row:
                 temp_row.append(cell_cor[0])
             final_merge.append(temp_row)
-        #print(final_merge)
         return final_merge
 
     real_intervals = []
@@ -924,7 +920,6 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
         real_intervals.append([real_hor_lines[interval_it], real_hor_lines[interval_it + 1]])
         interval_it += 1
     real_intervals.append([real_hor_lines[interval_it], height])
-    #print(real_intervals)
 
     row_intervals = []
     for row in cleaned_data_array:
@@ -947,7 +942,6 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
 
     row_it = 0
     while(row_it < len(row_intervals)):
-        #print(row_intervals[row_it])
         cell_num = len(row_intervals[row_it][0])
         row_num = row_intervals[row_it][2]
         temp_merge = row_intervals[row_it][0]
@@ -964,7 +958,6 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
                     temp_merge[i] = temp_merge[i] + ' ' + row_intervals[temp_it][0][i]
                     CHANGE = True
             temp_it += 1
-        # print(temp_merge)
         final_merge.append(temp_merge)
         if(CHANGE):
             row_it = temp_it
@@ -1026,16 +1019,16 @@ def multiprocessing_unit_separate_tables_reg(pdf_loc,page_num, image, root,ident
     print("\n\nStarting page: ", page_num)
 
     temp_pixel_data,coords = table_identifier(image, root, identify_model, identify_model2)
-    print(coords)
+    #print(coords)
     return temp_pixel_data
-def multiprocessing_unit_separate_tables_yolo(pdf_loc,page_num, image, root,identify_model,identify_model2,yolo_model):
+def multiprocessing_unit_separate_tables_yolo(pdf_loc,page_num, image, root,identify_model,identify_model2,yolo_model_dir,work_loc):
     #load_model now in seperating processes
 
     #page_num = image_num + start
     print("\n\nStarting page: ", page_num)
 
-    temp_pixel_data,coords = cnn_yolo_combined(pdf_loc,page_num,image,identify_model,identify_model2,yolo_model)
-    print(coords)
+    temp_pixel_data,coords = cnn_yolo_combined(pdf_loc,page_num,image,identify_model,identify_model2,yolo_model_dir,work_loc)
+    #print(coords)
     return temp_pixel_data
 
 def multiprocessing_unit_identify_cells(pixel_data, root):
@@ -1062,7 +1055,6 @@ def multiprocessing_unit_identify_cells(pixel_data, root):
     inferred_hor_lines = []
     inferred_hor_quality = []
     while(1): #Horizontal
-        #print("finding horiz")
         inferred_hor_lines_temp, inferred_hor_quality_temp = inferred_horizontal_line_finder(height, width, pixel_data, required_dist, ver_margin_lines) #inferred
         groups = num_of_groups(inferred_hor_lines_temp, 7) # amount of separable groups of inferred lines that exist within the possible inferred lines.
         required_dist += .04 #TODO find a number that balances speed and accuracy
@@ -1078,7 +1070,6 @@ def multiprocessing_unit_identify_cells(pixel_data, root):
     inferred_ver_quality = []
 
     while(1): #Vertical
-        #print("finding vert")
         inferred_ver_lines_temp, inferred_ver_quality_temp = inferred_vertical_line_finder(height, width, pixel_data, required_dist, 8, hor_margin_lines) #inferred
         groups = num_of_groups(inferred_ver_lines_temp, 15)
         required_dist += .03 #TODO find a number that balances speed and accuracy
@@ -1111,32 +1102,28 @@ if __name__ == '__main__':
     pyth_dir = os.path.dirname(__file__)
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = '2'
     parser = argparse.ArgumentParser(description='Table Extractor Tool')
-    parser.add_argument('--weight_dir', required=True, help='weight directory')
     parser.add_argument('--pdf_dir', required=True, help='pdf directory')
     parser.add_argument('--work_dir', required=True, help='main work and output directory')
     parser.add_argument('--first_table_page', required=True, help='The first page that you want table extraction begins with')
     parser.add_argument('--last_table_page', required=True, help='The last page that you want table extraction ends with')
     parser.add_argument('--use_yolo',required=False,help='Use the combined yolo/cnn model to detect tables, default is False',default=False,action="store_true")
-    parser.add_argument('--yolo_model',required=False,help='Path to weights of trained yolo model')
     args = parser.parse_args()
 
     concatenate_clean = True
 
-    root = args.weight_dir
+    root = os.path.join(pyth_dir,'Table_extract_robust')
     pdf_loc = (args.pdf_dir).lower()
+    work_loc = args.work_dir
     start = int(args.first_table_page)
     cap = int(args.last_table_page)
     yolo = args.use_yolo
     if yolo:
-        if not args.yolo_model:
-            print("Path to yolo model required if using yolo detection, use --yolo_model path/to/yolo/weights")
-            exit()
-        yolo_model = args.yolo_model
+        yolo_model_dir = os.path.join(pyth_dir,'yolo_helpers','keras_yolo3','trained_weights_1915_final.h5')
     pages = convert_from_path(pdf_loc, 300, first_page=start, last_page=cap)
     identify_model = load_model(os.path.join(root, "Identification_Models", "stage1.h5"))
     identify_model2 = load_model(os.path.join(root, "Identification_Models", "stage2.h5"))
 
-    TempImages_dir = os.path.join(args.work_dir, "TempImages")
+    TempImages_dir = os.path.join(work_loc, "TempImages")
     try:
         os.makedirs(TempImages_dir)
         print("Directory " , TempImages_dir ,  " Created ")
@@ -1156,12 +1143,12 @@ if __name__ == '__main__':
         images.append(image_handle(image))
 
     print("done handling images")
-    pool1 = multiprocessing.Pool(processes= cpu_num)
+    pool1 = Pool(processes= cpu_num)
     temp_storage = []
     for image_num, image in enumerate(images):
         print("Start Idendifying Tables on Page " + str(image_num + start))
         if yolo:
-            temp_result = pool1.apply_async(multiprocessing_unit_separate_tables_yolo, args= (pdf_loc, image_num+start, image, root,identify_model,identify_model2,yolo_model))
+            temp_result = pool1.apply_async(multiprocessing_unit_separate_tables_yolo, args= (pdf_loc, image_num+start, image, root,identify_model,identify_model2,yolo_model_dir,work_loc))
         else:
             temp_result = pool1.apply_async(multiprocessing_unit_separate_tables_reg, args= (pdf_loc, image_num+start, image, root,identify_model,identify_model2))
         temp_storage.append(temp_result)
@@ -1169,14 +1156,13 @@ if __name__ == '__main__':
     pool1.join()
 
     print("\n")
-    pool2 = multiprocessing.Pool(processes= cpu_num)
+    pool2 = Pool(processes= cpu_num)
     all_tables = []
     count = 0
     for tables in temp_storage:
         count += 1
         print("Start Extracting Content in Table " + str(count))
         for table_pixel in tables.get():
-            print(table_pixel)
             temp_data_per_table = pool2.apply_async(multiprocessing_unit_identify_cells, args= (table_pixel, root))
             all_tables.append(temp_data_per_table)
     pool2.close()
@@ -1190,7 +1176,6 @@ if __name__ == '__main__':
 
     #debug part
     if(0):
-        print(len(all_tables))
         for table in all_tables:
             cv2.imshow('image', table)
             cv2.waitKey(0)
@@ -1212,7 +1197,7 @@ if __name__ == '__main__':
                 else:
                     cleaned_array.append(row)
 
-        with open(os.path.join(args.work_dir, "concatenate_table.csv"), "w", newline="") as f:
+        with open(os.path.join(work_loc, "concatenate_table.csv"), "w", newline="") as f:
             writer = csv.writer(f)
             writer.writerows(cleaned_array)
     end_main_time = time.time()

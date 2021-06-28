@@ -39,7 +39,7 @@ def get_parent_dir(n=1):
 yolo_path = os.path.join(os.path.dirname(__file__),'yolo_helpers','keras_yolo3')
 sys.path.insert(1, yolo_path)
 import argparse
-from yolo_helpers.keras_yolo3.yolo import YOLO, detect_video
+#from yolo_helpers.keras_yolo3.yolo import YOLO, detect_video
 from yolo import YOLO, detect_video
 from PIL import Image
 from timeit import default_timer as timer

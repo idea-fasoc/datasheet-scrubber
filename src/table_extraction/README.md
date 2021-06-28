@@ -16,7 +16,9 @@ After pulling the table extraction code, please initialize the environment:
 For using the code, you can see [here](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/tests/table_extraction) as an example.
 ### Test Modes
 - `cnn_basic`: Our normal table extraction method which uses CNN
+ 
 - `cnn_advanced`: Our advanced version of table extraction method which uses CNN
+
 - `cnn_yolo`: Applying YOLO to our CNN-based method
 
 ### Arguments
@@ -27,3 +29,5 @@ For using the code, you can see [here](https://github.com/idea-fasoc/datasheet-s
 - `--first_table_page`: Statring page that you want to extract tables within from your input PDF file
 
 - `--last_table_page`: Last page that you want to extract tables within from your input PDF file
+
+- `--use_yolo`: If it is `True` it means YOLO model would be integrated with our CNN-based model

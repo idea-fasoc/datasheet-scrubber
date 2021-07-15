@@ -31,3 +31,15 @@ For using the code, you can see [here](https://github.com/idea-fasoc/datasheet-s
 - `--last_table_page`: Last page that you want to extract tables within from your input PDF file
 
 - `--use_yolo`: If it is `True` it means YOLO model would be integrated with our CNN-based model
+
+## Citation
+If you find this repo useful in your project or research, please star and consider citing it:
+
+```
+@article{colter2021tablext,
+  title={Tablext: A Combined Neural Network And Heuristic Based Table Extractor},
+  author={Colter, Zach and Fayazi, Morteza and Benameur-El, Zineb and Kamp, Serafina and Yu, Shuyan and Dreslinski, Ronald},
+  journal={arXiv preprint arXiv:2104.11287},
+  year={2021}
+}
+```

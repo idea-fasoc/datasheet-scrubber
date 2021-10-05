@@ -166,7 +166,7 @@ for train, test in kfold.split(data_final, labels_final_compressed):
         data = AveragePooling2D(pool_size=(1, word_types2[i]), strides=(1,word_types2[i]))(data)
 
 
-        data = MaxPooling2D(pool_size=(256-3-word_window2[i]+1, 1))(data)
+        data = MaxPooling2D(pool_size=(word_amount-3-word_window2[i]+1, 1))(data)
         data = keras.layers.Flatten()(data)
         data = keras.layers.Dropout(0.5)(data)
         data = Dense(128, activation= 'softsign')(data)

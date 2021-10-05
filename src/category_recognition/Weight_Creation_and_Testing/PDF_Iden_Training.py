@@ -134,7 +134,7 @@ print("here ", labels_final_compressed)
 for train, test in kfold.split(data_final, labels_final_compressed):
     keras_input = keras.layers.Input(shape=(word_amount,), name='keras_input')
     print(train)
-    word_window = [4, 8, 8, 32, 256, 256, 256]
+    word_window = [4, 8, 8, 32, word_amount, word_amount, word_amount]
     word_types =  [2, 2, 4, 4,  1,   2,   4]
     results = []
     training_outs = []
@@ -149,14 +149,14 @@ for train, test in kfold.split(data_final, labels_final_compressed):
         data = AveragePooling2D(pool_size=(1, word_types[i]), strides=(1,word_types[i]))(data)
 
 
-        data = MaxPooling2D(pool_size=(256-word_window[i]+1, 1))(data)
+        data = MaxPooling2D(pool_size=(word_amount-word_window[i]+1, 1))(data)
         data = keras.layers.Flatten()(data)
         data = keras.layers.Dropout(0.5)(data)
         data = Dense(128, activation= 'softsign')(data)
         results.append(data)
         training_outs.append(Dense(len(Types), activation= custom_sig)(data))
 
-    word_window2 = [16, 32, 253, 253, 253]
+    word_window2 = [16, 32, word_amount-3, word_amount-3, word_amount-3]
     word_types2 =  [2,  2,  1,   2,   4]
     for i in range(len(word_window2)):
         data = Conv2D(word_types2[i]*512, kernel_size=(4, 300), activation='softsign')(e)

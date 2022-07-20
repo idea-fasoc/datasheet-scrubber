@@ -2,6 +2,12 @@
 
 The FASoC Datasheet Scrubber is a utility that scrubs through large sets of PDF datasheets/documents in order to extract key circuit information. The information gathered is used to build a database of commercial off-the-shelf (COTS) IP that can be used to build larger SoC in the FASoC design. More information [here](https://fasoc.engin.umich.edu/datasheet-scrubber).
 
+To get more details about the datasheet scrubber, please refer to our [IEEE TCAD](https://ieeexplore.ieee.org/document/9733041) paper.
+
+If you find this tool useful in your research, we kindly request to cite our paper below:
+
+- M. Fayazi et al., "FASCINET: A Fully Automated Single-Board Computer Generator Using Neural Networks," in IEEE Transactions on Computer-Aided Design of Integrated Circuits and Systems.
+
 ### Setup instructions
 
 1. Ensure your machine has the correct python version and all of the python modules required to run through the datasheet scrubber. 

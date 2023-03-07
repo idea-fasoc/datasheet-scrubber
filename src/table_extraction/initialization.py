@@ -31,8 +31,7 @@ from subprocess import call
 import gdown
 
 tablext_src_dir = os.path.dirname(__file__)
-
-url = 'https://www.dropbox.com/home/ENGIN-FASOC/Fully%20Autonomous%20SoC%20Synthesis/Tablext'
+url = 'https://drive.google.com/u/0/uc?id=1RFDf8LUAGTWk_SjmPLuxzxgAZDIWvCiD&export=download'
 output = os.path.join(tablext_src_dir,'Table_extract_robust.zip')
 gdown.download(url, output, quiet=False)
 

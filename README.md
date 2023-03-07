@@ -8,6 +8,8 @@ If you find this tool useful in your research, we kindly request to cite our pap
 
 - M. Fayazi et al., "FASCINET: A Fully Automated Single-Board Computer Generator Using Neural Networks," in IEEE Transactions on Computer-Aided Design of Integrated Circuits and Systems.
 
+- Z. Colter et al., "Tablext: A combined neural network and heuristic based table extractor," in *Array*,Vol. 15, 2022, pp. 100220.
+
 ### Setup instructions
 
 1. Ensure your machine has the correct python version and all of the python modules required to run through the datasheet scrubber. 

@@ -36,10 +36,13 @@ For using the code, you can see [here](https://github.com/idea-fasoc/datasheet-s
 If you find this repo useful in your project or research, please star and consider citing it:
 
 ```
-@article{colter2021tablext,
+@article{colter2022tablext,
   title={Tablext: A Combined Neural Network And Heuristic Based Table Extractor},
-  author={Colter, Zach and Fayazi, Morteza and Benameur-El, Zineb and Kamp, Serafina and Yu, Shuyan and Dreslinski, Ronald},
-  journal={arXiv preprint arXiv:2104.11287},
-  year={2021}
+  author={Colter, Zach and Fayazi, Morteza and Benameur-El Youbi, Zineb and Kamp, Serafina and Yu, Shuyan and Dreslinski, Ronald},
+  journal={Array},
+  volume={15},
+  pages={100220},
+  year={2022},
+  publisher={Elsevier}
 }
 ```

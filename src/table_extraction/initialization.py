@@ -55,10 +55,9 @@ except FileNotFoundError as e:
 
 os.remove(os.path.join(tablext_src_dir,'yolo_helpers','keras_yolo3','yolo.py'))
 os.remove(os.path.join(tablext_src_dir,'yolo_helpers','keras_yolo3','yolo3','model.py'))
-url_list = ['https://drive.google.com/u/0/uc?id=1jo1KO_DW2ifGaaX_o4jOrbGV-g6bouQL&export=download', 'https://drive.google.com/u/0/uc?id=1DVVlHgmebYInJE7Gyj58fqWq-NVL8RsH&export=download', 'https://www.dropbox.com/s/s5gwafmh4ys9u0z/yolo.py?dl=0', 'https://drive.google.com/u/0/uc?id=11Gx_LFV3YlbU2ui7uLOiNqFJkujommzD&export=download']
+url_list = ['https://drive.google.com/u/0/uc?id=15imxnopP_4ILtg0V2Ni11IGtPxA-dthb&export=download', 'https://drive.google.com/u/0/uc?id=12-sLCv6m4z---qXWSHVZSSA6WzfmzNNM&export=download', 'https://drive.google.com/u/0/uc?id=162wfUNRf5M7AcTon30CGHdFS8RBnEUPn&export=download', 'https://drive.google.com/u/0/uc?id=1uDQZVsOqLws3EUPjkNY6md4LSzAQfOFD&export=download']
 output_list = ['yolo.h5', 'yolov3.weights','yolo.py','trained_weights_1915_final.h5']
 output_dir = os.path.join(tablext_src_dir,'yolo_helpers','keras_yolo3')
-
 for i in range(len(output_list)):
 	gdown.download(url_list[i], os.path.join(output_dir,output_list[i]), quiet=False)
 

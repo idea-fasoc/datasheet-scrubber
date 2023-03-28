@@ -61,4 +61,4 @@ output_dir = os.path.join(tablext_src_dir,'yolo_helpers','keras_yolo3')
 for i in range(len(output_list)):
 	gdown.download(url_list[i], os.path.join(output_dir,output_list[i]), quiet=False)
 
-gdown.download('https://www.dropbox.com/s/vdyzbvp9847z1eg/model.py?dl=0', os.path.join(tablext_src_dir,'yolo_helpers','keras_yolo3','yolo3','model.py'), quiet=False)
+gdown.download('https://drive.google.com/u/0/uc?id=1uCbQlcQ96Gvm3pjWZFuHZBD9JbmVhzWL&export=download', os.path.join(tablext_src_dir,'yolo_helpers','keras_yolo3','yolo3','model.py'), quiet=False)

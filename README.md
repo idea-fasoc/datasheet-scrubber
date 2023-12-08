@@ -12,8 +12,8 @@ If you find this tool useful in your research, we kindly request to cite our pap
 
 ### Setup instructions
 
-1. Ensure your machine has the correct python version and all of the python modules required to run through the datasheet scrubber. 
-    - Requirements: Anaconda 3 or Python 3.6/3.7 (packages pandas, scipy, matplot, matplotlib, pdfminer.six, pypdf2, request, lxml, tabula-py, sklearn, regex, keras, tensorflow, pdf2image, pillow, pytesseract, numpy, opencv-python, gensim, nltk). Python versions below 3.6 are not supported.
+1. Ensure your machine has the correct Python version and all of the Python modules required to run through the datasheet scrubber. 
+    - Requirements: [Anaconda](anaconda.com), and [Tensorflow](https://docs.anaconda.com/free/anaconda/applications/tensorflow/). Python versions below 3.6 are not supported.
     
 1. Ensure you have ssh keys setup for github. Instructions for generating and adding ssh keys can be found [here](https://help.github.com/en/articles/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent).
 
@@ -32,6 +32,7 @@ In order to access a sample of this collection, visit our [web application](http
 To have access to the entire collection of components, please visit [here](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/src/database).
 
 # Datasheet-Scrubber
-Datasheet scrubber includes three steps of [category recognition](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/src/Category-Recognition), [table extracton](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/src/table_extraction) and text extraction.
+
+Datasheet scrubber includes three steps of [category recognition](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/src/category_recognition), [table extracton](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/src/table_extraction) and [text extraction](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/src/text_extraction).
 ### Test
-an example of how to use the table extractor can be found [here](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/tests/table_extraction).
+Examples of how to use the [category recognition](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/tests/category_recognition), [table extractor](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/tests/table_extraction), and [web application database](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/tests/web-app-db) are provided.

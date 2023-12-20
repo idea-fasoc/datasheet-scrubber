@@ -115,3 +115,7 @@ src/table_extraction/Table_extract_robust/
 src/table_extraction/h5_opener.py
 src/table_extraction/read_h5.py
 src/table_extraction/yolo_helpers/keras_yolo3/
+
+# Category recognition downloaded models
+src/category_recognition/Models/
+src/category_recognition/Full_Dataset/

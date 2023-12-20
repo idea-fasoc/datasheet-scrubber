@@ -4,19 +4,14 @@ The first step to automatically scrub datasheets is to recognize the IP category
 
 ### Environment Setup
 
-Requirements: Python 3.6 (packages pdfminer.six, numpy, keras, tensorflow). Python versions below 3.6 are not supported.
+Requirements: [Anaconda](anaconda.com) (Packages: [pdfminer.six](https://anaconda.org/conda-forge/pdfminer.six), [keras2.3.1](https://anaconda.org/conda-forge/keras), [tenserflow2.5.0](https://anaconda.org/conda-forge/tensorflow), [PyPDF2](https://anaconda.org/conda-forge/pypdf2)). All the required packages will be installed after initializing.
 
-After pulling the table extraction code, download the required neural network models by following the instructions below.
- - Navigate [here](https://umich.app.box.com/s/64pqr725gbz538q1htgb60x3alrxrkiy)
- - Download the folder "Models" inside the folder "PDF_IDEN"
- - Update the "model_location" and "tokenizer_location" variables within the wrapper
-    Additionally, enter the location of the PDF you wish to identify
-    
+After pulling the table extraction code, please initialize the environment:
+- `cd src/category_recognition`
+- `make init`
     
 ### Testing
-
-In order to test the model:
-
- - Navigate [here](https://umich.app.box.com/s/64pqr725gbz538q1htgb60x3alrxrkiy)
- - Download the folder "Full_Dataset" inside the folder "PDF_IDEN"
- - Update the "root_folder" in PDF_Iden_Training.py then run the code
+For using the code, you can see [here](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/tests/category_recognition) as an example.
+### Test Modes
+- `single_file`: When the category of only one file needs to be recognized
+-  `conf_matrix`: When the category of multiple files needs to be recognized. This option gives the total average accuracy of our model.

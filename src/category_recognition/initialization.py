@@ -29,10 +29,10 @@ from shutil import unpack_archive
 import subprocess
 
 def library_installer(py_lib):
-	if py_lib == 'PyPDF2':
-		import_name = 'pypdf2'
-	elif py_lib == 'pdfminer':
-		import_name = 'pdfminer.six'
+	if py_lib == 'pypdf2':
+		import_name = 'PyPDF2'
+	elif py_lib == 'pdfminer.six':
+		import_name = 'pdfminer'
 	else:
 		import_name = py_lib
 	try:
@@ -66,12 +66,13 @@ except ImportError:
 
 src_dir = os.path.dirname(__file__)
 
-models_url = 'https://drive.google.com/u/0/uc?id=159mK3UpzvMJhDyH0mrjUikXQwT834tYl&export=download'
+models_url = 'https://drive.google.com/u/0/uc?id=17lDuMDquBpam5EwPMyqU1omMatLXGGgq&export=download'
 models_zip = os.path.join(src_dir, 'Models.zip')
 if not os.path.exists(models_zip):
 	try:
-		gdown.download(models_url, models_zip, quiet = False)
-		print("File 'Models.zip' downloaded successfully.")
+		if not os.path.exists('Models'):
+			gdown.download(models_url, models_zip, quiet = False)
+			print("File 'Models.zip' downloaded successfully.")
 	except Exception as e:
 		print(f"Error downloading file 'Models.zip': {e}")
 else:
@@ -81,18 +82,19 @@ if not os.path.exists('Models'):
 	try:
 		os.makedirs('Models')
 		print("Directory 'Models' created successfully.")
+		unpack_archive('Models.zip', os.path.join(src_dir,'Models'), 'zip')
 	except Exception as e:
 		print(f"Error creating directory 'Models': {e}")
 else:
  	print("Directory 'Models' already exists.")
-unpack_archive('Models.zip', os.path.join(src_dir,'Models'), 'zip')
 
-full_dataset_url = 'https://drive.google.com/u/0/uc?id=159mK3UpzvMJhDyH0mrjUikXQwT834tYl&export=download'
+full_dataset_url = 'https://drive.google.com/u/0/uc?id=164l6FN-UDHalxcGys4AsUVg1YlvfmCfF&export=download'
 full_dataset_zip = os.path.join(src_dir, 'Full_Dataset.zip')
 if not os.path.exists(full_dataset_zip):
 	try:
-		gdown.download(full_dataset_url, full_dataset_zip, quiet = False)
-		print("File 'Full_Dataset.zip' downloaded successfully.")
+		if not os.path.exists('Full_Dataset'):
+			gdown.download(full_dataset_url, full_dataset_zip, quiet = False)
+			print("File 'Full_Dataset.zip' downloaded successfully.")
 	except Exception as e:
 		print(f"Error downloading file 'Full_Dataset.zip': {e}")
 else:
@@ -102,11 +104,11 @@ if not os.path.exists('Full_Dataset'):
 	try:
 		os.makedirs('Full_Dataset')
 		print("Directory 'Full_Dataset' created successfully.")
+		unpack_archive('Full_Dataset.zip', os.path.join(src_dir,'Full_Dataset'), 'zip')
 	except Exception as e:
 		print(f"Error creating directory 'Full_Dataset': {e}")
 else:
  	print("Directory 'Full_Dataset' already exists.")
-unpack_archive('Full_Dataset.zip', os.path.join(src_dir,'Full_dataset'), 'zip')
 
 print('Cleaning unnecessary files ...')
 if os.path.exists(models_zip):
@@ -115,8 +117,8 @@ if os.path.exists(full_dataset_zip):
 	os.remove(full_dataset_zip)
 	
 print('Installing necessary python libraries ...')
-library_installer("pdfminer")
-library_installer("PyPDF2")
+library_installer("pdfminer.six")
+library_installer("pypdf2")
 library_installer("tensorflow")
 
 print('Initialization has gotten done successfully.')

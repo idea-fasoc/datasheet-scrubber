@@ -1,2 +1,2 @@
 init:
-	./initialization.py
+	python3 ./initialization.py

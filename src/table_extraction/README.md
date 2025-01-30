@@ -1,15 +1,69 @@
 # Table Extraction
 
-A majority of a datasheet’s relevant specifications are found within their various tables. Our tool identifies the location of tables and extracts information within them.
+A majority of a datasheet's relevant specifications are found within their various tables. Our tool identifies the location of tables and extracts information within them.
 
 ## Environment Setup
 
-Requirements: [Anaconda](anaconda.com) (Packages: [tesseract](https://anaconda.org/conda-forge/tesseract), [pytesseract](https://anaconda.org/conda-forge/pytesseract), [pdf2image](https://anaconda.org/conda-forge/pdf2image), [opencv](https://anaconda.org/conda-forge/opencv), [keras2.3.1](https://anaconda.org/conda-forge/keras), [poppler](https://anaconda.org/conda-forge/poppler), [matplotlib](https://anaconda.org/conda-forge/matplotlib), [pandas](https://anaconda.org/anaconda/pandas), [numba](https://anaconda.org/numba/numba), [gdown](https://anaconda.org/conda-forge/gdown), [libicinv](https://anaconda.org/conda-forge/libiconv/), [tenserflow2.5.0](https://anaconda.org/conda-forge/tensorflow)). All the required packages will be installed after initializing.
+Requirements: [Anaconda](anaconda.com) (Packages: [tesseract](https://anaconda.org/conda-forge/tesseract), [pytesseract](https://anaconda.org/conda-forge/pytesseract), [pdf2image](https://anaconda.org/conda-forge/pdf2image), [opencv](https://anaconda.org/conda-forge/opencv), [keras2.3.1](https://anaconda.org/conda-forge/keras), [poppler](https://anaconda.org/conda-forge/poppler), [matplotlib](https://anaconda.org/conda-forge/matplotlib), [pandas](https://anaconda.org/anaconda/pandas), [numba](https://anaconda.org/numba/numba), [gdown](https://anaconda.org/conda-forge/gdown), [libicinv](https://anaconda.org/conda-forge/libiconv/), [tenserflow2.5.0](https://anaconda.org/conda-forge/tensorflow)).
 
-After pulling the table extraction code, please initialize the environment:
+1. **Create a new Conda environment** with Python 3.8:
+   ```bash
+   conda create -n <name> python=3.8
+   conda activate <name>  
+   ```
 
-- `cd src/table_extraction`
-- `make init`
+2. **Install the required packages** in the environment:
+   ```bash
+   conda install -c conda-forge tesseract pytesseract pdf2image opencv keras2.3.1 poppler matplotlib pandas numba gdown libicinv tensorflow
+   ```
+3. **Install additional dependencies** in the environment:
+   ```bash
+   pip install pillow
+   ```
+
+ All the required packages will be installed after initializing.
+
+## Troubleshooting Common Errors
+
+1. **ModuleNotFoundError: No module named 'pytesseract'**
+   ```bash
+   conda install -c conda-forge pytesseract
+   ```
+
+2. **ModuleNotFoundError: No module named 'cv2'**
+   ```bash
+   conda install -c conda-forge opencv
+   ```
+
+3. **ModuleNotFoundError: No module named 'tensorflow'**
+   ```bash
+   conda install -c conda-forge tensorflow=2.5.0
+   ```
+
+4. **ImportError: DLL load failed while importing _imaging**
+   ```bash
+   pip install --upgrade --force-reinstall pillow
+   ```
+
+5. **ModuleNotFoundError: No module named 'pdf2image'**
+   ```bash
+   conda install -c conda-forge pdf2image
+   ```
+
+6. **ModuleNotFoundError: No module named 'matplotlib'**
+   ```bash
+   conda install -c conda-forge matplotlib
+   ```
+
+7. **ModuleNotFoundError: No module named 'pandas'**
+   ```bash
+   pip install pandas
+   ```
+
+8. **ModuleNotFoundError: No module named 'numba'**
+   ```bash
+   conda install -c conda-forge numba
+   ```
 
 ## Testing
 For using the code, you can see [here](https://github.com/idea-fasoc/datasheet-scrubber/tree/master/tests/table_extraction) as an example.

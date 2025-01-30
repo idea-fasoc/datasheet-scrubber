@@ -63,26 +63,26 @@ except ImportError:
 		print("You can manually install gdown using 'conda install -c conda-forge gdown'.")
 
 tablext_src_dir = os.path.dirname(__file__)
-url = 'https://drive.google.com/u/0/uc?id=1ub5Z4lMTTX1S428TZG4NttkzYaGuR7ZK&export=download'
-table_extract_robust_zip = os.path.join(tablext_src_dir, 'Table_extract_robust.zip')
-if not os.path.exists(table_extract_robust_zip):
-	try:
-		gdown.download(url, table_extract_robust_zip, quiet = False)
-		print("File 'Table_extract_robust.zip' downloaded successfully.")
-	except Exception as e:
-		print(f"Error downloading file 'Table_extract_robust.zip': {e}")
-else:
- 	print("File 'Table_extract_robust.zip' already exists.")
+# url = 'https://drive.google.com/u/0/uc?id=1ub5Z4lMTTX1S428TZG4NttkzYaGuR7ZK&export=download'
+# table_extract_robust_zip = os.path.join(tablext_src_dir, 'Table_extract_robust.zip')
+# if not os.path.exists(table_extract_robust_zip):
+# 	try:
+# 		# gdown.download(url, table_extract_robust_zip, quiet = False)
+# 		print("File 'Table_extract_robust.zip' downloaded successfully.")
+# 	except Exception as e:
+# 		print(f"Error downloading file 'Table_extract_robust.zip': {e}")
+# else:
+#  	print("File 'Table_extract_robust.zip' already exists.")
 
-if not os.path.exists('Table_extract_robust'):
-	try:
-		os.makedirs('Table_extract_robust')
-		print("Directory 'Table_extract_robust' created successfully.")
-	except Exception as e:
-		print(f"Error creating directory 'Table_extract_robust': {e}")
-else:
- 	print("Directory 'Table_extract_robust' already exists.")
-unpack_archive('Table_extract_robust.zip', os.path.join(tablext_src_dir,'Table_extract_robust'), 'zip')
+# if not os.path.exists('Table_extract_robust'):
+# 	try:
+# 		os.makedirs('Table_extract_robust')
+# 		print("Directory 'Table_extract_robust' created successfully.")
+# 	except Exception as e:
+# 		print(f"Error creating directory 'Table_extract_robust': {e}")
+# else:
+#  	print("Directory 'Table_extract_robust' already exists.")
+# unpack_archive('Table_extract_robust.zip', os.path.join(tablext_src_dir,'Table_extract_robust'), 'zip')
 
 try:
 	ret = subprocess.check_call(['git', 'clone', 'https://github.com/qqwweee/keras-yolo3.git'])

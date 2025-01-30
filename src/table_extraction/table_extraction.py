@@ -238,6 +238,16 @@ def cnn_detect(model1,model2,i):
     # Refine the detected table regions using the second model  
     groups2 = []
     for group in groups:
+        # check if the group is valid
+        if group[0] >= group[1] or group[0] < 0 or group[1] > original_pixel_data.shape[0]:
+            print(f"Invalid group range: {group}. Skipping...")
+            continue
+
+        # check if the slice is empty
+        slice_data = original_pixel_data[group[0]:group[1]]
+        if slice_data.size == 0:
+            print(f"Warning: Empty slice for group {group}. Skipping resize.")
+            continue
         temp_final_original = cv2.resize(original_pixel_data[group[0]:group[1]], (pTwo_size, pTwo_size))
         temp_final = np.expand_dims(np.expand_dims(temp_final_original,  axis = 0), axis = -1)
         data_final = model2.predict(temp_final)

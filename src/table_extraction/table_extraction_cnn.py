@@ -109,25 +109,17 @@ def table_identifier(pixel_data, root, identify_model, identify_model2):
     # With the second model, the left and right boundaries of the table are further determined.
     groups2 = []
     for group in groups:
-        # check if the group is valid
-        if group[0] >= group[1] or group[0] < 0 or group[1] > original_pixel_data.shape[0]:
-            print(f"Invalid group range: {group}. Skipping...")
-            continue
 
-        # check if the slice is empty
-        slice_data = original_pixel_data[group[0]:group[1]]
-        if slice_data.size == 0:
-            print(f"Warning: Empty slice for group {group}. Skipping resize.")
-        continue
         temp_final_original = cv2.resize(original_pixel_data[group[0]:group[1]], (pTwo_size, pTwo_size))
         temp_final = np.expand_dims(np.expand_dims(temp_final_original,  axis = 0), axis = -1)
         data_final = identify_model2.predict(temp_final)
+        
 
         # Initialize the start and finish of the table
         hor_start = -1
         hor_finish = 10000
         pointless, original_width = original_pixel_data.shape
-
+   
         # Iterate through the data to find the start and finish of the table
         for iter in range(len(data_final[0])):
             if(data_final[0][iter] > .5 and hor_start == -1):

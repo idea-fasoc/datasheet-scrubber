@@ -1,0 +1,383 @@
+"UIGHIAL OFEUIT IGAITUND (All device ty
+","pes Ty to Tyax, Voo = +12V = 5%, \
+","Temperature Range
+","p=+3V = 10%
+","Package
+"
+"Parameter
+","Test Conditions
+","Min
+","Max
+","Units
+"
+"LOGIC INPUTS
+ Vg High Level Input Voltage
+ Vi Low Level Input Voltage
+ Cin Input Capacitance
+",   ," 2.0
+ 0
+ "," VDD
+ 0.8
+ 10
+"," \%
+ \%
+ pF
+"
+"LOGIC OUTPUTS
+ Vou High Level Output Voltage
+  Vor Low Level Output Voltage
+ Coz High Z Output Capacitance
+",    ," 4.0
+ 2.4
+  ","   0.4
+ 10
+"," Vv
+ \%
+ A\
+ pF
+"
+"DU OFLUITIVAIIUNO (Tyy to Ty, Ve
+","=+12V =
+","5%, VEE = —12 v
+","+ 5%, Vpp = -
+","5V =10
+","% unless otherwi
+","se noted)
+",
+,,"ADG678JIAIS
+",,,"AD678K/BIT
+",,
+"Parameter
+","Min
+","Typ
+","Max
+","Min
+","Typ
+","Max
+","Units
+"
+"TEMPERATURE RANGE
+ ], K Grades
+ A, B Grades
+ S, T Grades
+"," 0
+ —40
+ -55
+",   ," +70
+ +85
+ +125
+"," 0
+ —40
+ =55
+",   ," +70
+ +85
+ +125
+"," °C
+ °C
+ °C
+"
+"ACCURACY
+ Resolution
+ Integral Nonlinearity (INL)
+ Differential Nonlinearity (DNL)
+ Unipolar Zero Error (@ +25°C)!
+ Bipolar Zero Error (@ +25°C)!
+ Gain Error (@ +25°C)""
+ Temperature Drift
+ Unipolar/Bipolar Zero
+ J, K Grades
+ A, B Grades
+ S, T Grades
+ Gain’
+ J, K Grades
+ A, B Grades
+ S, T Grades
+ Gain*
+"," 12
+  12
+             ","  t1
+  +4
+ +4
+ +4
+   +2
+ +4
+ +5
+  +4
+ +7
+ +10
+",                ," 12
+  12
+             ","  +0.7
+  +2
+ +3
+ +3
+   +2
+ *3
+ +4
+  +4
+ +5
+ +8
+","  t1
+  +3
+ +5
+ +6
+   +4
+ +4
+ +5
+  +6
+ +9
+ +10
+"," Bits
+ LSB
+ Bits
+ LSB
+ LSB
+ LSB
+   LSB
+ LSB
+ LSB
+  LSB
+ LSB
+ LSB
+"
+"T, K Grades
+ A, B Grades
+ S, T Grades
+",  ,"+2
+ +4
+ +6
+",  ,  ,"+2
+ +3
+ +5
+","+4
+ +4
+ +6
+","LSB
+ LSB
+ LSB
+"
+"ANALOG INPUT
+ Input Ranges
+ Unipolar Range
+ Bipolar Range
+ Input Resistance
+ Input Capacitance
+ Input Settling Time
+ Aperture Delay
+ Aperture Jitter
+","  0
+ -5
+     ","    10
+ 10
+  10
+ 150
+","  +10
+ +5
+   1
+  ","  0
+ -5
+     ","    10
+ 10
+  10
+ 150
+","  +10
+ +5
+   1
+  ","  \%
+ A%
+ MQ
+ pF
+ Us
+ ns
+ ps
+"
+"INTERNAL VOLTAGE REFERENCE
+ Output Voltage’
+ External Load
+ Unipolar Mode
+ Bipolar Mode
+"," 4.98
+   ",    ," 5.02
+  +1.5
+ +0.5
+"," 4.98
+   ",    ," 5.02
+  +1.5
+ +0.5
+"," \%
+  mA
+ mA
+"
+"POWER SUPPLIES
+ Power Supply Rejection
+ Vee=+12V 5%
+ VEE =-12V+ 5%
+ VDD =+5V+10%
+ Operating Current
+ Icc
+ IEE
+ IDD
+ Power Consumption
+",         ,"  +2
+ +2
+ +2
+  18
+ 25
+ 8
+ 560
+","      20
+ 34
+ 12
+ 745
+",         ,"      18
+ 25
+ 8
+ 560
+","  2
+ +2
+ +2
+  20
+ 34
+ 12
+ 745
+","  LSB
+ LSB
+ LSB
+  mA
+ mA
+ mA
+ mW
+"
+"VNG 9 Lol
+","1TURAL
+","U IV otherwise noted)
+",,,
+"Parameter
+",,"Symbol
+","Min
+","Max
+","Units
+"
+"SC Delay
+ Conversion Time
+ Conversion Rate'
+ Convert Pulsewidth
+ Aperture Delay
+ Status Delay
+ Access Time? 2
+  Float Delay’
+ Output Delay
+ Format Setup
+ OE Delay
+ Read Pulsewidth
+ Conversion Delay
+ EOCEN Delay
+",              ,"tsc
+ tc
+ tcr
+ tcp
+ taD
+ —40°C to +85°C
+ trA
+  teDp
+ top
+ trs
+ toE
+ trp
+ tcp
+ tgo
+","50
+ 3.0
+  97
+ AC + DC
+ 0
+ 10
+ 10
+ 10
+  47
+ 0
+ 97
+ 150
+ 0
+"," 4.4
+ 5
+  D-28
+ J-44
+ 100
+ 574
+ 80
+ 0
+     ","ns
+ us
+ Us
+ ns
+ ns
+ ns
+ ns
+ ns
+ ns
+ ns
+ ns
+ ns
+ ns
+ ns
+ ns
+"
+"Model!
+","Package
+","Temperature Range
+","Tested and Specified
+","Package
+","Op
+"
+"ADG678IN
+ AD678KN
+ AD678]D
+ AD678KD
+ AD678AD
+ Aperture Delay
+ ADG678A]
+ Access Time? 2
+ AD678SD
+ AD678TD
+","28-Lead Plastic DIP
+ 28-Lead Plastic DIP
+ 28-Lead Ceramic DIP
+ 28-Lead Ceramic DIP
+ 28-Lead Ceramic DIP
+ 28-Lead Ceramic DIP
+ 44-1 ead Ceramic JLCC
+ 44-1 ead Ceramic JLCC
+ 28-Lead Ceramic DIP
+ 28-Lead Ceramic DIP
+","0°C to +70°C
+ 0°C to +70°C
+ tc
+ 0°C to +70°C
+ tcp
+ -40°C to +85°C
+ —40°C to +85°C
+ —40°C to +85°C
+ —55°C to +125°C
+ —55°C to +125°C
+","AC
+ AC + DC
+ 3.0
+ AC + DC
+ AC
+ AC + DC
+ AC
+ AC +DC
+ AC
+ AC + DC
+","N-28
+ N-28
+ 4.4
+ D-28
+ D-28
+ D-28
+ J-44
+ J-44
+ D-28
+ D-28
+",         

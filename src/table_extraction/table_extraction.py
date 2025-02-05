@@ -55,14 +55,13 @@ tf.compat.v1.enable_eager_execution()
 def calc_IoU(xml,proposed):
     """
     Calculate the Intersection Over Union (IoU) between two regions.
-
+    This function calculates the IoU between two regions by finding the intersection and union of the two regions.
     Args:
-        xml (list): List of coordinates for the first region.
-        proposed (list): List of coordinates for the second region.
-
+        xml (list): List of coordinates representing the first region.
+        proposed (list): List of coordinates representing the second region.
     Returns:
-        float: The IoU value, ranging from 0 (no overlap) to 1 (perfect overlap).
-    """ 
+        float: IoU between the two regions.
+    """
     intersection = 0
     xmlMinX = xml[0]
     xmlMinY = xml[1]
@@ -72,47 +71,32 @@ def calc_IoU(xml,proposed):
     propMinY = proposed[1]
     propMaxX = proposed[2]
     propMaxY = proposed[3]
-
-    # Calculate the shared width and height between the two regions
     width_shared = min(propMaxX,xmlMaxX) - max(propMinX,xmlMinX)
     height_shared = min(propMaxY,xmlMaxY) - max(propMinY,xmlMinY)
-    
-    # If there is an overlap, calculate the intersection area
     if width_shared > 0 and height_shared > 0:
         intersection = width_shared*height_shared
-    
-    # Calculate the areas of the two regions
-    xmlArea = (xmlMaxX-xmlMinX)*(xmlMaxY-xmlMinY)   
+    xmlArea = (xmlMaxX-xmlMinX)*(xmlMaxY-xmlMinY)
     propArea = (propMaxX-propMinX)*(propMaxY-propMinY)
-    
-    # Calculate the union area
     union = xmlArea + propArea -intersection
-    
-    # Return the IoU value
     return intersection/union
 
 #for now assume picture is detected in yolo before being processe here
 def yolo_model_improve(yolo_model_dir,pdf_loc,page_num,delta=5):
     """
-    Improve table detection using YOLO model.This function uses a YOLO model to detect tables in a PDF page. It extracts the page as an image,
-    runs the YOLO detection, and processes the results to refine the detected table regions.
-
+    Improve table detection using YOLO model.
+    This function uses a YOLO model to detect tables in an image. The final output is a list of detected table regions and their coordinates.
     Args:
-        yolo_model_dir (str): Directory of the YOLO model.
+        yolo_model_dir (str): Path to the YOLO model directory.
         pdf_loc (str): Path to the PDF file.
-        page_num (int): Page number to process.
+        page_num (int): Page number of the PDF to process.
         delta (int): Margin for table detection.
-
     Returns:
-        dict: Dictionary of detected tables on the page.
+        dict: Dictionary containing detected table regions and their coordinates.
     """ 
-
     #run detection
     fix_pdf.extract_jpg(pdf_loc,page_num)
     #model_path = "/Users/serafinakamp/Desktop/YOLO_test/TrainYourOwnYOLO/Data/Model_Weights/trained_weights_1915_final.h5"
     #call = "python3 ../../src/table_extraction/detector.py --yolo_model " + model_path
-
-    # Run YOLO detection using the provided model
     call = "python3 ../../src/table_extraction/detector.py --yolo_model " + yolo_model_dir
     os.system(call)
 
@@ -125,8 +109,6 @@ def yolo_model_improve(yolo_model_dir,pdf_loc,page_num,delta=5):
             if row[0]=="image":
                 continue ##skip header lines
             key = str(num)
-
-            # Extract page dimensions and calculate proposed table region   
             page_width = int(row[8])
             page_height = int(row[9])
             proposed=[max(int(row[2])-delta,0),max(int(row[3])-delta,0),min(int(row[4])+delta,page_width),min(int(row[5])+delta,page_height)]#minX minY maxX maxY
@@ -135,32 +117,27 @@ def yolo_model_improve(yolo_model_dir,pdf_loc,page_num,delta=5):
 
             confidence = float(row[7])
 
-            # Check if the proposed table region overlaps with existing tables
             if key in tables_on_page:
                 max_iou = 0
                 prop_overlap=[]
                 found_ind = 0
                 for i,prop in enumerate(tables_on_page[key]):
 
-                    # Calculate IoU between the proposed table and existing table
                     iou = calc_IoU(prop[0],proposed)
                     if iou>max_iou:
                         max_iou = iou
                         prop_overlap = prop[0]
                         found_ind = i
-
-                # If IoU is less than 0.1, add the proposed table as a new entry
                 if max_iou < 0.1: #doesn't overlap with already proposed tables
                     tables_on_page[key].append([proposed,confidence])
 
-                # If the proposed table has higher confidence, replace the existing table
                 elif prop[1] < confidence: #confidence is higher, so delete previous table
                     tables_on_page[key].append([proposed,confidence])
                     del tables_on_page[key][found_ind]
                     print("new table is more confident")
                 else:
                     print("overlap and less confident")
-                # If the proposed table is not more confident, do nothing
+
             else: #add new key
                 tables_on_page[key] = [[proposed,confidence]]
             num+=1
@@ -170,19 +147,15 @@ def yolo_model_improve(yolo_model_dir,pdf_loc,page_num,delta=5):
 #detecting tables using current cnns
 def cnn_detect(model1,model2,i):
     """
-    Detect table regions in an image using a two-stage CNN (Convolutional Neural Network) approach.
-    This function uses two CNN models to detect table regions in an image. The first model identifies
-    potential table regions, and the second model refines the detected regions.
-
+    Detect tables using two CNN models.
+    This function uses two CNN models to detect tables in an image. The first model detects potential table regions,
+    and the second model refines the detected regions. The final output is a list of detected table regions and their coordinates.
     Args:
-        model1 (keras.Model): First CNN model used for detecting table regions.
-        model2 (keras.Model): Second CNN model used for refining table regions.
-        i (numpy.ndarray): Grayscale image of the PDF page as a NumPy array.
-
+        model1 (keras.Model): First model for detecting table regions.
+        model2 (keras.Model): Second model for refining table regions.
+        i (numpy.ndarray): Grayscale image data as a 2D NumPy array.
     Returns:
-        tuple: A tuple containing two lists:
-            - groups (list): List of vertical (y-axis) coordinates for detected table regions.
-            - groups2 (list): List of horizontal (x-axis) coordinates for detected table regions.
+        tuple: Tuple containing two lists of detected table regions.
     """
     X_size = 800 #part1
     Y_size = 64 #part1
@@ -203,6 +176,7 @@ def cnn_detect(model1,model2,i):
     pixel_data = cv2.resize(pixel_data, (X_size, int(height*scale))) #X, then Y
     bordered_pixel_data = cv2.copyMakeBorder(pixel_data,top=int(Y_size/4),bottom=int(Y_size/4),left=0,right=0,borderType=cv2.BORDER_CONSTANT,value=1)
 
+    #slice the image into smaller pieces
     slice_skip_size = int(Y_size/2)
     iter = 0
     slices = []
@@ -214,7 +188,7 @@ def cnn_detect(model1,model2,i):
     slices = np.array(np.expand_dims(slices,  axis = -1))
 
     data = model1.predict(slices)
-
+    #concatenate data
     conc_data = []
     for single_array in data:
         for single_data in single_array:
@@ -235,19 +209,9 @@ def cnn_detect(model1,model2,i):
             group_start = iter
 
 
-    # Refine the detected table regions using the second model  
+    #refine detection
     groups2 = []
     for group in groups:
-        # check if the group is valid
-        if group[0] >= group[1] or group[0] < 0 or group[1] > original_pixel_data.shape[0]:
-            print(f"Invalid group range: {group}. Skipping...")
-            continue
-
-        # check if the slice is empty
-        slice_data = original_pixel_data[group[0]:group[1]]
-        if slice_data.size == 0:
-            print(f"Warning: Empty slice for group {group}. Skipping resize.")
-            continue
         temp_final_original = cv2.resize(original_pixel_data[group[0]:group[1]], (pTwo_size, pTwo_size))
         temp_final = np.expand_dims(np.expand_dims(temp_final_original,  axis = 0), axis = -1)
         data_final = model2.predict(temp_final)
@@ -255,17 +219,17 @@ def cnn_detect(model1,model2,i):
         hor_start = -1
         hor_finish = 10000
         pointless, original_width = original_pixel_data.shape
-        # Iterate over the data to find the start and end of the table
+        #find the start and end of the horizontal lines
         for iter in range(len(data_final[0])):
             if(data_final[0][iter] > .5 and hor_start == -1):
                 if(iter > 0):
                     hor_start = int((iter-0.5)*original_width/cuts_labels)
                 else:
                     hor_start = int(iter*original_width/cuts_labels)
-            # If the current line is above the threshold, update the end of the table   
+
             if(data_final[0][iter] > .5):
                 hor_finish = int((iter+0.5)*original_width/cuts_labels)
-        #  Handle edge cases where the table covers the entire image
+
         if(1 and hor_finish - hor_start > (0.7 * original_width)): #Fix for tables that cover the entire image
             groups2.append((0, original_width))
         else:
@@ -277,30 +241,24 @@ def cnn_detect(model1,model2,i):
 
 def cnn_yolo_combined(pdf_loc,page_num,im,model1,model2,yolo_model_dir,work_loc):
     """
-    Combine YOLO and CNN models to detect tables in a PDF page.
-    This function integrates YOLO (You Only Look Once) and CNN (Convolutional Neural Network) models
-    to detect table regions in a PDF page. It first uses YOLO to detect potential table regions and
-    then refines the results using a CNN model. The final output is a list of detected table regions.
+    Combine YOLO and CNN models to detect tables in an image.
+    This function uses YOLO to detect table regions and then refines the detection using a CNN model.
+    The final output is a list of detected table regions and their coordinates.
     Args:
-        pdf_loc (str): Path to the PDF file being processed.
+        pdf_loc (str): Path to the PDF file.
         page_num (int): Page number of the PDF to process.
-        im (numpy.ndarray): Grayscale image of the PDF page as a NumPy array.
-        model1 (keras.Model): First CNN model used for detecting table regions.
-        model2 (keras.Model): Second CNN model used for refining table regions.
-        yolo_model_dir (str): Directory path where the YOLO model is stored.
-        work_loc (str): Root directory for storing temporary files and intermediate results.
-
+        im (numpy.ndarray): Grayscale image data as a 2D NumPy array.
+        model1 (keras.Model): First model for detecting table regions.
+        model2 (keras.Model): Second model for refining table regions.
+        yolo_model_dir (str): Path to the YOLO model directory.
+        work_loc (str): Path to the working directory.
     Returns:
-        tuple: A tuple containing two lists:
-            - final_splits (list): List of NumPy arrays, each representing a detected table region.
-            - coords (list): List of coordinates for each detected table region in the format
-              [min_y, min_x, max_y, max_x].
+        tuple: Tuple containing two lists of detected table regions.
     """
-    # Use YOLO to detect table regions in the PDF page
     processed_tables = yolo_model_improve(yolo_model_dir,pdf_loc,page_num,work_loc)
     yolo_tables=[]
     all_y,all_x = cnn_detect(model1,model2,im)
-    # Iterate through the table regions detected by YOLO
+
     num=0
     key=str(num)
     while key in processed_tables:
@@ -316,7 +274,7 @@ def cnn_yolo_combined(pdf_loc,page_num,im,model1,model2,yolo_model_dir,work_loc)
         maxiou = 0
         cnn_found=[]
         yolo_coords=table[0]
-        # Iterate over the detected table regions
+        #find the best cnn table
         for i in range(len(all_y)):
             cnn_coords = [all_x[i][0],all_y[i][0],all_x[i][1],all_y[i][1]]
             top_left_cnn = (cnn_coords[0],cnn_coords[1])
@@ -325,19 +283,17 @@ def cnn_yolo_combined(pdf_loc,page_num,im,model1,model2,yolo_model_dir,work_loc)
             top_left_yolo = (yolo_coords[0][0],yolo_coords[0][1])
             bot_right_yolo = (yolo_coords[0][2],yolo_coords[0][3])
 
-            # Calculate IoU between the CNN-detected table and the YOLO-detected table
             iou = calc_IoU(cnn_coords,yolo_coords[0])
             if iou > maxiou:
                 maxiou = iou
                 cnn_found=cnn_coords
 
-        # If IoU is greater than or equal to 0.10, use the CNN-detected table   
         if maxiou >=0.10:
             final_min_x = min(cnn_found[0],yolo_coords[0][0])
             final_min_y = min(cnn_found[1],yolo_coords[0][1])
             final_max_x = max(cnn_found[2],yolo_coords[0][2])
             final_max_y = max(cnn_found[3],yolo_coords[0][3])
-        # Add the merged region to the final results
+
             final_tables.append([final_min_x,final_min_y,final_max_x,final_max_y])
         else:#prefer yolo if no overlap
             final_tables.append(yolo_coords[0])
@@ -346,7 +302,7 @@ def cnn_yolo_combined(pdf_loc,page_num,im,model1,model2,yolo_model_dir,work_loc)
         for i in range(len(all_y)):
             cnn_coords = [all_x[i][0],all_y[i][0],all_x[i][1],all_y[i][1]]
             final_tables.append(cnn_coords)
-     # Extract the images and coordinates of the final detected table regions
+    #get final final_splits
     final_splits = []
     coords = []
     for table in final_tables:
@@ -362,21 +318,17 @@ def cnn_yolo_combined(pdf_loc,page_num,im,model1,model2,yolo_model_dir,work_loc)
 
 def table_identifier(pixel_data, root, identify_model, identify_model2):
     """
-    Identify table regions in an image using a two-stage CNN approach.
-    This function uses two CNN models to identify table regions in an image. The first model detects
-    potential table regions, and the second model refines the detected regions. The final output is
-    a list of detected table regions and their coordinates.
-
+    Identify tables in an image using two CNN models.
+    This function uses two CNN models to identify tables in an image. The first model detects potential table regions,
+    and the second model refines the detection. The final output is a list of detected table regions and their coordinates.
     Args:
-        pixel_data (numpy.ndarray): Grayscale image of the PDF page.
-        root (str): Root directory for storing temporary files.
-        identify_model (keras.Model): First model for identifying table regions.
+        pixel_data (numpy.ndarray): Grayscale image data as a 2D NumPy array.
+        root (str): Path to the working directory.
+        identify_model (keras.Model): First model for detecting table regions.
         identify_model2 (keras.Model): Second model for refining table regions.
-
     Returns:
         tuple: Tuple containing two lists of detected table regions.
     """
-     # Record the start time for performance measurement     
     start_time = time.time()
     pTwo_size = 600
     X_size = 800
@@ -384,20 +336,19 @@ def table_identifier(pixel_data, root, identify_model, identify_model2):
     cuts_labels = 60
     label_precision = 8
     y_fail_num = 2
-
-    # Normalize the input image to the range [0, 1]
+    #normalize the pixel data
     original_pixel_data_255 = pixel_data.copy()
     pixel_data = cv2.normalize(pixel_data, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
     original_pixel_data = pixel_data.copy()
 
     height, width = pixel_data.shape
     scale = X_size/width
-
-    # Resize the pixel data to the desired size
+    #resize the pixel data
     pixel_data = cv2.resize(pixel_data, (X_size, int(height*scale))) #X, then Y
+    #add a border to the pixel data
     bordered_pixel_data = cv2.copyMakeBorder(pixel_data,top=int(Y_size/4),bottom=int(Y_size/4),left=0,right=0,borderType=cv2.BORDER_CONSTANT,value=1)
 
-    # Create slices of the pixel data for processing
+    #slice the image into smaller pieces
     slice_skip_size = int(Y_size/2)
     iter = 0
     slices = []
@@ -405,48 +356,51 @@ def table_identifier(pixel_data, root, identify_model, identify_model2):
         s_iter = iter*slice_skip_size
         slices.append(bordered_pixel_data[int(s_iter):int(s_iter+Y_size)])
         iter += 1
-    # Prepare the slices for input to identify_model
+
+    #convert the slices to a numpy array
     slices = np.array(np.expand_dims(slices,  axis = -1))
+    #predict the data
     data = identify_model.predict(slices)
 
-    # Concatenate the data from the slices
+    #concatenate the data
     conc_data = []
     for single_array in data:
         for single_data in single_array:
             conc_data.append(single_data)
-        conc_data += [0 for i in range(y_fail_num+1)] #Still needed
-
-    # Group the data to find the table regions
+    #add 0s to the end of the data
+    conc_data += [0 for i in range(y_fail_num+1)] #Still needed
+    #find the groups
     groups = []
     fail = y_fail_num
     group_start = 1 #start at 1 to prevent numbers below zero in groups
     for iter in range(len(conc_data)-1):
-        # Check if the current data point is below the threshold
         if(conc_data[iter] < .5):
             fail += 1
         else:
             fail = 0
-        # If the number of consecutive failures exceeds the threshold, finalize the group
+        #if the fail is greater than the y_fail_num, then add the group to the list
         if(fail >= y_fail_num):
             if(iter - group_start >= 4):
                 groups.append((int((group_start-1)*label_precision/scale), int((iter+1-y_fail_num)*label_precision/scale)))
             group_start = iter
 
-
-    # Refine the detected table regions using the second model
+    #refine detection
     groups2 = []
     for group in groups:
+        #resize the image
         temp_final_original = cv2.resize(original_pixel_data[group[0]:group[1]], (pTwo_size, pTwo_size))
+        #convert the image to a numpy array
         temp_final = np.expand_dims(np.expand_dims(temp_final_original,  axis = 0), axis = -1)
+        #predict the data
         data_final = identify_model2.predict(temp_final)
 
-        # Find the start and end of the table region    
+        #find the start and end of the horizontal lines
         hor_start = -1
         hor_finish = 10000
+        #get the original width
         pointless, original_width = original_pixel_data.shape
 
         for iter in range(len(data_final[0])):
-            
             if(data_final[0][iter] > .5 and hor_start == -1):
                 if(iter > 0):
                     hor_start = int((iter-0.5)*original_width/cuts_labels)
@@ -461,12 +415,15 @@ def table_identifier(pixel_data, root, identify_model, identify_model2):
         else:
             groups2.append((hor_start, hor_finish))
 
-    # Extract the final table regions
     final_splits = []
     coords = []
+    #get the final splits
     for iter in range(len(groups)):
+        #get the final split
         final_split = original_pixel_data_255[groups[iter][0]:groups[iter][1], groups2[iter][0]:groups2[iter][1]]
+        #get the coordinates
         coords.append([groups[iter][0],groups2[iter][0],groups[iter][1],groups2[iter][1]])
+        #add the final split to the list
         final_splits.append(final_split)
         if(0):
             cv2.imshow('image', final_split)
@@ -478,8 +435,9 @@ def table_identifier(pixel_data, root, identify_model, identify_model2):
 
 def mean_finder_subroutine(real, infered, infered_quality, precision, group_start, n, final_dist): #TODO BROKEN FIX
     """
-     Helper function to calculate the mean position of inferred lines within a group.
-
+    Calculate the mean position of inferred lines within a group.
+    This function calculates the mean position of inferred lines within a group by averaging the positions
+    of the lines that are above a specified threshold. The final output is a list of mean positions.
     Args:
         real (list): List of real line positions.
         infered (list): List of inferred line positions.
@@ -488,17 +446,14 @@ def mean_finder_subroutine(real, infered, infered_quality, precision, group_star
         group_start (int): Starting index of the group.
         n (int): Ending index of the group.
         final_dist (list): List to store the final line positions.
-
     Returns:
         None: The function modifies `final_dist` in place.
-    """ 
-     # Check if any real line is within the precision range of the inferred group
+    """
     bool_add = True
     for a in real:
         if(a > (infered[group_start] - precision)  and a < (infered[n] + precision)): #a real line is within y units of the group
             bool_add = False
     if(bool_add):
-        # Calculate the search size
         search_size = 2
         if((infered[n] - infered[group_start]) > (1+(2*search_size))): #moving average of quality score
             size_of_group = infered[n] - infered[group_start] + 1
@@ -511,7 +466,7 @@ def mean_finder_subroutine(real, infered, infered_quality, precision, group_star
                 average_array.append(temp_value)
                 if(temp_value > max_value):
                     max_value = temp_value
-        # Determine the threshold for selecting the mean position
+
             threshold = (max_value * .99)
             first_value = -1
             for iter in range(len(average_array)):
@@ -520,26 +475,25 @@ def mean_finder_subroutine(real, infered, infered_quality, precision, group_star
                 if(average_array[iter] > threshold):
                     last_value = iter
             line_loc = int((first_value+last_value)/2 + infered[group_start])
-        else:   
-            # If no significant peak is found, use the average of the group
+        else:
             line_loc = int((infered[n] + infered[group_start])/2)
-        # Add the calculated line location to the final list
         final_dist.append(line_loc)
     return
 
 def mean_finder(real, infered, infered_quality_raw, precision, max_dim_1d):
     """
-     Calculate the final distribution of line positions by combining real and inferred lines.
+    Calculate the mean position of inferred lines.
+    This function calculates the mean position of inferred lines by grouping them based on their positions
+    and then averaging the positions of the lines within each group. The final output is a list of mean positions.
     Args:
         real (list): List of real line positions.
         infered (list): List of inferred line positions.
         infered_quality_raw (list): List of quality scores for the inferred lines.
         precision (float): Precision for line detection.
         max_dim_1d (int): Maximum dimension of the 1D array.
-
     Returns:
-        list: Final list of line positions after merging real and inferred lines.
-    """ 
+        list: List of mean positions of the inferred lines.
+    """
     infered_quality = [0 for i in range(max_dim_1d)]
     for i in range(len(infered)):
         infered_quality[infered[i]] = infered_quality_raw[i]
@@ -547,13 +501,10 @@ def mean_finder(real, infered, infered_quality_raw, precision, max_dim_1d):
     group_start = 0
     final_dist = []
     while((n+1) < len(infered)):
-         # If the distance between consecutive inferred lines is greater than the precision,
-        # finalize the current group and start a new group
         if (infered[n+1] > (infered[n]+precision)): #the distance needs to be within x units to be apart of the group
             mean_finder_subroutine(real, infered, infered_quality, precision, group_start, n, final_dist)
             group_start = n+1
         n += 1
-        # Finalize the last group of inferred lines
     mean_finder_subroutine(real, infered, infered_quality, precision, group_start, n, final_dist) #Final Dump
     final_dist += real
     final_dist.sort()
@@ -561,14 +512,14 @@ def mean_finder(real, infered, infered_quality_raw, precision, max_dim_1d):
 
 def num_of_groups(infered, i):
     """
-    Count the number of groups in the inferred line positions.
-
+    Calculate the number of groups in a list of inferred line positions.
+    This function calculates the number of groups in a list of inferred line positions by counting
+    the number of times the lines are separated by more than a specified distance.
     Args:
         infered (list): List of inferred line positions.
-        i (int): Minimum distance between consecutive lines.
-
+        i (float): Distance threshold for separating groups.
     Returns:
-        int: Number of groups in the inferred line positions.
+        int: Number of groups in the list.
     """
     groups = 0
     if(len(infered) > 0):
@@ -580,28 +531,30 @@ def num_of_groups(infered, i):
 
 def horizontal_line_finder(height, width, pixel_data): #normal finds black lines
     """
-    Find horizontal lines in the pixel data.
-
+    Find horizontal lines in an image using a simple thresholding approach.
+    This function finds horizontal lines in an image by checking for significant changes in pixel intensity
+    across the image. The final output is a list of line positions.
     Args:
         height (int): Height of the image.
         width (int): Width of the image.
-        pixel_data (numpy.ndarray): Grayscale image of the PDF page.
-
+        pixel_data (numpy.ndarray): Grayscale image data as a 2D NumPy array.
     Returns:
-        list: List of y-coordinates where horizontal lines are detected.
-    """ 
-    final_out = []  
+        list: List of positions of horizontal lines in the image.
+    """
+    final_out = []
     search_dist = 3
+    #search for horizontal lines
     for y in range(search_dist, height-search_dist):
         short_line = 0
         line_dist = 0
         fails = 0
+        #search for horizontal lines
         for x in range(width):
             top = 0
             bot = 0
+            #search for horizontal lines
             for y2 in range(y-search_dist,y-1):
                 top += pixel_data[y2,x]/(search_dist-1)
-
             for y2 in range(y+2,y+search_dist+1):
                 bot += pixel_data[y2,x]/(search_dist-1)
 
@@ -615,7 +568,7 @@ def horizontal_line_finder(height, width, pixel_data): #normal finds black lines
                 if(line_dist > width/16):
                     short_line += 1
                 line_dist = 0
-
+            #if the line distance is greater than 1/8th of the width or there are 4 short lines, then add the line to the list
             if(line_dist > width/8 or short_line >= 4):
                 final_out.append(y)
                 break
@@ -623,38 +576,37 @@ def horizontal_line_finder(height, width, pixel_data): #normal finds black lines
 
 def vertical_line_finder(height, width, pixel_data, hor_margin_lines): #normal finds black lines
     """
-    Detect vertical lines in an image based on pixel intensity differences.
-    It identifies lines where there is a significant contrast between the
-    pixels to the left and right of the line. It also skips rows that are part of horizontal
-    margin lines to avoid false detections.
-
+    Find vertical lines in an image using a simple thresholding approach.
+    This function finds vertical lines in an image by checking for significant changes in pixel intensity
+    across the image. The final output is a list of line positions.
     Args:
         height (int): Height of the image.
         width (int): Width of the image.
         pixel_data (numpy.ndarray): Grayscale image data as a 2D NumPy array.
         hor_margin_lines (list): List of y-coordinates representing horizontal margin lines.
-
     Returns:
-        list: A list of x-coordinates where vertical lines are detected.
+        list: List of positions of vertical lines in the image.
     """
     final_out = []
     search_dist = 3
+    #search for vertical lines
     for x in range(search_dist, width-search_dist):
         line_dist = 0
         fails = 0
+        #search for vertical lines
         for y in range(height):
             if(y not in hor_margin_lines):
-                # Calculate the maximum intensity of pixels to the left of the current column
                 max_left = 0
                 max_right = 0
+                #search for vertical lines
                 for x2 in range(x-search_dist,x):
                     if((pixel_data[y,x2]) > max_left):
                         max_left = pixel_data[y,x2]
-                # Calculate the maximum intensity of pixels to the right of the current column
+                #search for vertical lines
                 for x2 in range(x+1,x+search_dist+1):
                     if((pixel_data[y,x2]) > max_right):
                         max_right = pixel_data[y,x2]
-                # Check if the current pixel is part of a vertical line
+                #search for vertical lines
                 if((max_left/2+max_right/2 - pixel_data[y,x]) > 30): #these are 8 bit ints need to calculate like this to avoid overflow
                     line_dist += 1
                     if(fails > 0):
@@ -663,7 +615,7 @@ def vertical_line_finder(height, width, pixel_data, hor_margin_lines): #normal f
                     fails += height/8
                 else:
                     line_dist = 0
-                # If a line segment is long enough, add the column to the list of detected lines
+
                 if(line_dist > height/8):
                     final_out.append(x)
                     break
@@ -671,57 +623,52 @@ def vertical_line_finder(height, width, pixel_data, hor_margin_lines): #normal f
 
 def real_line_margins(lines, margin_size_pixels):
     """
-    Find the margins of the real lines. The margin lines
-    are used to avoid false detections near the actual lines. For each detected line, it adds
-    a margin of a specified number of pixels above and below the line.
-
+    Calculate the margins for real lines.
+    This function calculates the margins for real lines by adding a specified number of pixels
+    to each side of the line. The final output is a list of line positions with added margins.
     Args:
         lines (list): List of line positions.
-        margin_size_pixels (int): Size of the margin in pixels.
-
+        margin_size_pixels (int): Number of pixels to add to each side of the line.
     Returns:
-        list: List of line positions with margins.
-    """ 
+        list: List of line positions with added margins.
+    """
     margin_lines = []
     for line in lines:
-         # Add margin lines around the detected line
         for i in range(line-margin_size_pixels, line+margin_size_pixels):
-              # Ensure the margin line is within the bounds of the image and not already in the list
             if(i not in margin_lines and i >= lines[0] and i <= lines[-1]):
                 margin_lines.append(i)
     return margin_lines
 
 def inferred_horizontal_line_finder(height, width, pixel_data, required_dist, ver_margin_lines): #finds white lines
     """
-    Detect horizontal lines in an image based on pixel intensity differences.
-    It identifies lines where there is a significant contrast between the
-    pixels above and below the line.
-
+    Find inferred horizontal lines in an image.
+    This function finds inferred horizontal lines in an image by checking for significant changes in pixel intensity
+    across the image. The final output is a list of line positions.
     Args:
         height (int): Height of the image.
         width (int): Width of the image.
         pixel_data (numpy.ndarray): Grayscale image data as a 2D NumPy array.
-
+        required_dist (float): Required distance for detecting a line.
+        ver_margin_lines (list): List of y-coordinates representing vertical margin lines.
     Returns:
-        list: A list of y-coordinates where horizontal lines are detected.
+        tuple: Tuple containing two lists. The first list contains the inferred line positions, and the second list contains the inferred line quality scores.
     """
     past_array_depth = int(width/100)
     required_distance = (width) * required_dist
-
+    #search for inferred horizontal lines
     inferred_line_dists = []
     inferred_quality = []
     inferred_line_thickness = 0
-    # Iterate over each row of the image
     for y in range(height):
         inferred_line_dist = 0
         inferred_line_dist_max = 0
-        # Initialize an array to store the past values of the pixel data    
+        #search for inferred horizontal lines
         past_array = [0 for i in range(past_array_depth)] #### Together these find the amount of black values in the last y squares
         black_encountered = 0 ##################
 
         for x in range(width):
             inferred_line_dist += 1
-
+            #search for inferred horizontal lines
             if(x not in ver_margin_lines): #skip over verticle lines
                 if(pixel_data[y,x] < 200): #current is black
                     if(past_array[x%past_array_depth] == 0):  #past is white
@@ -731,19 +678,20 @@ def inferred_horizontal_line_finder(height, width, pixel_data, required_dist, ve
                     if(past_array[x%past_array_depth] == 1): #past is black
                         black_encountered -= 1
                     past_array[x%past_array_depth] = 0
-                # Check if the black encountered count exceeds the threshold
+
                 if(black_encountered >= (past_array_depth/4)): #if 1/20th is black, stop this line
                     inferred_line_dist = 0
                     #pixel_data[width,height] = (0,255,0) #Line ended DEBUG
-            # Update the maximum inferred line distance
+            #search for inferred horizontal lines
             if(inferred_line_dist > inferred_line_dist_max):
                     inferred_line_dist_max = inferred_line_dist
-        # Check if the inferred line distance exceeds the required distance
+
+        #search for inferred horizontal lines   
         if(inferred_line_dist_max > required_distance): #a ratio of the outer verticle lines
             inferred_line_thickness += 1
         else:
             inferred_line_thickness = 0
-        # If the inferred line thickness is at least 1, add the line to the list
+        #search for inferred horizontal lines
         if(inferred_line_thickness >=  1):
             inferred_line_dists.append(y)
             inferred_quality.append(inferred_line_dist_max/width)
@@ -752,32 +700,35 @@ def inferred_horizontal_line_finder(height, width, pixel_data, required_dist, ve
 
 def inferred_vertical_line_finder(height, width, pixel_data, required_dist, required_thick, hor_margin_lines):
     """
-    Detect vertical lines in an image based on pixel intensity differences.
-    It identifies lines where there is a significant contrast between the
-    pixels to the left and right of the line.
-
+    Find inferred vertical lines in an image.
+    This function finds inferred vertical lines in an image by checking for significant changes in pixel intensity
+    across the image. The final output is a list of line positions.
     Args:
         height (int): Height of the image.
         width (int): Width of the image.
         pixel_data (numpy.ndarray): Grayscale image data as a 2D NumPy array.
-
+        required_dist (float): Required distance for detecting a line.
+        required_thick (float): Required thickness for detecting a line.
+        hor_margin_lines (list): List of y-coordinates representing horizontal margin lines.
     Returns:
-        list: A list of x-coordinates where vertical lines are detected.
+        tuple: Tuple containing two lists. The first list contains the inferred line positions, and the second list contains the inferred line quality scores.
     """
+    #search for inferred vertical lines
     infer_line_dists = []
     inferred_quality = []
     past_array_depth = int(height/100)
     if(past_array_depth == 0):
         past_array_depth = 1
     inferred_line_thickness = 0
-
+    #search for inferred vertical lines
     lenth_req = height * required_dist
-
+    #search for inferred vertical lines
     for x in range(width):
         inferred_line_dist = 0
         inferred_line_dist_max = 0
         past_array = [0 for i in range(past_array_depth)] #### Together these find the amount of black values in the last y squares
         black_encountered = 0 ##################
+        #search for inferred vertical lines
         for y in range(height):
             inferred_line_dist += 1
             if(y not in hor_margin_lines): #skip over verticle lines
@@ -810,16 +761,6 @@ def inferred_vertical_line_finder(height, width, pixel_data, required_dist, requ
     return infer_line_dists, inferred_quality
 
 def merging_helper(im_arr): #This is a temporary fix and should not be needed when more training data is available
-    """
-    Helper function to determine if a merged image contains a table.
-    It checks if any of the 100x100 sub-images in the merged image have more than 95% black pixels.
-
-    Args:
-        im_arr (list): List of 100x100 sub-images.
-
-    Returns:
-        list: A list of binary values indicating if each sub-image contains a table.
-    """
     output_array = []
     for image in im_arr:
         for x in range(99,101): #if any has 95% black pixels
@@ -839,31 +780,23 @@ def merging_helper(im_arr): #This is a temporary fix and should not be needed wh
 
 def concatenate(root, pixel_data, ver_lines_final, hor_lines_final, conc_col_model, valid_cells_model):
     """
-    Concatenate the detected lines to form a table.
-    It normalizes the pixel data, removes duplicate lines, and then checks for table structure
-    using the provided models.
-
+    Concatenate tables in an image using two CNN models.
+    This function uses two CNN models to concatenate tables in an image. The first model detects potential table regions,
+    and the second model refines the detection. The final output is a list of detected table regions and their coordinates.
     Args:
-        root (str): Root directory for storing temporary images.
+        root (str): Path to the working directory.
         pixel_data (numpy.ndarray): Grayscale image data as a 2D NumPy array.
-        ver_lines_final (list): List of y-coordinates where vertical lines are detected.
-        hor_lines_final (list): List of x-coordinates where horizontal lines are detected.
-        conc_col_model (keras.Model): Model for predicting if a column is part of a table.
-        valid_cells_model (keras.Model): Model for predicting if a cell contains data.
-
+        ver_lines_final (list): List of vertical line positions.
+        hor_lines_final (list): List of horizontal line positions.
+        conc_col_model (keras.Model): First model for detecting table regions.
+        valid_cells_model (keras.Model): Second model for refining table regions.
     Returns:
-        tuple: A tuple containing two 2D arrays:
-            - contains_data (numpy.ndarray): Array indicating if each cell contains data.
-            - conc_col_2D (numpy.ndarray): Array indicating if each column is part of a table.
-    """ 
-    # Normalize the pixel data to a range of 0 to 1 
+        tuple: Tuple containing two lists of detected table regions.
+    """
     norm_pixel_data = cv2.normalize(pixel_data, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-    # Remove duplicate vertical lines
     ver_lines_no_dup = []
-    # Remove duplicate horizontal lines
     hor_lines_no_dup = []
 
-    # Remove duplicate vertical lines   
     start = ver_lines_final[0]
     for i in range(1, len(ver_lines_final)):
         if(ver_lines_final[i] != ver_lines_final[i-1]+1):
@@ -871,7 +804,6 @@ def concatenate(root, pixel_data, ver_lines_final, hor_lines_final, conc_col_mod
             start = ver_lines_final[i]
     ver_lines_no_dup.append(int((start + ver_lines_final[-1])/2))
 
-    # Remove duplicate horizontal lines 
     start = hor_lines_final[0]
     for i in range(1, len(hor_lines_final)):
          if(hor_lines_final[i] != hor_lines_final[i-1]+1):
@@ -879,11 +811,10 @@ def concatenate(root, pixel_data, ver_lines_final, hor_lines_final, conc_col_mod
             start = hor_lines_final[i]
     hor_lines_no_dup.append(int((start + hor_lines_final[-1])/2))
 
-    #  Initialize the list to store concatenated images
+    #search for the final splits
     im_arr = []
     for y in range(len(hor_lines_no_dup)-1):
         for x in range(len(ver_lines_no_dup)-2):
-            # Resize the sub-image to 100x100 pixels
             top_left = cv2.resize(norm_pixel_data[hor_lines_no_dup[y]:hor_lines_no_dup[y+1], ver_lines_no_dup[x]:ver_lines_no_dup[x+1]], (100, 100)) #these steps makes sure the merge line is in the same place
             top_right = cv2.resize(norm_pixel_data[hor_lines_no_dup[y]:hor_lines_no_dup[y+1], ver_lines_no_dup[x+1]:ver_lines_no_dup[x+2]], (100, 100))
             merged_data = cv2.hconcat([top_left,top_right])
@@ -895,23 +826,20 @@ def concatenate(root, pixel_data, ver_lines_final, hor_lines_final, conc_col_mod
                 cv2.imshow('image', pixel_data[hor_lines_no_dup[y]:hor_lines_no_dup[y+1], ver_lines_no_dup[x]:ver_lines_no_dup[x+2]])
                 cv2.waitKey(0)
                 cv2.destroyAllWindows()
-    # Calculate the dimensions of the concatenated table
+    #search for the final splits
     y_len = len(hor_lines_no_dup)-1
     x_len = len(ver_lines_no_dup)-2
-    # If no images were concatenated, assume a default table structure
     if(not im_arr): #this can occur when there are only 2 vertical lines so that nothing can possibly be concatenated
         return np.ones((y_len, 1)), np.zeros((y_len, 1)) #assume not concatenated and every cell has data, 1D array
 
-     # Prepare the concatenated images for input to the CNN models
+    #search for the final splits    
     im_arr = np.expand_dims(np.array(im_arr), axis= -1)
     helper_output = merging_helper(im_arr)
     pred = conc_col_model.predict(im_arr)
     pred2 = valid_cells_model.predict(im_arr)
 
-    # Initialize the 2D arrays for the concatenated table structure 
     conc_col_2D = np.zeros((y_len, x_len)) #Y then X
     contains_data = np.zeros((y_len, x_len+1))
-    # Iterate over each row and column of the concatenated table
     for y in range(y_len):
         for x in range(x_len):
             if(pred[x+y*x_len][0] > .5 and helper_output == 1):
@@ -927,20 +855,18 @@ def concatenate(root, pixel_data, ver_lines_final, hor_lines_final, conc_col_mod
 
 def horizontal_line_crossover(hor_line, x_s, x_e, pixel_data_unchanged):
     """
-    This function checks if a horizontal line crosses over a specified region in the image
-    by analyzing the pixel intensity differences. It ensures that the line has a significant
-    contrast between the pixels above and below the line.
-
+    Check for horizontal line crossover.
+    This function checks for a horizontal line crossover by counting the number of black and white pixels
+    in a specified range of the image. The final output is a boolean indicating whether a crossover is detected.
     Args:
-        hor_line (int): y-coordinate of the horizontal line to check.
-        x_s (int): Starting x-coordinate of the region.
-        x_e (int): Ending x-coordinate of the region.
+        hor_line (int): Position of the horizontal line.
+        x_s (int): Starting x-coordinate.
+        x_e (int): Ending x-coordinate.
         pixel_data_unchanged (numpy.ndarray): Grayscale image data as a 2D NumPy array.
-
     Returns:
-        bool: True if the horizontal line crosses over the region, False otherwise.
+        bool: True if a crossover is detected, False otherwise.
     """
-    # Iterate over a range of y-coordinates around the horizontal line
+
     for line in range(hor_line-3, hor_line+4, 3): #all have to pass the condition for crossover
         iter = x_s
         white_pixel = 0
@@ -957,64 +883,56 @@ def horizontal_line_crossover(hor_line, x_s, x_e, pixel_data_unchanged):
                 if(wbw % 2 == 0):
                     wbw += 1
             iter += 1
-        # Calculate the average pixel intensity for the region
+        
         white_pixel /= ((1 + x_e - x_s))
         black_pixel /= ((1 + x_e - x_s))
 
-        # Check if the line crosses over the specified region   
         if(not(white_pixel > .05 and black_pixel > .02 and wbw >= 3)): #more than 2% of the pixels are black and more than 5% are white// white is larger so it doesnt mess up when the box perimeters are not continuous
             return False
     return True
 
 def lines_with_widths(ver_lines_final, hor_lines_final):
     """
-    Convert lists of line positions into lists of line positions with their widths. The width of a line is
-    calculated as the number of consecutive pixels that form the line.
-
+    Calculate the widths of vertical and horizontal lines.
+    This function calculates the widths of vertical and horizontal lines by grouping the lines
+    and then averaging the positions of the lines within each group. The final output is a list of mean positions.
     Args:
-        ver_lines_final (list): List of x-coordinates representing vertical lines.
-        hor_lines_final (list): List of y-coordinates representing horizontal lines.
-
+        ver_lines_final (list): List of vertical line positions.
+        hor_lines_final (list): List of horizontal line positions.
     Returns:
-        tuple: A tuple containing two lists:
-            - ver_width_line (list): List of vertical line positions with their widths.
-            - hor_width_line (list): List of horizontal line positions with their widths.
+        tuple: Tuple containing two lists. The first list contains the widths of vertical lines, and the second list contains the widths of horizontal lines.
     """
     ver_width_line = []
     hor_width_line = []
-    # Iterate over each vertical line
+
     start = ver_lines_final[0]
     for i in range(1, len(ver_lines_final)):
         if(ver_lines_final[i] != ver_lines_final[i-1]+1):
             ver_width_line.append([start, ver_lines_final[i-1]-start+1])
             start = ver_lines_final[i]
     ver_width_line.append([start, ver_lines_final[-1]-start+1])
-    # Iterate over each horizontal line
+
     start = hor_lines_final[0]
     for i in range(1, len(hor_lines_final)):
          if(hor_lines_final[i] != hor_lines_final[i-1]+1):
             hor_width_line.append([start, hor_lines_final[i-1]-start+1])
             start = hor_lines_final[i]
-    # Add the last horizontal line with its width
     hor_width_line.append([start, hor_lines_final[-1]-start+1])
     return ver_width_line, hor_width_line
 
 def hor_split(x_s, x_e, y_s, y_e, pixel_data_unchanged):
     """
-    Determine if a horizontal line should be split into two lines.
-    It checks if the line has a significant contrast between the pixels above and below the line.
-
+    Check for horizontal line split.
+    This function checks for a horizontal line split by counting the number of black pixels
+    in a specified range of the image. The final output is a boolean indicating whether a split is detected.
     Args:
-        x_s (int): Starting x-coordinate of the region.
-        x_e (int): Ending x-coordinate of the region.
-        y_s (int): Starting y-coordinate of the region.
-        y_e (int): Ending y-coordinate of the region.
+        x_s (int): Starting x-coordinate.
+        x_e (int): Ending x-coordinate.
+        y_s (int): Starting y-coordinate.
+        y_e (int): Ending y-coordinate.
         pixel_data_unchanged (numpy.ndarray): Grayscale image data as a 2D NumPy array.
-
     Returns:
-        tuple: A tuple containing two values:
-            - bool: True if the line should be split, False otherwise.
-            - int: The y-coordinate where the line should be split.
+        tuple: Tuple containing a boolean indicating whether a split is detected, and the position of the split if detected.
     """
     white_lines = [1 for i in range(y_s, y_e)]
     for y in range(y_s, y_e):
@@ -1023,7 +941,7 @@ def hor_split(x_s, x_e, y_s, y_e, pixel_data_unchanged):
         half_length = (x_e - x_s)/2
         base = (x_s + x_e)/20
         for x in range(x_s, x_e):
-            # Calculate the points based on the distance from the midpoint          
+
             if(x < midpoint): #Values in the center are more valuable
                 points = base + (x - x_s)
             else:
@@ -1039,13 +957,13 @@ def hor_split(x_s, x_e, y_s, y_e, pixel_data_unchanged):
     wbw_count = 0
     FF = True
     temp_count = 0
-    # Iterate over each pixel in the white_lines array
+
     for iter_num, iter in enumerate(white_lines):
         if(iter == int(FF)):
             temp_count += 1
         else:
             temp_count = 0
-        # Check if the number of consecutive white pixels exceeds a threshold
+
         if(temp_count > 3 + (y_e - y_s)/30):# Adjust this if its not working properly
             wbw_count += 1
             temp_count = 0
@@ -1057,40 +975,36 @@ def hor_split(x_s, x_e, y_s, y_e, pixel_data_unchanged):
 
 def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_width_line, hor_width_line, scale, ver_lines, hor_lines):
     """
-    Convert the image data to text using the detected lines and table structure.
-    It scales the lines and converts them to the original image size.
-
+    Convert an image to text using line positions and widths.
+    This function converts an image to text by scaling the line positions and widths, and then using these scaled values
+    to extract text from the image. The final output is a list of text strings.
     Args:
         pixel_data_unchanged (numpy.ndarray): Grayscale image data as a 2D NumPy array.
-        root (str): Root directory for storing temporary images.
-        contains_data (numpy.ndarray): Array indicating if each cell contains data.
-        conc_col_2D (numpy.ndarray): Array indicating if each column is part of a table.
-        ver_width_line (list): List of vertical line positions with their widths.
-        hor_width_line (list): List of horizontal line positions with their widths.
+        root (str): Path to the working directory.
+        contains_data (numpy.ndarray): 2D array indicating which cells contain data.
+        conc_col_2D (numpy.ndarray): 2D array indicating which cells are merged.
+        ver_width_line (list): List of widths of vertical lines.
+        hor_width_line (list): List of widths of horizontal lines.
         scale (float): Scaling factor for the image.
-        ver_lines (list): List of y-coordinates where vertical lines are detected.
-        hor_lines (list): List of x-coordinates where horizontal lines are detected.
-
+        ver_lines (list): List of vertical line positions.
+        hor_lines (list): List of horizontal line positions.
     Returns:
-        list: A list of strings representing the text in each cell.
-    """ 
-    # Scale the lines to the original image size
+        list: List of text strings extracted from the image.
+    """
     ver_scaled = []
     hor_scaled = []
     real_ver_lines = []
     real_hor_lines = []
-    # Scale the vertical lines
+
     for i in ver_width_line:
         ver_scaled.append([int(i[0]*scale), int(i[1]*scale)+1])
-    # Scale the horizontal lines    
+
     for i in hor_width_line:
         hor_scaled.append([int(i[0]*scale), int(i[1]*scale)+1])
 
-    # Scale the real vertical lines
     for i in ver_lines:
         real_ver_lines.append(int(i * scale))
 
-    # Scale the real horizontal lines
     for i in hor_lines:
         real_hor_lines.append(int(i * scale))
 
@@ -1130,12 +1044,12 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
         cv2.imshow("line", pixel_data_unchanged)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
-    # Initialize the data array to store extracted text
+
     data_array = [[["" for k in range(2)] for i in range(len(contains_data[0]))] for j in range(len(contains_data))]
 
     y = 0
     y_SPLIT_extend = 0
-    # Iterate over each row of the table    
+
     while(y < (len(hor_scaled)-1)):
         x = 0
         split_holder = []
@@ -1147,11 +1061,11 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
             while(temp_x < len(ver_scaled)-2 and conc_col_2D[y][temp_x]):
                 temp_x += 1
                 data_exists = data_exists or contains_data[y][temp_x] #atleast one cell has data in the merged data
-            # Check if the current row can be merged with the previous row
+
             y_merge = False #can only merge 1 line
             if(y < len(hor_scaled)-1 and y > 0): #LOOK TO THE PAST
                y_merge = horizontal_line_crossover(hor_scaled[y][0]+int(hor_scaled[y][1]/2), ver_scaled[x][0]+ver_scaled[x][1], ver_scaled[temp_x+1][0], pixel_data_unchanged)
-            # Calculate the start and end coordinates for the current cell
+
             x_s = ver_scaled[x][0]+ver_scaled[x][1]+1
             x_e = ver_scaled[temp_x+1][0]
             y_s = hor_scaled[y-y_merge][0]+hor_scaled[y-y_merge][1]+1
@@ -1193,11 +1107,10 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
                 #data_array[y-y_merge+y_SPLIT_extend][x] = pytesseract.image_to_string(loc, config='--psm 7')
                 #data_array[y-y_merge+y_SPLIT_extend][x] = pytesseract.image_to_string(p_img, config='--psm 7')
 
-            # Handle extended cells
             if(y_merge):
                 data_array[y+y_SPLIT_extend][x][0] = "^ EXTEND"
                 data_array[y+y_SPLIT_extend][x][1] = [-1, -1, -1, -1]
-            # Handle extended cells
+
             while(x < temp_x):
                 split_holder.append(["^ EXTEND", [-1, -1, -1, -1]])
                 data_array[y-y_merge+y_SPLIT_extend][x+1][0] = "< EXTEND"
@@ -1218,7 +1131,7 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
         row_valid = [False for y in range(len(data_array))]
         col_valid = [False for x in range(len(data_array[0]))]
 
-        # Mark valid rows and columns   
+
         for y in range(len(data_array)):
             for x in range(len(data_array[0])):
                 if(data_array[y][x][0] != "" and data_array[y][x][0] != "< EXTEND" and data_array[y][x][0] != "^ EXTEND"):
@@ -1252,7 +1165,6 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
         interval_it += 1
     real_intervals.append([real_hor_lines[interval_it], height])
 
-    # Initialize the row_intervals array to store the rows and their corresponding intervals    
     row_intervals = []
     for row in cleaned_data_array:
         temp_row = []
@@ -1271,7 +1183,7 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
                 break
             real_it += 1
         row_intervals.append([temp_row, [hor_top, hor_bot], row_num])
-    # Merge rows within the same interval
+
     row_it = 0
     while(row_it < len(row_intervals)):
         cell_num = len(row_intervals[row_it][0])
@@ -1336,7 +1248,6 @@ def debug(root, height, width, pixel_data, hor_lines, ver_lines, hor_lines_final
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
-# Image handling function
 def image_handle(image):
     import cv2
     image = np.array(image)
@@ -1344,7 +1255,7 @@ def image_handle(image):
     return image
 
 
-    #def multiprocessing_unit(image_num, image, root, identify_model, identify_model2, conc_col_model, valid_cells_model):
+#def multiprocessing_unit(image_num, image, root, identify_model, identify_model2, conc_col_model, valid_cells_model):
 def multiprocessing_unit_separate_tables_reg(pdf_loc,page_num, image, root,identify_model,identify_model2):
     #load_model now in seperating processes
 
@@ -1354,8 +1265,6 @@ def multiprocessing_unit_separate_tables_reg(pdf_loc,page_num, image, root,ident
     temp_pixel_data,coords = table_identifier(image, root, identify_model, identify_model2)
     #print(coords)
     return temp_pixel_data
-
-# YOLO-based table extraction
 def multiprocessing_unit_separate_tables_yolo(pdf_loc,page_num, image, root,identify_model,identify_model2,yolo_model_dir,work_loc):
     #load_model now in seperating processes
 
@@ -1366,45 +1275,35 @@ def multiprocessing_unit_separate_tables_yolo(pdf_loc,page_num, image, root,iden
     #print(coords)
     return temp_pixel_data
 
-# Cell identification   
 def multiprocessing_unit_identify_cells(pixel_data, root):
     """
-    This function identifies table cells in an image by using two CNN models. The first model
-    detects potential table regions, and the second model refines the detected regions. The
-    final output is a list of detected table cells and their coordinates.
-
+    Identify cells in an image using two CNN models.
+    This function uses two CNN models to identify cells in an image. The first model detects potential table regions,
+    and the second model refines the detection. The final output is a list of detected table regions and their coordinates.
     Args:
         pixel_data (numpy.ndarray): Grayscale image data as a 2D NumPy array.
-        root (str): Root directory for storing temporary files and intermediate results.
-
+        root (str): Path to the working directory.
     Returns:
-        list: A list of detected table cells, each represented as a list of text and coordinates.
+        list: List of detected table regions and their coordinates.
     """
     #print("entered_cells")
-    # Load the models
     conc_col_model = load_model(os.path.join(root,"conc_col.h5"))
     valid_cells_model = load_model(os.path.join(root, "valid_cells.h5"))
-    # Initialize the final data per table
     final_data_per_table = []
-    # Copy the pixel data to avoid modifying the original image
+
     pixel_data_unchanged = np.copy(pixel_data)
-    # Get the height and width of the image
+
     height, width = pixel_data.shape
-    # Calculate the scaling factor
     scale = width/800
-    # Resize the image to 800 width, variable height
     pixel_data = cv2.resize(pixel_data,(800, int(height/scale)))  #800 width, variable height
-    # Get the new height and width of the resized image
     height, width = pixel_data.shape
 
     hor_lines = horizontal_line_finder(height, width, pixel_data) #cannot use margin_lines, but it is fine table cells are usally wider than they are tall
     hor_margin_lines = real_line_margins(hor_lines, 5)
-    # Detect vertical lines in the image, skipping rows that are part of horizontal margin lines
+
     ver_lines = vertical_line_finder(height, width, pixel_data, hor_margin_lines)
-    # Calculate the real line margins for the vertical lines
     ver_margin_lines = real_line_margins(ver_lines, 5)
 
-    # Initialize variables for inferred lines and their quality
     required_dist = .95 #TODO find a number that balances speed and accuracy
     prev_groups = -1
     inferred_hor_lines = []
@@ -1419,7 +1318,6 @@ def multiprocessing_unit_identify_cells(pixel_data, root):
         inferred_hor_lines = inferred_hor_lines_temp
         inferred_hor_quality = inferred_hor_quality_temp
 
-    # Detect inferred vertical lines in the image
     required_dist = .65 #TODO find a number that balances speed and accuracy
     prev_groups = -1
     inferred_ver_lines = []
@@ -1435,19 +1333,16 @@ def multiprocessing_unit_identify_cells(pixel_data, root):
         inferred_ver_lines = inferred_ver_lines_temp
         inferred_ver_quality = inferred_ver_quality_temp
 
-    # Detect guaranteed inferred vertical lines
-    guarenteed_inf_ver, guarenteed_ver_quality = inferred_vertical_line_finder(height, width, pixel_data, .98, 8, hor_lines)
-    # Calculate the mean of the inferred vertical lines and their quality
+    guarenteed_inf_ver, guarenteed_ver_quality = inferred_vertical_line_finder(height, width, pixel_data, .98, 8, hor_lines) #inject inf_ver that might have been wrongfully removed; Thicker line required USED TO BE .99
     tempv = mean_finder(ver_lines, ([0] + guarenteed_inf_ver  + [width-1]), ([1] + guarenteed_ver_quality + [1]), 10, width) #TODO find a good number
-    # Calculate the mean of the inferred vertical lines and their quality       
+
     ver_lines_final = mean_finder(tempv, inferred_ver_lines, inferred_ver_quality, 15, width) #this is precision not resolution add lines to the left and right //TODO find a good precision
     hor_lines_final = mean_finder(hor_lines, ([0] + inferred_hor_lines + [height-1]), ([1] + inferred_hor_quality + [1]), 7, height) #this is precision not resolution
 
     conc_col_2D = []
     contains_data, conc_col_2D = concatenate(root, pixel_data, ver_lines_final, hor_lines_final, conc_col_model, valid_cells_model)
-    # Calculate the widths of the vertical and horizontal lines
     ver_width_line, hor_width_line = lines_with_widths(ver_lines_final, hor_lines_final)
-    # Convert the image to text using the identified cells and their coordinates    
+
     final_data_per_table = image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_width_line, hor_width_line, scale, ver_lines, hor_lines)
     return final_data_per_table
 
@@ -1457,11 +1352,9 @@ def multiprocessing_unit_identify_cells(pixel_data, root):
 if __name__ == '__main__':
     # count time
     start_main_time = time.time()
-    # Get the directory of the current script   
+
     pyth_dir = os.path.dirname(__file__)
-    # Set the TensorFlow logging level to suppress unnecessary messages
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = '2'
-    # Create an argument parser for command-line arguments
     parser = argparse.ArgumentParser(description='Table Extractor Tool')
     parser.add_argument('--pdf_dir', required=True, help='pdf directory')
     parser.add_argument('--work_dir', required=True, help='main work and output directory')
@@ -1470,20 +1363,13 @@ if __name__ == '__main__':
     parser.add_argument('--use_yolo',required=False,help='Use the combined yolo/cnn model to detect tables, default is False',default=False,action="store_true")
     args = parser.parse_args()
 
-    # Set the flag for concatenating and cleaning the table data
     concatenate_clean = True
 
-    # Set the root directory for the table extraction process   
     root = os.path.join(pyth_dir,'Table_extract_robust')
-    # Set the PDF location
     pdf_loc = (args.pdf_dir).lower()
-    # Set the work directory
     work_loc = args.work_dir
-    # Set the start page number
     start = int(args.first_table_page)
-    # Set the end page number
     cap = int(args.last_table_page)
-    # Set the flag for using YOLO
     yolo = args.use_yolo
     if yolo:
         yolo_model_dir = os.path.join(pyth_dir,'yolo_helpers','keras_yolo3','trained_weights_1915_final.h5')
@@ -1491,7 +1377,6 @@ if __name__ == '__main__':
     identify_model = load_model(os.path.join(root, "Identification_Models", "stage1.h5"))
     identify_model2 = load_model(os.path.join(root, "Identification_Models", "stage2.h5"))
 
-    # Create a temporary directory for storing intermediate images
     TempImages_dir = os.path.join(work_loc, "TempImages")
     try:
         os.makedirs(TempImages_dir)
@@ -1503,9 +1388,7 @@ if __name__ == '__main__':
             for file in os.listdir(TempImages_dir):
                 os.remove(os.path.join(TempImages_dir,file))
 
-    # Print a message indicating the start of multiprocessing
     print("Multiprocesses start: \n")
-    # Get the number of available CPU cores
     cpu_num = multiprocessing.cpu_count()
     print("CPU NUM",cpu_num)
 
@@ -1514,11 +1397,8 @@ if __name__ == '__main__':
         images.append(image_handle(image))
 
     print("done handling images")
-    # Create a multiprocessing pool with the number of available CPU cores
     pool1 = Pool(processes= cpu_num)
-    # Initialize a list to store the results of the table identification process
     temp_storage = []
-    # Iterate over the images and process each one
     for image_num, image in enumerate(images):
         print("Start Idendifying Tables on Page " + str(image_num + start))
         if yolo:
@@ -1529,14 +1409,10 @@ if __name__ == '__main__':
     pool1.close()
     pool1.join()
 
-    print("\n") 
-    # Create a multiprocessing pool with the number of available CPU cores
+    print("\n")
     pool2 = Pool(processes= cpu_num)
-    # Initialize a list to store the results of the table identification process
     all_tables = []
-    # Initialize a counter for the number of tables processed
     count = 0
-    # Iterate over the results of the table identification process
     for tables in temp_storage:
         count += 1
         print("Start Extracting Content in Table " + str(count))
@@ -1546,9 +1422,7 @@ if __name__ == '__main__':
     pool2.close()
     pool2.join()
 
-    # Initialize an empty list to store all table data
     array = []
-    # Iterate over the results of the table identification process
     for temp in all_tables:
         temp_row = temp.get()
         for cell in temp_row:
@@ -1561,34 +1435,25 @@ if __name__ == '__main__':
             cv2.waitKey(0)
             cv2.destroyAllWindows()
 
-    # Concatenate and clean the table data
     if(concatenate_clean):
         cleaned_array = []
         for row in array:
             if(len(row) < 9):
-                # Initialize a flag to check if the row contains the "^ EXTEND" keyword
                 has_extend = False
-                # Iterate over the cells in the row
                 for cell in row:
                     if(cell == "^ EXTEND"):
                         has_extend = True
 
-                # If the row contains the "^ EXTEND" keyword, concatenate the row with the last row in the cleaned_array    
                 if(has_extend):
-                    # Iterate over the cells in the row
                     for cell_num, cell in enumerate(row):
-                        # If the cell is not the "^ EXTEND" keyword and the cell number is less than the length of the last row in the cleaned_array, concatenate the cell with the last row in the cleaned_array
                         if(cell != "^ EXTEND" and cell_num < len(cleaned_array[-1])):
                             cleaned_array[-1][cell_num] += (" " + cell)
                 else:
-                    # If the row does not contain the "^ EXTEND" keyword, append the row to the cleaned_array
                     cleaned_array.append(row)
 
-        # Write the cleaned table data to a CSV file
         with open(os.path.join(work_loc, "concatenate_table.csv"), "w", newline="") as f:
             writer = csv.writer(f)
             writer.writerows(cleaned_array)
-    # Calculate the total time taken for the table extraction process
     end_main_time = time.time()
     total_time = end_main_time-start_main_time
     minutes = float(total_time)/60

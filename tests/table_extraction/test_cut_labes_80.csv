@@ -1,0 +1,114 @@
+fx = 10.06 kHz unless otherwise note,I)',,,
+,,,AD678J/A,S
+Parameter,,Min,Typ,Max
+SIGNAL-TO-NOISE AND DISTORTION (S/N+D) RATIO2,,,,
+,,70,71,
+,,,51,
+-60 dB Input (Referred to -60 dB Input),,,11,
+TOTAL HARMONIC DISTORTION (THD),,,-88,-80
+,,,0.004,0.010
+PEAK SPURIOUS OR PEAK HARMONIC COMPONENT,,,-87,-80
+FULL POWER BANDWIDTH,,,1,
+FULLLINEAR BANDWIDTH,,500,,
+INTERMODULATION DISTORTION (IMD),,,,
+2nd Order Products,,,-85,-80
+3rd Order Products,,,-90,-80
+,(All device t),"pes TmIn to Tmax, Vcc = +12 V  5%,",EE =-12V 5
+Parameter,,Test Conditions,Min
+LOGIC INPUTS,,,
+VIH High Ievel Input Voltage,,,2.0
+V1I Low Level Input Voltage,,,
+IIH High Level Input Current,,V1N = VDD,-10
+I1I Low Level Input Current,,V1N = 0 V,-10
+CIN Input Capacitance,,,
+LOGIC OUTPUTS,,,
+VOH High Level Output Voltage,,IOH = 0.1 mA,4.0
+,,IoH = 0.5 mA,2.4
+VOL Low Level Output Voltage,,IoL = 1.6 mA,
+Ioz High Z Leakage Current,,,-10
+Coz High Z Output Capacitance,,,
+,to TmAX,V CO,=+12V+,"5%, VF = 12 V ","5%, Vpp =",5 V 10
+,,,,AD678J/A/S,,
+Parameter,,,Min,Typ,Max,Min
+TEMPERATURE RANGE,,,,,,
+"J, K Grades",,,,,+70,
+"A, B Grades",,,40,,+85,40
+"S, T Grades",,,-55,,+125,-55
+ACCURACY,,,,,,
+Resolution,,,12,,,12
+Integral Nonlinearity (INL),,,,+1,,
+,,,12,,,12
+,,,,4,,
+,,,,4,,
+Gain Error (@ +25C,,,,+4,,
+Temperature Drift,,,,,,
+Unipolar/Bipolar Zerc,,,,,,
+"J, K Grades",,,,+2,,
+"A, B Grades",,,,+4,,
+S. T Grades,,,,5,,
+Gain,,,,,,
+"J, K Grades",,,,+4,,
+"A, B Grades",,,,+7,,
+S. T Grades,,,,+10,,
+Gain4,,,,,,
+"J, K Grades",,,,+2,,
+"A, B Grades",,,,+4,,
+"S, T Grades",,,,+6,,
+ANALOG INPUT,,,,,,
+Input Ranges,,,,,,
+Unipolar Range,,,,,+10,
+Bipolar Range,,,,,+5,-5
+Input Resistance,,,,10,,
+Input Capacitance,,,,10,,
+Input Settling Time,,,,,1,
+Aperture Delay,,,,10,,
+Aperture Jitter,,,,150,,
+INTERNALVOLTAGE REFERE,NCE,,,,,
+Output Voltage,,,4.98,,5.02,4.98
+External Load,,,,,,
+Unipolar Mode,,,,,+1.5,
+Bipolar Mode,,,,,+0.5,
+POWER SUPPLIES,,,,,,
+Power Supply Rejection,,,,,,
++12 V  5%,,,,+2,,
+VEE -12 V  5%,,,,+2,,
++5 V  10%,,,,+2,,
+Operating Current,,,,,,
+Icc,,,,18,20,
+IEE,,,,25,34,
+IpD,,,,8,12,
+Power Consumption,,,,560,745,
+,TCAT,UNS,otherwlsehoted,
+Parameter,,,Symbol,Min
+SC Delay,,,tsc,50
+Conversion Time,,,tc,3.0
+Conversion Rate,,,tCR,
+Convert Pulsewidth,,,tcP,97
+Aperture Delay,,,tAD,5
+Status Delay,,,tsD,0
+"Access Time2, 3",,,tBA,10
+,,,,10
+Float Delay,,,tFD,10
+Output Delay,,,toD,
+Format Setup,,,tFS,47
+OE Delay,,,tOE,
+Read Pulsewidth,,,tRP,97
+Conversion Delay,,,tcD,150
+EOCEN Delay,,,tEO,0
+NOTES,,,,
+,,,,,,,EO
+   ,  ,  tcP, CR ,   ,   ,cs EOCEN, 
+ SHA, TRACK, , HOLD,t CD RACK, HOLD, EOC1,
+ ,, SD,, , ,NOTE 1SEE SND,DECO
+FOC? , ,,, toD, , , Fiqur
+Modell,Package,Temperature Range,Tes,ted
+AD678JN,28-Lead Plastic DIP,0C to +70C,AC,
+AD678KN,28-Lead Plastic DIP,0C to +70C,AC,+ I
+AD678JD,28-Lead Ceramic DIP,0C to +70C,AC,
+AD678KD,28-Lead Ceramic DIP,0C to +70C,AC,+ I
+AD678AD,28-Lead Ceramic DIP,40C to +85C,AC,
+AD678BD,28-Lead Ceramic DIP,40C to +85C,AC,I +
+AD678AJ,44-Lead Ceramic JLCC,40C to +85C,AC,
+AD678BJ,44-Lead Ceramic ILCC,40C to +85C,AC,+ I
+AD678SD,28-Lead Ceramic DIP,55C to +125C,AC,
+AD678TD,28-Lead Ceramic DIP,55C to +125C,AC,I +

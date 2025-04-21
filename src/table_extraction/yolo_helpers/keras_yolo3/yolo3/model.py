@@ -12,7 +12,8 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.regularizers import l2
 
 from yolo3.utils import compose
-
+from tensorflow.keras.models import load_model
+from tensorflow.keras.layers import Input
 
 @wraps(Conv2D)
 def DarknetConv2D(*args, **kwargs):

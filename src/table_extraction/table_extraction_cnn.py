@@ -35,10 +35,39 @@ import numpy as np          # for numerical operations
 import argparse             # arguement parsing
 import tensorflow as tf     # for machine learning
 from tensorflow.keras.models import load_model # for loading models
+from paddleocr import PaddleOCR # Add this import
 
 from pdf2image import convert_from_path #poppler needs to be added and added to the path variable
 
+# 全局初始化OCR
+ocr = PaddleOCR(
+    use_angle_cls=True,
+    lang='en',
+    use_gpu=False,
+    det_db_thresh=0.3,
+    det_db_box_thresh=0.6,
+    det_db_unclip_ratio=1.5,
+    rec_batch_num=6,
+    rec_algorithm='SVTR_LCNet',
+    cls_batch_num=6,
+    enable_mkldnn=True
+)
 
+def optimize_ocr_config():
+    """优化OCR配置"""
+    ocr = PaddleOCR(
+        use_angle_cls=True,      # 使用方向分类
+        lang='en',               # 设置语言
+        use_gpu=True,            # 使用GPU
+        det_db_thresh=0.5,       # 检测阈值
+        det_db_box_thresh=0.6,   # 检测框阈值
+        det_db_unclip_ratio=1.5, # 文本框扩张比例
+        rec_batch_num=6,         # 识别批次大小
+        rec_algorithm='SVTR_LCNet',  # 识别算法
+        cls_batch_num=6,         # 方向分类批次大小
+        enable_mkldnn=True       # 启用MKLDNN加速
+    )
+    return ocr
 def table_identifier(pixel_data, root, identify_model, identify_model2):
     """
     Identify the table region in the image using two models.
@@ -56,9 +85,15 @@ def table_identifier(pixel_data, root, identify_model, identify_model2):
     pTwo_size = 600
     X_size = 800
     Y_size = 64
-    cuts_labels = 60
+    cuts_labels = 80 #用来分割的标签数量 default=60 65 verybad# 80*75糟糕但是可以识别到第一个表格
+    # 修改label_precision的值(没有用)测试8-10
     label_precision = 8
-    y_fail_num = 2
+
+
+    # 修改y_fail_num的值(没有用)
+    #When the CNN predicts table regions, it may occasionally misclassify certain rows due to noise, broken lines, or OCR errors.
+    #y_fail_num controls how many consecutive “non-table” regions are still considered part of the same table.
+    y_fail_num = 7 #4-7 useless 
 
     # Copy the pixel data for later use 
     original_pixel_data_255 = pixel_data.copy()
@@ -277,7 +312,7 @@ def horizontal_line_finder(height, width, pixel_data): #normal finds black lines
         list: List of y-coordinates where horizontal table lines are detected.
     """
     final_out = [] 
-    search_dist = 3 
+    search_dist = 7
 
     # Iterate through the height to find the horizontal lines
     for y in range(search_dist, height-search_dist):
@@ -332,7 +367,7 @@ def vertical_line_finder(height, width, pixel_data, hor_margin_lines): #normal f
         list: List of x-coordinates where vertical table lines are detected.
     """
     final_out = [] 
-    search_dist = 3
+    search_dist = 7 #(线条检测的搜索范围)default=3 2 not good;5 better just little bit more;7 same as 3
 
     # Iterate through the width to find the vertical lines
     for x in range(search_dist, width-search_dist):
@@ -781,6 +816,9 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
     Returns:
         list: A list of lists containing the extracted text.
     """
+    # Initialize PaddleOCR at the start of the function
+    # ocr = PaddleOCR(use_angle_cls=True, lang='en')
+    
     ver_scaled = []
     hor_scaled = []
 
@@ -791,7 +829,6 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
     # Scale the horizontal lines    
     for i in hor_width_line:
         hor_scaled.append([int(i[0]*scale), int(i[1]*scale)+1])
-
 
     data_array = [["" for i in range(len(contains_data[0]))] for j in range(len(contains_data))]  
     y = 0
@@ -826,10 +863,15 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
                 slice = pixel_data_unchanged[y_s:split_loc, x_s:x_e]
                 w, h = slice.shape
                 slice2 = pixel_data_unchanged[split_loc:y_e, x_s:x_e] 
-                #loc2 = os.path.join(root, "TempImages", "i_B" + str(y) +"_" + str(x) + ".jpg")
                 loc2 = os.path.join(TempImages_dir, "i_B" + str(y) +"_" + str(x) + ".jpg")
-                cv2.imwrite(loc2,slice2)   
-                split_holder.append(pytesseract.image_to_string(loc2, config='--psm 7'))
+                cv2.imwrite(loc2, slice2)
+                
+                # Use PaddleOCR instead of pytesseract
+                result = ocr.ocr(loc2, cls=True)
+                text = ""
+                if result and result[0]:
+                    text = " ".join([line[1][0] for line in result[0]])
+                split_holder.append(text)
             else:
                 # If no splitting is needed, extract content from the entire cell
                 slice = pixel_data_unchanged[y_s:y_e, x_s:x_e]
@@ -841,8 +883,13 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
 
             # If the data exists and the width and height are greater than 0, write the image and add the text to the data array
             if(data_exists and w > 0 and h > 0):
-                cv2.imwrite(loc,slice)
-                data_array[y-y_merge+y_SPLIT_extend][x] = pytesseract.image_to_string(loc, config='--psm 7')
+                cv2.imwrite(loc, slice)
+                # Use PaddleOCR instead of pytesseract
+                result = ocr.ocr(loc, cls=True)
+                text = ""
+                if result and result[0]:
+                    text = " ".join([line[1][0] for line in result[0]])
+                data_array[y-y_merge+y_SPLIT_extend][x] = text
             # If the line is merged, add the text to the data array
             if(y_merge):
                 data_array[y+y_SPLIT_extend][x] = "^ EXTEND" 

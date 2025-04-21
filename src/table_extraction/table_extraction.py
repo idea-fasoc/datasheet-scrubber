@@ -37,19 +37,21 @@ import fix_pdf
 import detector
 import tensorflow as tf
 from tensorflow.keras.models import load_model
-
+from paddleocr import PaddleOCR
 from pdf2image import convert_from_path #poppler needs to be added and added to the path variable
 from numba import jit
 import time
 import multiprocessing
 from multiprocessing import Pool
 from multiprocessing.pool import ThreadPool as Pool
-
 import dill
 from tensorflow.keras.layers import Dense, Conv2D, Permute, MaxPooling2D, AveragePooling2D, LSTM, Reshape, Flatten, Dropout
 from tensorflow.keras.layers import multiply, add, average, maximum, Concatenate, Lambda
 from tensorflow.keras.models import load_model
+from typing import Optional
+
 tf.compat.v1.enable_eager_execution()
+ocr = PaddleOCR(use_angle_cls=False, lang="en", rec_thresh=0.01, det_db_thresh=0.1)  
 
 ##calculate the IoU between two regions
 def calc_IoU(xml,proposed):
@@ -117,29 +119,28 @@ def yolo_model_improve(yolo_model_dir,pdf_loc,page_num,delta=5):
 
             confidence = float(row[7])
 
+        min_confidence_threshold = 0.3  # reduce the confidence threshold to 0.3, allow low confidence tables
+        if confidence > min_confidence_threshold:
             if key in tables_on_page:
                 max_iou = 0
-                prop_overlap=[]
+                prop_overlap = []
                 found_ind = 0
-                for i,prop in enumerate(tables_on_page[key]):
-
-                    iou = calc_IoU(prop[0],proposed)
-                    if iou>max_iou:
+                for i, prop in enumerate(tables_on_page[key]):
+                    iou = calc_IoU(prop[0], proposed)
+                    if iou > max_iou:
                         max_iou = iou
                         prop_overlap = prop[0]
                         found_ind = i
-                if max_iou < 0.1: #doesn't overlap with already proposed tables
-                    tables_on_page[key].append([proposed,confidence])
-
-                elif prop[1] < confidence: #confidence is higher, so delete previous table
-                    tables_on_page[key].append([proposed,confidence])
+                if max_iou < 0.2:  # no too much overlap
+                    tables_on_page[key].append([proposed, confidence])
+                elif prop[1] < confidence:  # if the new detected table is more confident, replace the old table
+                    tables_on_page[key].append([proposed, confidence])
                     del tables_on_page[key][found_ind]
                     print("new table is more confident")
                 else:
                     print("overlap and less confident")
-
-            else: #add new key
-                tables_on_page[key] = [[proposed,confidence]]
+            else:  # new table
+                tables_on_page[key] = [[proposed, confidence]]
             num+=1
 
     return tables_on_page #return dict containing processed tables for each image
@@ -157,14 +158,14 @@ def cnn_detect(model1,model2,i):
     Returns:
         tuple: Tuple containing two lists of detected table regions.
     """
-    X_size = 800 #part1
-    Y_size = 64 #part1
+    X_size = 800 #original is 800
+    Y_size = 64 #original is 64
 
     pTwo_size = 600 #part2
     cuts_labels = 60 #part2
     label_precision = 8 #AMOUNT OF PIXELS BETWEEN LABELS, GOES FROM 1/4th to 3/4ths
 
-    y_fail_num = 2
+    y_fail_num = 2 #orignal is 2
     pixel_data = i
     original_pixel_data_255 = pixel_data.copy()
     pixel_data = cv2.normalize(pixel_data, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
@@ -185,11 +186,18 @@ def cnn_detect(model1,model2,i):
         slices.append(bordered_pixel_data[int(s_iter):int(s_iter+Y_size)])
         iter += 1
 
-    slices = np.array(np.expand_dims(slices,  axis = -1))
-
-    data = model1.predict(slices)
+    slices_resized = []
+    #resize the slices to the model's expected size
+    for slice in slices:
+        resized = cv2.resize(slice, (800, 64))
+        slices_resized.append(resized)
+    
+    slices_resized = np.array(np.expand_dims(slices_resized, axis=-1))
+    data = model1.predict(slices_resized)
     #concatenate data
     conc_data = []
+    #threshold for the model
+    threshold = 0.1 #original is 0.5 i will try 0.3  
     for single_array in data:
         for single_data in single_array:
             conc_data.append(single_data)
@@ -198,14 +206,14 @@ def cnn_detect(model1,model2,i):
     fail = y_fail_num
     group_start = 1 #start at 1 to prevent numbers below zero in groups
     for iter in range(len(conc_data)-1):
-        if(conc_data[iter] < .5):
+        if(conc_data[iter] < threshold):
             fail += 1
         else:
             fail = 0
 
         if(fail >= y_fail_num):
             if(iter - group_start >= 4):
-                groups.append((max(int((group_start-1)*label_precision/scale),0), int((iter+1-y_fail_num)*label_precision/scale)))
+                groups.append([max(int((group_start-1)*label_precision/scale), int((iter+1-y_fail_num)*label_precision/scale))])
             group_start = iter
 
 
@@ -213,20 +221,23 @@ def cnn_detect(model1,model2,i):
     groups2 = []
     for group in groups:
         temp_final_original = cv2.resize(original_pixel_data[group[0]:group[1]], (pTwo_size, pTwo_size))
+        
+        cv2.imshow("Resized Input to model2", temp_final_original)
+        cv2.waitKey(0)
         temp_final = np.expand_dims(np.expand_dims(temp_final_original,  axis = 0), axis = -1)
         data_final = model2.predict(temp_final)
-
+        column_threshold = 0.1  # original is 0.5 try 0.4
         hor_start = -1
         hor_finish = 10000
         pointless, original_width = original_pixel_data.shape
         #find the start and end of the horizontal lines
         for iter in range(len(data_final[0])):
-            if(data_final[0][iter] > .5 and hor_start == -1):
+            if(data_final[0][iter] > column_threshold and hor_start == -1):
                 if(iter > 0):
                     hor_start = int((iter-0.5)*original_width/cuts_labels)
                 else:
                     hor_start = int(iter*original_width/cuts_labels)
-
+            print(f"Predicted hor_start: {hor_start}, hor_finish: {hor_finish}, Image Width: {original_width}")
             if(data_final[0][iter] > .5):
                 hor_finish = int((iter+0.5)*original_width/cuts_labels)
 
@@ -316,122 +327,578 @@ def cnn_yolo_combined(pdf_loc,page_num,im,model1,model2,yolo_model_dir,work_loc)
 
 
 
+# def table_identifier(pixel_data, root, identify_model, identify_model2):
+#     """
+#     Identify tables in an image using two CNN models.
+#     This function uses two CNN models to identify tables in an image. The first model detects potential table regions,
+#     and the second model refines the detection. The final output is a list of detected table regions and their coordinates.
+#     Args:
+#         pixel_data (numpy.ndarray): Grayscale image data as a 2D NumPy array.
+#         root (str): Path to the working directory.
+#         identify_model (keras.Model): First model for detecting table regions.
+#         identify_model2 (keras.Model): Second model for refining table regions.
+#     Returns:
+#         tuple: Tuple containing two lists of detected table regions.
+#     """
+#     start_time = time.time()
+#     pTwo_size = 600
+#     X_size = 800
+#     Y_size = 64
+#     cuts_labels = 60
+#     label_precision = 8
+#     y_fail_num = 3
+#     #normalize the pixel data
+#     original_pixel_data_255 = pixel_data.copy()
+#     pixel_data = cv2.normalize(pixel_data, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+#     original_pixel_data = pixel_data.copy()
+
+#     height, width = pixel_data.shape
+#     scale = X_size/width
+#     #resize the pixel data
+#     pixel_data = cv2.resize(pixel_data, (X_size, int(height*scale))) #X, then Y
+#     #add a border to the pixel data
+#     bordered_pixel_data = cv2.copyMakeBorder(pixel_data,top=int(Y_size/4),bottom=int(Y_size/4),left=0,right=0,borderType=cv2.BORDER_CONSTANT,value=1)
+
+
+
+#     dynamic_factor = 1.9
+
+#     slice_skip_size = int(Y_size / dynamic_factor)
+
+
+
+
+#     #slice the image into smaller pieces
+   
+#     iter = 0
+#     slices = []
+#     while((iter*slice_skip_size + Y_size) < int(height*scale+Y_size/2)):
+#         s_iter = iter*slice_skip_size
+#         slices.append(bordered_pixel_data[int(s_iter):int(s_iter+Y_size)])
+#         iter += 1
+
+#     #convert the slices to a numpy array
+#     slices = np.array(np.expand_dims(slices,  axis = -1))
+#     #predict the data
+#     data = identify_model.predict(slices)
+
+#     #concatenate the data
+#     conc_data = []
+#     for single_array in data:
+#         for single_data in single_array:
+#             conc_data.append(single_data)
+#     #add 0s to the end of the data
+#     conc_data += [0 for i in range(y_fail_num+1)] #Still needed
+#     #find the groups
+#     groups = []
+#     column_threshold = 0.25
+#     fail = y_fail_num
+#     group_start = 1 #start at 1 to prevent numbers below zero in groups
+#     for iter in range(len(conc_data)-1):
+#         if(conc_data[iter] < column_threshold):
+#             fail += 1
+#         else:
+#             fail = 0
+#         #if the fail is greater than the y_fail_num, then add the group to the list
+#         if(fail >= y_fail_num):
+#             if(iter - group_start >= 4):
+#                 groups.append((int((group_start-1)*label_precision/scale), int((iter+1-y_fail_num)*label_precision/scale)))
+#             group_start = iter
+
+#     #refine detection
+#     groups2 = []
+#     for group in groups:
+#         #resize the image
+#         temp_final_original = cv2.resize(original_pixel_data[group[0]:group[1]], (pTwo_size, pTwo_size))
+
+#         #convert the image to a numpy array
+#         temp_final = np.expand_dims(np.expand_dims(temp_final_original,  axis = 0), axis = -1)
+#         #predict the data
+#         data_final = identify_model2.predict(temp_final)
+
+#         #find the start and end of the horizontal lines
+#         hor_start = -1
+#         hor_finish = 10000
+#         #get the original width
+#         pointless, original_width = original_pixel_data.shape
+
+#         for iter in range(len(data_final[0])):
+#             if(data_final[0][iter] > column_threshold and hor_start == -1):
+#                 if(iter > 0):
+#                     hor_start = int((iter-0.5)*original_width/cuts_labels)
+#                 else:
+#                     hor_start = int(iter*original_width/cuts_labels)
+
+#             if(data_final[0][iter] > column_threshold):
+#                 hor_finish = int((iter+0.5)*original_width/cuts_labels)
+
+#         if(0 and hor_finish - hor_start > (0.7 * original_width)): #Fix for tables that cover the entire image
+#             groups2.append((0, original_width))
+#         else:
+#             groups2.append((hor_start, hor_finish))
+
+#     final_splits = []
+#     coords = []
+#     #get the final splits
+#     for iter in range(len(groups)):
+#         #get the final split
+#         final_split = original_pixel_data_255[groups[iter][0]:groups[iter][1], groups2[iter][0]:groups2[iter][1]]
+#         #get the coordinates
+#         coords.append([groups[iter][0],groups2[iter][0],groups[iter][1],groups2[iter][1]])
+#         #add the final split to the list
+#         final_splits.append(final_split)
+#         if(0):
+#             cv2.imshow('image', final_split)
+#             cv2.waitKey(0)
+#             cv2.destroyAllWindows()
+#     print("--- %s seconds identify tables ---" % (time.time() - start_time))
+#     #time.sleep(1)
+#     return final_splits,coords
+
+
+# def table_identifier(pixel_data, root, identify_model, identify_model2):
+#     start_time = time.time()
+#     pTwo_size = 600
+#     X_size = 800
+#     Y_size = 64
+#     cuts_labels = 60
+#     label_precision = 8
+#     y_fail_num = 4  # original is 3
+
+#     original_pixel_data_255 = pixel_data.copy()
+#     pixel_data = cv2.normalize(pixel_data, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+#     original_pixel_data = pixel_data.copy()
+
+#     height, width = pixel_data.shape
+#     scale = X_size / width
+
+#     # improve 1: anti-aliasing scaling + sharpening preprocess
+#     pixel_data = cv2.resize(pixel_data, (X_size, int(height * scale)), interpolation=cv2.INTER_LANCZOS4)
+#     kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
+#     pixel_data = cv2.filter2D(pixel_data, -1, kernel)
+
+#     bordered_pixel_data = cv2.copyMakeBorder(
+#         pixel_data, top=int(Y_size / 4), bottom=int(Y_size / 4),
+#         left=0, right=0, borderType=cv2.BORDER_CONSTANT, value=1
+#     )
+
+#     # improve 2: enhance text line detection robustness
+#     def count_text_lines(image):
+#         try:
+#             binary = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY_INV)[1]
+#             horizontal_projection = np.sum(binary, axis=1)
+#             line_count = np.count_nonzero(horizontal_projection > np.mean(horizontal_projection) * 0.5)
+#             return max(1, line_count)  # ensure at least 1 line
+#         except Exception as e:
+#             print(f"text line detection exception: {str(e)}")
+#             return 1  # default return 1 line
+
+#     num_of_detected_lines = count_text_lines(pixel_data)
+
+
+#     # improve 3: limit dynamic factor range
+#     if num_of_detected_lines > 20:
+#         dynamic_factor = max(1.2, min(1.8, num_of_detected_lines / 150))  # very dense
+#     elif num_of_detected_lines > 10:
+#         dynamic_factor = max(1.5, min(2.2, num_of_detected_lines / 120))  # medium dense
+#     elif num_of_detected_lines > 5:
+#         dynamic_factor = max(2.2, min(2.8, num_of_detected_lines / 100))  # slightly dense
+#     else:
+#         dynamic_factor = max(2.8, min(3.5, num_of_detected_lines / 80))  # sparse
+   
+
+
+#     # improve 3: force dynamic factor in safe range   
+#     dynamic_factor = max(1.0, min(dynamic_factor, 3.0))
+
+#     # improve 4: double slice step length constraint
+#     slice_skip_size = min(int(Y_size / 2), max(int(Y_size / 3), int(Y_size / dynamic_factor)))
+#     slice_skip_size = max(slice_skip_size, int(Y_size / 4))  # new minimum step length constraint
+
+#     print(f"parameter status: Y_size={Y_size}, dynamic_factor={dynamic_factor:.2f}, slice_skip_size={slice_skip_size}")
+
+#     # generate slices
+#     iter = 0
+#     slices = []
+#     while (iter * slice_skip_size + Y_size) < int(height * scale + Y_size / 2):
+#         s_iter = iter * slice_skip_size
+#         slices.append(bordered_pixel_data[int(s_iter):int(s_iter + Y_size)])
+#         iter += 1
+
+#     # model prediction
+#     slices = np.array(np.expand_dims(slices, axis=-1))
+#     data = identify_model.predict(slices)
+
+#     # concatenate confidence data
+#     conc_data = []
+#     for single_array in data:
+#         for single_data in single_array:
+#             conc_data.append(single_data)
+#     conc_data += [0 for _ in range(y_fail_num + 1)]
+
+#     # detect vertical area grouping
+#     groups = []
+#     column_threshold = np.percentile(np.array(conc_data), 30)  # dynamic threshold
+#     column_threshold = max(0.05, min(0.15, column_threshold))  # limit in reasonable range
+#     print(f"dynamic column threshold: {column_threshold:.2f}")
+
+#     fail = y_fail_num
+#     group_start = 1
+#     for iter in range(len(conc_data) - 1):
+#         if conc_data[iter] < column_threshold:
+#             fail += 1
+#         else:
+#             fail = 0
+
+#         if fail >= y_fail_num:
+#             if iter - group_start >= 4:
+#                 groups.append((
+#                     int((group_start - 1) * label_precision / scale),
+#                     int((iter + 1 - y_fail_num) * label_precision / scale)
+#                 ))
+#             group_start = iter
+
+#     print(f"detected {len(groups)} candidate table regions")
+
+#     # improve 5: strictly verify the validity of groups
+#     valid_groups = []
+#     for group in groups:
+#         y_start, y_end = group
+#         # verify coordinate range
+#         if (
+#             y_start >= y_end 
+#             or y_start < 0 
+#             or y_end > original_pixel_data.shape[0]
+#             or (y_end - y_start) < 10  # minimum height constraint
+#         ):
+#             print(f"skip invalid area: ({y_start}, {y_end})")
+#             continue
+#         valid_groups.append(group)
+#     groups = valid_groups
+
+#     # horizontal boundary detection
+#     groups2 = []
+#     for group in groups:
+#         y_start, y_end = group
+#         try:
+#             # improve 6: exception capture + edge padding
+#             region = original_pixel_data[y_start:y_end, :]
+#             if region.size == 0:
+#                 print(f"empty area: {group}")
+#                 continue
+                
+#             temp_final_original = cv2.resize(region, (pTwo_size, pTwo_size))
+#         except Exception as e:
+#             print(f"area scaling failed: {str(e)}")
+#             continue
+
+#         temp_final = np.expand_dims(np.expand_dims(temp_final_original, axis=0), axis=-1)
+#         data_final = identify_model2.predict(temp_final)
+
+#         # detect horizontal boundaries
+#         hor_start = -1
+#         hor_finish = 0
+#         _, original_width = original_pixel_data.shape
+#         for iter in range(len(data_final[0])):
+#             if data_final[0][iter] > column_threshold:
+#                 if hor_start == -1:
+#                     hor_start = int(max(0, (iter - 0.5) * original_width / cuts_labels))
+#                 hor_finish = int(min(original_width, (iter + 0.5) * original_width / cuts_labels))
+
+#         # improve 7: force full width logic
+#         if hor_finish - hor_start < 0.7 * original_width:
+#             groups2.append((hor_start, hor_finish))
+#         else:
+#             groups2.append((0, original_width))
+
+#     # post-processing verification
+#     final_splits = []
+#     coords = []
+#     for i in range(len(groups)):
+#         y_start, y_end = groups[i]
+#         x_start, x_end = groups2[i]
+        
+#         # final verification
+#         if (
+#             y_end <= y_start 
+#             or x_end <= x_start 
+#             or (y_end - y_start) < 10 
+#             or (x_end - x_start) < 20
+#         ):
+#             print(f"skip final invalid area: Y({y_start}-{y_end}), X({x_start}-{x_end})")
+#             continue
+
+#         try:
+#             final_split = original_pixel_data_255[y_start:y_end, x_start:x_end]
+#             final_splits.append(final_split)
+#             coords.append([y_start, x_start, y_end, x_end])
+#         except Exception as e:
+#             print(f"final cropping failed: {str(e)}")
+
+#     print(f"valid table number: {len(final_splits)}")
+#     print("--- time %.2f seconds ---" % (time.time() - start_time))
+    
+#     # 在这里添加显示代码，仍在函数内部
+#     # 保存所有裁剪的表格
+#     for i, img in enumerate(final_splits):
+#         save_path = os.path.join(root, f"cropped_table_{i+1}.jpg")
+#         print(f"Saving table image to: {save_path}")
+#         cv2.imwrite(save_path, img)
+    
+#     return final_splits, coords
+
+# def count_text_lines(image):
+#     binary = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY_INV)[1]  # invert binary
+#     horizontal_projection = np.sum(binary, axis=1)  # calculate horizontal projection
+#     return np.count_nonzero(horizontal_projection > np.mean(horizontal_projection) * 0.5)  # count non-zero peaks
+
+# def split_by_wide_white_gap(image, debug_save=False):
+#     """
+#     Automatically trims wide white margin areas from the right or left of the image.
+#     Works best when tables are adjacent to other large non-table areas (e.g., circuit diagrams).
+#     """
+#     if len(image.shape) == 3:
+#         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+#     else:
+#         gray = image.copy()
+
+#     # Invert and binarize
+#     _, binary = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+
+#     height, width = binary.shape
+#     white_threshold = int(height * 0.95)  # if > 95% white in a column, treat as blank
+
+#     blank_columns = []
+#     for col in range(width):
+#         if np.count_nonzero(binary[:, col]) < (height - white_threshold):
+#             blank_columns.append(col)
+
+#     # Group into wide blank areas
+#     min_gap_width = int(width * 0.05)  # Only consider white gaps wider than 5% of image
+#     start = None
+#     for i in range(1, len(blank_columns)):
+#         if blank_columns[i] != blank_columns[i - 1] + 1:
+#             if start is not None and (blank_columns[i - 1] - start) > min_gap_width:
+#                 cut_col = (start + blank_columns[i - 1]) // 2
+#                 if debug_save:
+#                     cv2.line(image, (cut_col, 0), (cut_col, height), (0, 0, 255), 2)
+#                 return image[:, :cut_col]
+#             start = None
+#         else:
+#             if start is None:
+#                 start = blank_columns[i - 1]
+
+#     # fallback
+#     return image
+
+
+def split_by_white_gap_for_table(image, min_gap_ratio=0.05, debug=False, debug_save=False, save_prefix='debug_gap'):
+    """
+    from middle to both sides to find large white vertical gaps, used to separate tables and non-tables (e.g., circuit diagrams)
+    """
+    height, width = image.shape[:2]
+    if len(image.shape) == 3:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = image.copy()
+
+    _, binary = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    white_cols = np.all(binary == 255, axis=0)
+
+    # from middle to both sides
+    mid = width // 2
+    min_blank_width = int(width * min_gap_ratio)
+
+    def find_gap_side(start, step):
+        run_start = None
+        for i in range(start, 0 if step < 0 else width, step):
+            if white_cols[i]:
+                if run_start is None:
+                    run_start = i
+            else:
+                if run_start is not None:
+                    gap_width = abs(i - run_start)
+                    if gap_width >= min_blank_width:
+                        return run_start + gap_width // 2
+                    run_start = None
+        return None
+
+    left_cut = find_gap_side(mid, -1)
+    right_cut = find_gap_side(mid, 1)
+
+    cut_col = left_cut if left_cut is not None else (right_cut if right_cut is not None else mid)
+
+    left_img = image[:, :cut_col]
+    right_img = image[:, cut_col:]
+
+    if debug:
+        cv2.imshow('Binary', binary)
+        cv2.imshow('Left', left_img)
+        cv2.imshow('Right', right_img)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+    if debug_save:
+        cv2.imwrite(f"{save_prefix}_binary.png", binary)
+        cv2.imwrite(f"{save_prefix}_left.png", left_img)
+        cv2.imwrite(f"{save_prefix}_right.png", right_img)
+
+    return left_img, right_img
+
+
+
+
+
 def table_identifier(pixel_data, root, identify_model, identify_model2):
-    """
-    Identify tables in an image using two CNN models.
-    This function uses two CNN models to identify tables in an image. The first model detects potential table regions,
-    and the second model refines the detection. The final output is a list of detected table regions and their coordinates.
-    Args:
-        pixel_data (numpy.ndarray): Grayscale image data as a 2D NumPy array.
-        root (str): Path to the working directory.
-        identify_model (keras.Model): First model for detecting table regions.
-        identify_model2 (keras.Model): Second model for refining table regions.
-    Returns:
-        tuple: Tuple containing two lists of detected table regions.
-    """
     start_time = time.time()
     pTwo_size = 600
     X_size = 800
     Y_size = 64
     cuts_labels = 60
     label_precision = 8
-    y_fail_num = 2
-    #normalize the pixel data
+    y_fail_num = 3 # original is 3
+
     original_pixel_data_255 = pixel_data.copy()
     pixel_data = cv2.normalize(pixel_data, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
     original_pixel_data = pixel_data.copy()
 
     height, width = pixel_data.shape
-    scale = X_size/width
-    #resize the pixel data
-    pixel_data = cv2.resize(pixel_data, (X_size, int(height*scale))) #X, then Y
-    #add a border to the pixel data
-    bordered_pixel_data = cv2.copyMakeBorder(pixel_data,top=int(Y_size/4),bottom=int(Y_size/4),left=0,right=0,borderType=cv2.BORDER_CONSTANT,value=1)
+    scale = X_size / width
 
-    #slice the image into smaller pieces
-    slice_skip_size = int(Y_size/2)
-    iter = 0
+    pixel_data = cv2.resize(pixel_data, (X_size, int(height * scale)))
+    bordered_pixel_data = cv2.copyMakeBorder(pixel_data, top=int(Y_size / 4), bottom=int(Y_size / 4),
+                                             left=0, right=0, borderType=cv2.BORDER_CONSTANT, value=1)
+
+    gray_pixel_data = (pixel_data * 255).astype(np.uint8)
+    num_of_detected_lines = count_text_lines(gray_pixel_data)
+    threshold = 6
+
+    if num_of_detected_lines > threshold:
+        dynamic_factor = max(1.5, min(2.2, num_of_detected_lines / 120))
+    else:
+        dynamic_factor = max(2.2, min(3.2, num_of_detected_lines / 80))
+
+    slice_skip_size = min(int(Y_size / 2), max(int(Y_size / 3), int(Y_size / dynamic_factor)))
+
     slices = []
-    while((iter*slice_skip_size + Y_size) < int(height*scale+Y_size/2)):
-        s_iter = iter*slice_skip_size
-        slices.append(bordered_pixel_data[int(s_iter):int(s_iter+Y_size)])
+    iter = 0
+    while (iter * slice_skip_size + Y_size) < int(height * scale + Y_size / 2):
+        s_iter = iter * slice_skip_size
+        slices.append(bordered_pixel_data[int(s_iter):int(s_iter + Y_size)])
         iter += 1
 
-    #convert the slices to a numpy array
-    slices = np.array(np.expand_dims(slices,  axis = -1))
-    #predict the data
+    slices = np.array(np.expand_dims(slices, axis=-1))
     data = identify_model.predict(slices)
 
-    #concatenate the data
     conc_data = []
     for single_array in data:
         for single_data in single_array:
             conc_data.append(single_data)
-    #add 0s to the end of the data
-    conc_data += [0 for i in range(y_fail_num+1)] #Still needed
-    #find the groups
+
+    conc_data += [0 for _ in range(y_fail_num + 1)]
+
     groups = []
+    column_threshold = 0.08
     fail = y_fail_num
-    group_start = 1 #start at 1 to prevent numbers below zero in groups
-    for iter in range(len(conc_data)-1):
-        if(conc_data[iter] < .5):
+    group_start = 1
+
+    for iter in range(len(conc_data) - 1):
+        if conc_data[iter] < column_threshold:
             fail += 1
         else:
             fail = 0
-        #if the fail is greater than the y_fail_num, then add the group to the list
-        if(fail >= y_fail_num):
-            if(iter - group_start >= 4):
-                groups.append((int((group_start-1)*label_precision/scale), int((iter+1-y_fail_num)*label_precision/scale)))
+
+        if fail >= y_fail_num:
+            if iter - group_start >= 4:
+                groups.append((int((group_start - 1) * label_precision / scale),
+                               int((iter + 1 - y_fail_num) * label_precision / scale)))
             group_start = iter
 
-    #refine detection
     groups2 = []
+    final_splits = []
+    coords = []
+
+    image_height = original_pixel_data.shape[0]
+    pointless, original_width = original_pixel_data.shape
+
     for group in groups:
-        #resize the image
-        temp_final_original = cv2.resize(original_pixel_data[group[0]:group[1]], (pTwo_size, pTwo_size))
-        #convert the image to a numpy array
-        temp_final = np.expand_dims(np.expand_dims(temp_final_original,  axis = 0), axis = -1)
-        #predict the data
+        start, end = group
+        if end <= start or end > image_height:
+            print(f"[Warning] Skipping invalid group: ({start}, {end}), image height={image_height}")
+            continue
+
+        cropped = original_pixel_data[start:end]
+        if cropped.shape[0] == 0:
+            print(f"[Warning] Empty slice at ({start}, {end}), skipping.")
+            continue
+
+        try:
+            temp_final_original = cv2.resize(cropped, (pTwo_size, pTwo_size))
+        except cv2.error as e:
+            print(f"[Error] OpenCV resize failed for slice {group}: {e}")
+            continue
+
+        temp_final = np.expand_dims(np.expand_dims(temp_final_original, axis=0), axis=-1)
         data_final = identify_model2.predict(temp_final)
 
-        #find the start and end of the horizontal lines
         hor_start = -1
         hor_finish = 10000
-        #get the original width
-        pointless, original_width = original_pixel_data.shape
 
         for iter in range(len(data_final[0])):
-            if(data_final[0][iter] > .5 and hor_start == -1):
-                if(iter > 0):
-                    hor_start = int((iter-0.5)*original_width/cuts_labels)
-                else:
-                    hor_start = int(iter*original_width/cuts_labels)
+            if data_final[0][iter] > column_threshold and hor_start == -1:
+                hor_start = int(iter * original_width / cuts_labels) if iter == 0 else int((iter - 0.5) * original_width / cuts_labels)
+            if data_final[0][iter] > column_threshold:
+                hor_finish = int((iter + 0.5) * original_width / cuts_labels)
 
-            if(data_final[0][iter] > .5):
-                hor_finish = int((iter+0.5)*original_width/cuts_labels)
-
-        if(0 and hor_finish - hor_start > (0.7 * original_width)): #Fix for tables that cover the entire image
+        if hor_finish - hor_start > (0.7 * original_width):
             groups2.append((0, original_width))
         else:
             groups2.append((hor_start, hor_finish))
 
-    final_splits = []
-    coords = []
-    #get the final splits
-    for iter in range(len(groups)):
-        #get the final split
-        final_split = original_pixel_data_255[groups[iter][0]:groups[iter][1], groups2[iter][0]:groups2[iter][1]]
-        #get the coordinates
-        coords.append([groups[iter][0],groups2[iter][0],groups[iter][1],groups2[iter][1]])
-        #add the final split to the list
+       # final split
+        final_split = original_pixel_data_255[start:end, groups2[-1][0]:groups2[-1][1]]
         final_splits.append(final_split)
-        if(0):
-            cv2.imshow('image', final_split)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
+        coords.append([start, groups2[-1][0], end, groups2[-1][1]])
+
     print("--- %s seconds identify tables ---" % (time.time() - start_time))
-    #time.sleep(1)
-    return final_splits,coords
+    
+    debug_save_path = os.path.join(root, "debug_table_regions")
+    os.makedirs(debug_save_path, exist_ok=True)
+
+    # FOR DEBUG
+    debug_image = original_pixel_data_255.copy() 
+    if len(debug_image.shape) == 2:
+        debug_image = cv2.cvtColor(debug_image, cv2.COLOR_GRAY2BGR)
+
+    # add safety length protection
+    min_len = min(len(groups), len(groups2))
+    for i in range(min_len):
+        y1, y2 = groups[i]
+        x1, x2 = groups2[i]
+        cv2.rectangle(debug_image, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+    save_path = os.path.join(debug_save_path, "table_detected_regions.jpg")
+   
+    return final_splits, coords
+
+
+
+#improve count_text_lines
+def count_text_lines(image):
+    # binary
+    binary = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY_INV)[1]
+
+    #horizontal projection
+    horizontal_projection = np.sum(binary, axis=1).astype(np.float32)
+
+    # 将 1D 转成 2D 再滤波 convert 1D to 2D and filter
+    projection_2d = horizontal_projection[:, np.newaxis]
+    smoothed_projection = cv2.GaussianBlur(projection_2d, (5, 5), 0)
+    smoothed_projection = smoothed_projection[:, 0]
+
+    # 找出高于一定阈值的区域（文本行） find regions above a certain threshold (text lines)
+    mean_val = np.mean(smoothed_projection)
+    return np.count_nonzero(smoothed_projection > mean_val * 0.5)
+
 
 def mean_finder_subroutine(real, infered, infered_quality, precision, group_start, n, final_dist): #TODO BROKEN FIX
     """
@@ -991,6 +1458,8 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
     Returns:
         list: List of text strings extracted from the image.
     """
+    # initialize paddleOCR
+    ocr = PaddleOCR(use_angle_cls=True, lang="en", show_log=False, rec_thresh=0.3)
     ver_scaled = []
     hor_scaled = []
     real_ver_lines = []
@@ -1061,7 +1530,7 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
             while(temp_x < len(ver_scaled)-2 and conc_col_2D[y][temp_x]):
                 temp_x += 1
                 data_exists = data_exists or contains_data[y][temp_x] #atleast one cell has data in the merged data
-
+                
             y_merge = False #can only merge 1 line
             if(y < len(hor_scaled)-1 and y > 0): #LOOK TO THE PAST
                y_merge = horizontal_line_crossover(hor_scaled[y][0]+int(hor_scaled[y][1]/2), ver_scaled[x][0]+ver_scaled[x][1], ver_scaled[temp_x+1][0], pixel_data_unchanged)
@@ -1071,26 +1540,78 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
             y_s = hor_scaled[y-y_merge][0]+hor_scaled[y-y_merge][1]+1
             y_e = hor_scaled[y+1][0]
 
-            # mark the line before split
-            if(0):
-                cv2.line(pixel_data_unchanged, (x_s, y_s), (x_s, y_e), (0,255,0), 2)
-                cv2.line(pixel_data_unchanged, (x_e, y_s), (x_e, y_e), (0,255,0), 2)
-                cv2.line(pixel_data_unchanged, (x_s, y_s), (x_e, y_s), (0,255,0), 2)
-                cv2.line(pixel_data_unchanged, (x_s, y_e), (x_e, y_e), (0,255,0), 2)
-
+            # determine if the cell is split
             SPLIT, split_loc = hor_split(x_s, x_e, y_s, y_e, pixel_data_unchanged) # ==========
 
             if(SPLIT):
                 ANY_SPLIT = True
+                # deal with split cell
                 slice = [pixel_data_unchanged[y_s:split_loc, x_s:x_e], [x_s, x_e, y_s, split_loc]]
                 w, h = slice[0].shape
+                
+                # deal with split cell
                 slice2 = [pixel_data_unchanged[split_loc:y_e, x_s:x_e],[x_s, x_e, split_loc, y_e]]
                 loc2 = os.path.join(TempImages_dir, "i_B" + str(y) +"_" + str(x) + ".jpg")
-                cv2.imwrite(loc2,slice2[0])
-                #p_img = Image.fromarray(slice2)
-                #split_holder.append(pytesseract.image_to_string(loc2, config='--psm 7'))
-                split_holder.append([pytesseract.image_to_string(loc2, config='--psm 7'), slice2[1]]) # for future merge
-                #split_holder.append(pytesseract.image_to_string(p_img, config='--psm 7'))
+                
+                # save image for debug
+                cv2.imwrite(loc2, slice2[0])
+                
+                # image preprocess for split cell
+                try:
+                    cell_img = slice2[0].copy()
+                    
+                    # 1. ensure image size is enough
+                    if cell_img.size > 0 and cell_img.shape[0] > 5 and cell_img.shape[1] > 5:
+                        # 2. image enhancement
+                        # enhance contrast
+                        cell_img = cv2.normalize(cell_img, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+                        
+                        # 3. adjust size - increase image size can improve recognition rate
+                        if cell_img.shape[0] < 30 or cell_img.shape[1] < 100:
+                            scale_factor = max(2.0, 100.0/cell_img.shape[1])
+                            cell_img = cv2.resize(cell_img, None, fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_CUBIC)
+                        
+                        # 4. noise reduction
+                        cell_img = cv2.GaussianBlur(cell_img, (3, 3), 0)
+                        
+                        # 5. convert to RGB (PaddleOCR needs)
+                        cell_img_rgb = cv2.cvtColor(cell_img, cv2.COLOR_GRAY2RGB)
+                        
+                        # 6. save enhanced image for debug
+                        debug_path = os.path.join(TempImages_dir, f"debug_i_B{y}_{x}.jpg")
+                        cv2.imwrite(debug_path, cell_img_rgb)
+                        
+                        # 7. call OCR and record result - modify OCR call method
+                        # more direct way - only do text recognition
+                        rec_result = ocr.recognize_text(cell_img_rgb)
+                        print(f"Split cell OCR result for cell({y},{x}): {rec_result}")
+                        
+                        # ===== improved OCR result extraction method =====
+                        recognized_text = ""
+                        if ocr_result and len(ocr_result) > 0:
+                            for line in ocr_result:
+                                if isinstance(line, list) and len(line) > 0:
+                                    for item in line:
+                                        if isinstance(item, list) and len(item) == 2:
+                                            # the first element is coordinates, the second element is (text, confidence) tuple
+                                            if isinstance(item[1], tuple) and len(item[1]) >= 2:
+                                                text = item[1][0]  # get text
+                                                conf = item[1][1]  # get confidence
+                                                print(f"  - Detected: '{text}' (conf: {conf:.2f})")
+                                                if conf > 0.3:  # confidence filter
+                                                    if recognized_text:
+                                                        recognized_text += " "
+                                                    recognized_text += text
+                        
+                        print(f"  - Final text: '{recognized_text}'")
+                    else:
+                        print(f"Split cell({y},{x}) too small: {cell_img.shape if cell_img.size > 0 else 'empty'}")
+                        recognized_text = ""
+                except Exception as e:
+                    print(f"OCR error on split cell({y},{x}): {e}")
+                    recognized_text = ""
+                
+                split_holder.append([recognized_text, slice2[1]])
             else:
                 slice = [pixel_data_unchanged[y_s:y_e, x_s:x_e],[x_s, x_e, y_s, y_e]]
                 w, h = slice[0].shape
@@ -1100,12 +1621,64 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
                     split_holder.append(["", [0, 0, 0, 0]])
 
             if(data_exists and w > 0 and h > 0):
-                cv2.imwrite(loc,slice[0])
-                data_array[y-y_merge+y_SPLIT_extend][x][0] = pytesseract.image_to_string(loc, config='--psm 7')
+                # save original image
+                cv2.imwrite(loc, slice[0])
+                
+                # image preprocess for main cell
+                try:
+                    cell_img = slice[0].copy()
+                    
+                    # same image enhancement
+                    if cell_img.size > 0 and cell_img.shape[0] > 5 and cell_img.shape[1] > 5:
+                        # enhance contrast
+                        cell_img = cv2.normalize(cell_img, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+                        
+                        # adjust size - increase image size can improve recognition rate
+                        if cell_img.shape[0] < 30 or cell_img.shape[1] < 100:
+                            scale_factor = max(2.0, 100.0/cell_img.shape[1])
+                            cell_img = cv2.resize(cell_img, None, fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_CUBIC)
+                        
+                        # noise reduction
+                        cell_img = cv2.GaussianBlur(cell_img, (3, 3), 0)
+                        
+                        # convert to RGB
+                        cell_img_rgb = cv2.cvtColor(cell_img, cv2.COLOR_GRAY2RGB)
+                        
+                        # save enhanced image
+                        debug_path = os.path.join(TempImages_dir, f"debug_i_{y}_{x}.jpg")
+                        cv2.imwrite(debug_path, cell_img_rgb)
+                        
+                        # ===== improved OCR call method =====
+                        ocr_result = ocr.ocr(cell_img_rgb, cls=True)
+                        print(f"Main cell OCR result for cell({y},{x}): {ocr_result}")
+                        
+                        # ===== improved OCR result extraction method =====
+                        recognized_text = ""
+                        if ocr_result and len(ocr_result) > 0:
+                            for line in ocr_result:
+                                if isinstance(line, list) and len(line) > 0:
+                                    for item in line:
+                                        if isinstance(item, list) and len(item) == 2:
+                                            # the first element is coordinates, the second element is (text, confidence) tuple
+                                            if isinstance(item[1], tuple) and len(item[1]) >= 2:
+                                                text = item[1][0]  # get text
+                                                conf = item[1][1]  # get confidence
+                                                print(f"  - Detected: '{text}' (conf: {conf:.2f})")
+                                                if conf > 0.5:  # confidence filter
+                                                    if recognized_text:
+                                                        recognized_text += " "
+                                                    recognized_text += text
+                        
+                        print(f"  - Final text: '{recognized_text}'")
+                    else:
+                        print(f"Main cell({y},{x}) too small: {cell_img.shape if cell_img.size > 0 else 'empty'}")
+                        recognized_text = ""
+                except Exception as e:
+                    print(f"OCR error on main cell({y},{x}): {e}")
+                    recognized_text = ""
+                
+                data_array[y-y_merge+y_SPLIT_extend][x][0] = recognized_text
                 data_array[y-y_merge+y_SPLIT_extend][x][1] = slice[1]
-                #p_img = Image.fromarray(slice)
-                #data_array[y-y_merge+y_SPLIT_extend][x] = pytesseract.image_to_string(loc, config='--psm 7')
-                #data_array[y-y_merge+y_SPLIT_extend][x] = pytesseract.image_to_string(p_img, config='--psm 7')
 
             if(y_merge):
                 data_array[y+y_SPLIT_extend][x][0] = "^ EXTEND"
@@ -1124,91 +1697,106 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
         if(ANY_SPLIT):
             data_array.insert(y+y_SPLIT_extend, split_holder)
             y_SPLIT_extend += 1
+
+    
     ####ARRAY CLEANUP
 
-    cleaned_data_array = []
-    if(len(data_array) > 0):
-        row_valid = [False for y in range(len(data_array))]
-        col_valid = [False for x in range(len(data_array[0]))]
-
-
-        for y in range(len(data_array)):
-            for x in range(len(data_array[0])):
-                if(data_array[y][x][0] != "" and data_array[y][x][0] != "< EXTEND" and data_array[y][x][0] != "^ EXTEND"):
-                    col_valid[x] = True
-                    row_valid[y] = True
-
-        for y in range(len(data_array)):
-            if(row_valid[y]):
-                temp_array = []
-                for x in range(len(data_array[0])):
-                    if(col_valid[x]):
-                        temp_array.append(data_array[y][x])
-                cleaned_data_array.append(temp_array)
-    ### merge multiple rows ###
-    height, width = pixel_data_unchanged.shape
+    
+    # array cleanup and convert to final format
     final_merge = []
-
-    if(not real_hor_lines):
-        for row in cleaned_data_array:
-            temp_row = []
-            for cell_cor in row:
-                temp_row.append(cell_cor[0])
-            final_merge.append(temp_row)
-        return final_merge
-
-    real_intervals = []
-    interval_it = 0
-    real_intervals.append([0, real_hor_lines[0]])
-    while(interval_it < (len(real_hor_lines) - 1)):
-        real_intervals.append([real_hor_lines[interval_it], real_hor_lines[interval_it + 1]])
-        interval_it += 1
-    real_intervals.append([real_hor_lines[interval_it], height])
-
-    row_intervals = []
-    for row in cleaned_data_array:
-        temp_row = []
-        hor_top = 0
-        hor_bot = 0
-        for cell_cor in row:
-            if(cell_cor[0]):
-                hor_top = cell_cor[1][2]
-                hor_bot = cell_cor[1][3]
-            temp_row.append(cell_cor[0])
-        real_it = 0;
-        row_num = -1;
-        while(real_it < len(real_intervals)):
-            if(hor_top >= real_intervals[real_it][0] and hor_bot <= real_intervals[real_it][1]):
-                row_num = real_it
-                break
-            real_it += 1
-        row_intervals.append([temp_row, [hor_top, hor_bot], row_num])
-
-    row_it = 0
-    while(row_it < len(row_intervals)):
-        cell_num = len(row_intervals[row_it][0])
-        row_num = row_intervals[row_it][2]
-        temp_merge = row_intervals[row_it][0]
-        temp_it = row_it + 1
-        CHANGE = False
-        while(temp_it < len(row_intervals) and row_intervals[temp_it][2] == row_num):
-            MERGE = False
-            for i in range(cell_num):
-                if(not row_intervals[temp_it][0][i]):
-                    MERGE = True
-                    break
-            if(MERGE):
-                for i in range(cell_num):
-                    temp_merge[i] = temp_merge[i] + ' ' + row_intervals[temp_it][0][i]
-                    CHANGE = True
-            temp_it += 1
-        final_merge.append(temp_merge)
-        if(CHANGE):
-            row_it = temp_it
-        else:
-            row_it += 1
-
+    for row in data_array:
+        final_row = []
+        for cell in row:
+            final_row.append(cell[0])  # get text content
+        final_merge.append(final_row)
+    
     return final_merge
+
+import cv2
+import numpy as np
+import os
+
+def split_if_double_column(
+    image,
+    save_debug_dir=None,
+    debug=True,
+    page_num=None,
+    slice_idx=None,
+    threshold_ratio=0.03,
+    white_thresh=240,  # white pixel threshold
+):
+    """
+    Detects a wide white band near the vertical center of the image and splits it into two columns if found.
+    Returns [left_img, right_img] if split occurs, otherwise [image].
+    """
+
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if image.ndim == 3 else image.copy()
+    height, width = gray.shape
+
+    _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+    half_band = int(width * threshold_ratio)
+    start = max((width // 2) - half_band, 0)
+    end = min((width // 2) + half_band, width)
+    center_band = binary[:, start:end]
+
+    # allow some non-pure white pixels (tolerance)
+    white_mask = np.mean(center_band > white_thresh, axis=0) > 0.98
+
+    # find the longest white run
+    runs = []
+    run_start = None
+    for idx, is_white in enumerate(white_mask):
+        if is_white and run_start is None:
+            run_start = idx
+        elif not is_white and run_start is not None:
+            runs.append((run_start, idx - 1))
+            run_start = None
+    if run_start is not None:
+        runs.append((run_start, len(white_mask) - 1))
+
+    longest = None
+    max_len = 0
+    for s, e in runs:
+        length = e - s + 1
+        if length > max_len:
+            max_len = length
+            longest = (s, e)
+
+    if debug:
+        print(f"[DEBUG] Found {len(runs)} white run(s). Longest = {max_len} px. Threshold = {half_band} px.")
+
+    if longest and max_len >= half_band:
+        band_center = start + (longest[0] + longest[1]) // 2
+        left = image[:, :band_center]
+        right = image[:, band_center:]
+
+        if save_debug_dir:
+            os.makedirs(save_debug_dir, exist_ok=True)
+            debug_img = image.copy()
+            cv2.line(debug_img, (band_center, 0), (band_center, height), (0, 0, 255), 2)
+            filename = f"page{page_num}_slice{slice_idx}_split.png" if page_num is not None and slice_idx is not None else "split_preview.png"
+            cv2.imwrite(os.path.join(save_debug_dir, filename), debug_img)
+            if debug:
+                print(f"[DEBUG] Saved split debug image at: {os.path.join(save_debug_dir, filename)}")
+
+        return [left, right]
+
+    else:
+        if debug:
+            print("[DEBUG] No suitable white gap found. Skip splitting.")
+            if save_debug_dir:
+                os.makedirs(save_debug_dir, exist_ok=True)
+                preview_name = f"page{page_num}_slice{slice_idx}_nosplit.png" if page_num is not None else "nosplit_preview.png"
+                cv2.imwrite(os.path.join(save_debug_dir, preview_name), image)
+
+        return [image]
+
+
+
+        
+
+
 
 def debug(root, height, width, pixel_data, hor_lines, ver_lines, hor_lines_final, ver_lines_final, inferred_hor_lines, inferred_ver_lines, guarenteed_inf_vers, conc_col_2D, ver_width_line, hor_width_line):
     pixel_data = cv2.cvtColor(pixel_data,cv2.COLOR_GRAY2RGB)
@@ -1255,6 +1843,7 @@ def image_handle(image):
     return image
 
 
+
 #def multiprocessing_unit(image_num, image, root, identify_model, identify_model2, conc_col_model, valid_cells_model):
 def multiprocessing_unit_separate_tables_reg(pdf_loc,page_num, image, root,identify_model,identify_model2):
     #load_model now in seperating processes
@@ -1286,7 +1875,7 @@ def multiprocessing_unit_identify_cells(pixel_data, root):
     Returns:
         list: List of detected table regions and their coordinates.
     """
-    #print("entered_cells")
+  
     conc_col_model = load_model(os.path.join(root,"conc_col.h5"))
     valid_cells_model = load_model(os.path.join(root, "valid_cells.h5"))
     final_data_per_table = []
@@ -1318,15 +1907,15 @@ def multiprocessing_unit_identify_cells(pixel_data, root):
         inferred_hor_lines = inferred_hor_lines_temp
         inferred_hor_quality = inferred_hor_quality_temp
 
-    required_dist = .65 #TODO find a number that balances speed and accuracy
+    required_dist = .45 #TODO find a number that balances speed and accuracy
     prev_groups = -1
     inferred_ver_lines = []
     inferred_ver_quality = []
 
     while(1): #Vertical
         inferred_ver_lines_temp, inferred_ver_quality_temp = inferred_vertical_line_finder(height, width, pixel_data, required_dist, 8, hor_margin_lines) #inferred
-        groups = num_of_groups(inferred_ver_lines_temp, 15)
-        required_dist += .03 #TODO find a number that balances speed and accuracy
+        groups = num_of_groups(inferred_ver_lines_temp, 10)
+        required_dist += .015 #TODO find a number that balances speed and accuracy
         if(prev_groups > groups or groups == 0):
             break
         prev_groups = groups
@@ -1336,8 +1925,18 @@ def multiprocessing_unit_identify_cells(pixel_data, root):
     guarenteed_inf_ver, guarenteed_ver_quality = inferred_vertical_line_finder(height, width, pixel_data, .98, 8, hor_lines) #inject inf_ver that might have been wrongfully removed; Thicker line required USED TO BE .99
     tempv = mean_finder(ver_lines, ([0] + guarenteed_inf_ver  + [width-1]), ([1] + guarenteed_ver_quality + [1]), 10, width) #TODO find a good number
 
-    ver_lines_final = mean_finder(tempv, inferred_ver_lines, inferred_ver_quality, 15, width) #this is precision not resolution add lines to the left and right //TODO find a good precision
+    ver_lines_final = mean_finder(tempv, inferred_ver_lines, inferred_ver_quality, 10, width) #this is precision not resolution add lines to the left and right //TODO find a good precision
     hor_lines_final = mean_finder(hor_lines, ([0] + inferred_hor_lines + [height-1]), ([1] + inferred_hor_quality + [1]), 7, height) #this is precision not resolution
+
+    table_index = len(final_data_per_table)
+
+    debug_img = cv2.cvtColor((pixel_data * 255).astype(np.uint8), cv2.COLOR_GRAY2BGR)
+    for x in ver_lines_final:
+        cv2.line(debug_img, (x, 0), (x, height), (0, 255, 0), 1)
+    for y in hor_lines_final:
+        cv2.line(debug_img, (0, y), (width, y), (255, 0, 0), 1)
+    cv2.imwrite(os.path.join(root, f"debug_lines_{table_index}.png"), debug_img)
+
 
     conc_col_2D = []
     contains_data, conc_col_2D = concatenate(root, pixel_data, ver_lines_final, hor_lines_final, conc_col_model, valid_cells_model)
@@ -1356,6 +1955,8 @@ if __name__ == '__main__':
     pyth_dir = os.path.dirname(__file__)
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = '2'
     parser = argparse.ArgumentParser(description='Table Extractor Tool')
+    parser.add_argument('--use_double_column_split', action='store_true', help='Whether to split pages by double column layout')
+    parser.add_argument('--use_gap_split', action='store_true', help='Whether to apply white gap splitting before cell recognition')
     parser.add_argument('--pdf_dir', required=True, help='pdf directory')
     parser.add_argument('--work_dir', required=True, help='main work and output directory')
     parser.add_argument('--first_table_page', required=True, help='The first page that you want table extraction begins with')
@@ -1371,6 +1972,8 @@ if __name__ == '__main__':
     start = int(args.first_table_page)
     cap = int(args.last_table_page)
     yolo = args.use_yolo
+    use_double_column_split = args.use_double_column_split
+    use_gap_split = args.use_gap_split
     if yolo:
         yolo_model_dir = os.path.join(pyth_dir,'yolo_helpers','keras_yolo3','trained_weights_1915_final.h5')
     pages = convert_from_path(pdf_loc, 300, first_page=start, last_page=cap)
@@ -1392,9 +1995,26 @@ if __name__ == '__main__':
     cpu_num = multiprocessing.cpu_count()
     print("CPU NUM",cpu_num)
 
-    images=[]
-    for i,image in enumerate(pages):
-        images.append(image_handle(image))
+    # images=[]
+    # for i,image in enumerate(pages):
+    #     images.append(image_handle(image))
+    images = []
+    for i, image in enumerate(pages):
+        img_np = image_handle(image)
+
+        if args.use_double_column_split:
+            print("Splitting double column")
+            print("Splitting double column")
+            print("Splitting double column")
+            print("Splitting double column")
+            print("Splitting double column")
+            slices = split_if_double_column(img_np,save_debug_dir=os.path.join(root, "debug_table_regions"),debug=True,page_num=start + i,slice_idx=0)
+    
+            for idx, part in enumerate(slices):
+                images.append(part)
+        else:
+            images.append(img_np)
+
 
     print("done handling images")
     pool1 = Pool(processes= cpu_num)
@@ -1415,10 +2035,26 @@ if __name__ == '__main__':
     count = 0
     for tables in temp_storage:
         count += 1
-        print("Start Extracting Content in Table " + str(count))
-        for table_pixel in tables.get():
-            temp_data_per_table = pool2.apply_async(multiprocessing_unit_identify_cells, args= (table_pixel, root))
-            all_tables.append(temp_data_per_table)
+        # print("Start Extracting Content in Table " + str(count))
+        # # for i, table_pixel in enumerate(tables.get()):
+                    
+        # #             left_img, _ = split_by_white_gap_for_table(table_pixel, debug_save=True, save_prefix=f'debug_gap_table_{count}_{i}')
+        # #             temp_data_per_table = pool2.apply_async(multiprocessing_unit_identify_cells, args= (left_img, root))
+        # #             all_tables.append(temp_data_per_table)
+
+
+        # split_by_white_gap_for_table
+        # for table_pixel in tables.get():
+        #     temp_data_per_table = pool2.apply_async(multiprocessing_unit_identify_cells, args= (table_pixel, root))
+        #     all_tables.append(temp_data_per_table)
+        print("Start Extracting Content in Table", count)
+        for i, table_pixel in enumerate(tables.get()):
+            if use_gap_split:
+                left_img, _ = split_by_white_gap_for_table(table_pixel, debug_save=True, save_prefix=f'debug_gap_table_{count}_{i}')
+                temp_data = pool2.apply_async(multiprocessing_unit_identify_cells, args=(left_img, root))
+            else:
+                temp_data = pool2.apply_async(multiprocessing_unit_identify_cells, args=(table_pixel, root))
+            all_tables.append(temp_data)
     pool2.close()
     pool2.join()
 
@@ -1438,7 +2074,7 @@ if __name__ == '__main__':
     if(concatenate_clean):
         cleaned_array = []
         for row in array:
-            if(len(row) < 9):
+            if(len(row) >2):
                 has_extend = False
                 for cell in row:
                     if(cell == "^ EXTEND"):
@@ -1459,3 +2095,4 @@ if __name__ == '__main__':
     minutes = float(total_time)/60
     print("--- %s seconds ---" % total_time)
     print("--- %s minutes ---" % minutes)
+

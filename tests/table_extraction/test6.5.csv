@@ -1,0 +1,84 @@
+"(TmIn to TMAx, Vcc = +12 V  5%, VeE = AC SPECIFICATIONS fn = 10.06 kHz unless otherwise note",12 V  1)1,"5%, Vpp = +",5 V  10%,fSAMPLE,200 k$PS,, 
+,,AD678J/A,IS,,AD678K,B/T,
+Parameter,Min,Typ,Max,Min,Typ,Max,Units
+SIGNAL-TO-NOISE AND DISTORTION (S/N+D) RATIO2,,,,,,,
+,70,71,,71,73,,dB
+,,51,,,53,,dB
+,,11,,,13,,dB
+TOTAL HARMONIC DISTORTION (THD),,-88,-80,,-88,-80,dB
+,,0.004,0.01,,0.004,0.01,%
+PEAK SPORIOUS OR PEAK HARMONIC COMPONENT,,-87,-80,,-87,-80,dB
+FULL POWER BANDWIDTH,,1,,,1,,MHz
+,Allmeasurements,elerredLoa,1 unless,,,,
+otherwise indicated,,,,,,,
+ies and other input a,nplitudes.,,,,,,
+'See Figure 12,,,,,,,
+f=9.08kHzfp 200 kSPS.SeeD,,16,,,,,
+Specifications subject to change without notice,,,,,,,
+DIGITAL SPECIFICATIONS (All device t),"pes Tmin to Tmax, Vcc = +12 V + 5%.","EE = -12 V  5%, Vpp = +5 V  10%",,,,,
+Parameter,Test Conditions,Min Max,Units,,,,
+LOGIC INPUTS,,,,,,,
+VIH High Level Input Voltage,,2.0 VpD,V,,,,
+VIL Low Level Input Voltage,,0.8,V,,,,
+"DC SPECIFICATIONS (TMIn to TmAx, Vc",=+12V +,"5%, VF = 12 V ","5%, Vpp =",5 V  10%, unless otherwis,e noted),
+,,AD678J/A/S,,,AD678K/B/T,,
+Parameter,Min,Typ,Max,Min,Typ,Max,Un
+TEMPERATURE RANGE,,,,,,,
+"J, K Grades",,,70,0,,70,C
+"A, B Grades",-40,,85,-40,,85,
+"S, T Grades",-55,,125,-55,,125,oC
+ACCURACY,,,,,,,
+Resolution,12,,,12,,,Bits
+Integral Nonlinearity (INL),,1,,,0.7,1,LSI
+,12,,,12,,,Bits
+,,4,,,2,3,LSJ
+,,4,,,3,5,LSI
+Gain Error (@ +25C),,4,,,3,6,LSI
+Temperature Drift,,,,,,,
+Unipolar/Bipolar Zero,,,,,,,
+"J, K Grades",,2,,,2,4,LSI
+"A, B Grades",,4,,,3,4,LSI
+"S, T Grades",,5,,,4,5,LSJ
+Gain3,,,,,,,
+"J, K Grades",,4,,,4,6,LSI
+A. B Grades,,7,,,5,6+,LSI
+"S, T Grades",,10,,,8,10,LS]
+Gain4,,,,,,,
+"J, K Grades",,2,,,2,4,LS]
+"A, B Grades",,4,,,3,4,LSI
+"S, T Grades",,6,,,5,6,LS]
+ANALOG INPUT,,,,,,,
+Input Ranges,,,,,,,
+Unipolar Range,,,10,0,,10,V
+Bipolar Range,-5,,5,-5,,5,V
+Input Resistance,,10,,,10,,MS
+Input Capacitance,,10,,,10,,pF
+Input Settling Time,,,1,,,1,us
+Aperture Delay,,10,,,10,,ns
+Aperture Jitter,,150,,,150,,ps
+INTERNAL VOLTAGE REFERENCE,,,,,,,
+Output Voltage,4.98,,5.02,4.98,,5.02,V
+External Load,,,,,,,
+Unipolar Mode,,,1.5,,,1.5,mA
+TIMING SPECT,ICAT,"(All grades, TmIn to Tmax, V ONS otherwise noted).","= +12 V  5%, VF =-12 V z","5%, Vpp = +5 V  10% u",nless,,
+Parameter,,Symbol,Min,Max,,Units,
+SC Delay,,tsc,50,,,ns,
+Conversion Time,,tc,3,4.4,,us,
+Conversion Rate,,tCR,,5,,sn,
+Convert Pulsewidth,,tcP,97,,,ns,
+Aperture Delay,,tAD,5,20,,ns,
+Status Delay,,tsD,0,400,,ns,
+"Access Time2, 3",,tBA,10,100,,ns,
+,,,10,574,,ns,
+Float Delay5,,tFD,10,80,,ns,
+Output Delay,,toD,,,,ns,
+Format Setup,,tFS,47,,,ns,
+Cour = 100 pF.,,,,,,,
+CoUT = 50 pF,,,,,,,
+5Measured from th,rising,dge of OE/EOCEN (2.0 V) to the time at wl,ich the output voltage changes by,.5 V,See F,igure,3; CouT = 10 pF
+Specifications subje,ct to cl,ange without notice,,,,,
+S ,t sc , , CS,,teO , , 
+classified as a Category 1 device classified as a Category 1 device. Proper EsD precautions are strongly recommended to avoid functional damage or performance,WAR,NING! TIT ESDSENSITIVE DEVIC,,,,,
+"degradation. Charges as high as 4o00 volts readily accumulate on the human body and test equipment and discharge without detection. Unused devices must be stored in conductive foam or shunts, and",,,,,,,
+"information on ESD precautions, refer to Analog Devices' ESD Prevention Manual.",,,,,,,
+ORDERING GUIDE,,,,,,,

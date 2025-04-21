@@ -1,0 +1,78 @@
+"(TmIn to TmAx, Vcc = +12 V  5%, VeE = AC SPECIFICATIONS fn = 10.06 kHz unless otherwise note",-12 V+ 1)1,"5%, Vpp = +",5 V  10%,", SAMPLE",- 200 kSPs,,
+,,AD678J/A,IS,,AD678K,B/T,
+Parameter,Min,Typ,Max,Min,Typ,Max,Units
+SIGNAL-TO-NOISE AND DISTORTION (S/N+D) RATIO,,,,,,,
+,70,71,,71,73,,dB
+,,51,,,53,,dB
+-60 dB Input),,11,,,13,,dB
+TOTAL HARMONIC DISTORTION (THD),,-88,-80,,-88,-80,dB
+,,0.004,0.01,,0.004,0.01,%
+PEAK SPURIOUS OR PEAK HARMONIC COMPONENT,,-87,-80,,-87,-80,dB
+FULL POWER BANDWIDTH,,11,,,11,,MHz
+FULL LINEAR BANDWIDTH,500,,,500,,,kHz
+INTERMODULATION DISTORTION (IMD)4,,,,,,,
+2nd Order Products,,-85,-80,,-85,-80,dB
+3rd Order Products,,-90,-80,,-90,-80,dB
+DIGITAL SPECIFICATIONS (All device t),pes TMIN 1,"TmAx, Vcc = +12 V  5%,",EE = -12 V  5%,"6, Vpp =",+5 V  10%,,
+Parameter,,Test Conditions,Min,,Max,Units,
+LOGIC INPUTS,,,,,,,
+VIH High Level Input Voltage,,,2,,VpD,V,
+VIL LowLevel Input Voltage,,,,,0.8,V,
+IIH,,V1N = VpD,-10,,10,uA,
+I11,,V1N = 0 V,-10,,10,uA,
+CIy Input Capacitance,,,,,10,pF,
+LOGIC OUTPUTS,,,,,,,
+VOH High Level Output Voltage,,IoH = 0.1 mA,4,,,v,
+,,IOH = 0.5 mA,2.4,,,V,
+VOL,,IoL = 1.6 mA,,,0.4,V,
+1gh,,Vn = 0 or V,-10,,10,uA,
+"DC SPECIFICATIONS (TmIn to TmAx, Vc",=+12 V ,"5%, VEE = 12 V","+ 5%, Vpp =",5 V  10%,unless otherw,se noted),
+,,AD678J/A/S,,,AD678K/B/T,,
+Parameter,Min,Typ,Max,Min,Typ,Max,Units
+TEMPERATURE RANGE,,,,,,,
+"J, K Grades",,,70,0,,70,oC
+"A, B Grades",-40,,85,-40,,85,oC
+"S, T Grades",55,,125,55,,125,C
+ACCURACY,,,,,,,
+Resolution,12,,,12,,,Bits
+Integral Nonlinearity (INL),,1,,,0.7,1,LSB
+,12,,,12,,,Bits
+Unipolar Zero Error (@  +25C)',,4,,,2,3,LSB
+,,4,,,3,5,LSB
+Gain Error (@ +25 C,,4,,,3,6,LSB
+Temperature Drift,,,,,,,
+Unipolar/Bipolar Zero,,,,,,,
+"J, K Grades",,2,,,2,4,LSB
+"A, B Grades",,4,,,3,4,LSB
+"S, T Grades",,5,,,4,5,LSB
+Gain3,,,,,,,
+"J, K Grades",,4,,,4,6,LSB
+"A, B Grades",,7,,,5,9,LSB
+"S, T Grades",,10,,,8,10,LSB
+Gain4,,,,,,,
+"J, K Grades",,2,,,2,4,LSB
+"A, B Grades",,4,,,3,4,LSB
+"S, T Grades",,6,,,5,6,LSB
+ANALOG INPUT,,,,,,,
+Input Ranges,,,,,,,
+Unipolar Range,0,,10,,,10,v
+Bipolar Range,-5,,5,-5,,5,V
+Input Resistance,,10,,,10,,MQ
+Input Capacitance,,10,,,10,,pF
+Input Settling Time,,,11,,,1,us
+Aperture Delay,,10,,,10,,ns
+Aperture Jitter,,150,,,150,,ps
+INTERNAL VOLTAGE REFERENCE,,,,,,,
+Output Voltage5,4.98,,5.02,4.98,,5.02,v
+External Load,,,,,,,
+Unipolar Mode,,,1.5,,,1.5,mA
+Bipolar Mode,,,0.5,,,0.5,mA
+POWER SUPPLIES,,,,,,,
+Power Supply Rejection,,,,,,,
+Vcc. +12 V  5%,,2,,,,2,LSB
+VEE -12 V  5%,,2,,,,2,LSB
+Vpp = +5 V  10%,,2,,,,2,LSB
+Operating Current,,,,,,,
+,,18,20,,18,20,mA
+IEE,,25,34,,25,34,mA
+IpD,,8,12,,8,12,mA

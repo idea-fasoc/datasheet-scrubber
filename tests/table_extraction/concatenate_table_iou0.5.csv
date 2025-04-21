@@ -1,0 +1,4 @@
+(All device t),"pes TmIn to TyAx, Vcc = +12 V  5%,","EE = -12 V  5%, V",D = +5 V  10%,
+Parameter,Test Conditions,Min,Max,Units
+LOGIC INPUTS VIH High Level Input Voltage VIL Low Level Input Voltage CN Input Capacitance,   ,2, VpD 0.8 10, v V pF
+LOGIC OUTPUTS VOH High Level Output Voltage  YoJ Coz High Z Output Capacitance, IOH = 0.1 mA IoH = 0.5 mA IoL. = 1.6 mA , 4.0 2.4  ,   0.4 10, v V V pF

@@ -1,0 +1,64 @@
+(All device t),"pes TmIn to TyAx, Vcc = +12 V  5%,","EE = -12 V  5%, V",D = +5 V  10%,,,,
+Parameter,Test Conditions,Min,Max,Units,,,
+LOGIC INPUTS,,,,,,,
+VIH High Level Input Voltage,,2,VpD,v,,,
+V1L,,,0.8,v,,,
+IIH High Level Input Current,V1N = VDD,-10,10,uA,,,
+I11 Low Level,VN = 0 V,-10,10,uA,,,
+CN Input Capacitance,,,10,pF,,,
+LOGIC OUTPUTS,,,,,,,
+VOH High Level Output Voltage,IOH = 0.1 mA,4,,v,,,
+,IOH = 0.5 mA,2.4,,v,,,
+V01,I0L = 1.6 mA,,0.4,V,,,
+Ioz High Z Leakage Current,VIn = 0 or Vpr,-10,10,uA,,,
+Coz High Z Output Capacitance,,,10,pF,,,
+"(TmIn to TmAx, Vc",=+12V +,"5%, VeE = 12 V","+ 5%, Vp =",5 V  10,6 unless otherw,se noted),
+,,AD678J/A/S,,,AD678K/B/T,,
+Parameter,Min,Typ,Max,Min,Typ,Max,Units
+TEMPERATURE RANGE,,,,,,,
+"J, K Grades",,,70,,,70,oC
+"A, B Grades",40,,85,40,,85,oC
+"S, T Grades",-55,,125,-55,,125,C
+ACCURACY,,,,,,,
+Resolution,12,,,12,,,Bits
+Integral Nonlinearity (INL),,1,,,0.7,1,LSB
+,12,,,12,,,Bits
+,,4,,,2,3,LSB
+,,4,,,3,5,LSB
+Gain Error (@ +25 C,,4,,,3,6,LSB
+Temperature Drift,,,,,,,
+Unipolar/Bipolar Zero,,,,,,,
+"J, K Grades",,2,,,2,4,LSB
+"A, B Grades",,4,,,3,4,LSB
+"S, T Grades",,5,,,4,5,LSB
+Gain3,,,,,,,
+"J, K Grades",,4,,,4,6,LSB
+"A, B Grades",,7,,,5,9,LSB
+"S, T Grades ", ,10, , ,8,10,LSB
+"J, K Grades",,2,,,2,4,LSB
+"A, B Grades",,4,,,3,4,LSB
+"S, T Grades",,6,,,5,6,LSB
+ANALOG INPUT,,,,,,,
+Input Ranges,,,,,,,
+Unipolar Range,,,10,,,10,V
+Bipolar Range,-5,,5,-5,,5,V
+Input Resistance,,10,,,10,,MQ
+Input Capacitance,,10,,,10,,pF
+Input Settling Time,,,1,,,11,us
+Aperture Delay,,10,,,10,,ns
+Aperture Jitter,,150,,,150,,ps
+INTERNAL VOLTAGE REFERENCE,,,,,,,
+Output Voltage5,4.98,,5.02,4.98,,5.02,v
+External Load,,,,,,,
+Unipolar Mode,,,1.5,,,1.5,mA
+Bipolar Mode,,,0.5,,,0.5,mA
+POWER SUPPLIES,,,,,,,
+Power Supply Rejection,,,,,,,
+Vcc. +12 V  5%,,2,,,,2,LSB
+VEE  -12 V  5%,,2,,,,2,LSB
+Vpp = +5 V  10%,,2,,,,2,LSB
+Operating Current,,,,,,,
+Icc,,18,20,,18,20,mA
+IEE,,25,34,,25,34,mA
+IpD,,8,12,,8,12,mA
+Power Consumption,,560,745,,560,745,mW

@@ -174,6 +174,7 @@ def cnn_detect(model1,model2,i):
     height, width = pixel_data.shape
     scale = X_size/width
 
+
     pixel_data = cv2.resize(pixel_data, (X_size, int(height*scale))) #X, then Y
     bordered_pixel_data = cv2.copyMakeBorder(pixel_data,top=int(Y_size/4),bottom=int(Y_size/4),left=0,right=0,borderType=cv2.BORDER_CONSTANT,value=1)
 
@@ -638,8 +639,7 @@ def cnn_yolo_combined(pdf_loc,page_num,im,model1,model2,yolo_model_dir,work_loc)
 #     print(f"valid table number: {len(final_splits)}")
 #     print("--- time %.2f seconds ---" % (time.time() - start_time))
     
-#     # 在这里添加显示代码，仍在函数内部
-#     # 保存所有裁剪的表格
+
 #     for i, img in enumerate(final_splits):
 #         save_path = os.path.join(root, f"cropped_table_{i+1}.jpg")
 #         print(f"Saving table image to: {save_path}")
@@ -890,15 +890,47 @@ def count_text_lines(image):
     #horizontal projection
     horizontal_projection = np.sum(binary, axis=1).astype(np.float32)
 
-    # 将 1D 转成 2D 再滤波 convert 1D to 2D and filter
+    # convert 1D to 2D and filter
     projection_2d = horizontal_projection[:, np.newaxis]
     smoothed_projection = cv2.GaussianBlur(projection_2d, (5, 5), 0)
     smoothed_projection = smoothed_projection[:, 0]
 
-    # 找出高于一定阈值的区域（文本行） find regions above a certain threshold (text lines)
+    #  find regions above a certain threshold (text lines)
     mean_val = np.mean(smoothed_projection)
     return np.count_nonzero(smoothed_projection > mean_val * 0.5)
 
+def is_double_column(image, threshold_ratio=0.03, white_thresh=245):
+    """
+    Check if the image contains a double column.
+    This function checks if the image contains a double column by analyzing the horizontal projection
+    of the pixel data. It calculates the mean value of the projection and then checks if there are
+    regions above this threshold.       
+    """
+    if len(image.shape) == 3:
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    else:
+            gray = image
+
+    height, width = gray.shape
+    band_width = int(width * threshold_ratio)
+    mid_x = width // 2
+    left = mid_x - band_width
+    right = mid_x + band_width
+    print("run") 
+    print("run")
+    print("run")
+    print("run")
+
+    center_band = gray[:, left:right]
+    white_ratio = np.mean(center_band > white_thresh)
+    if white_ratio > 0.95:
+        print(f"yes")
+        print(f"yes")
+        print(f"yes")
+        print(f"yes")
+        print(f"yes")
+    return white_ratio > 0.95 
+    
 
 def mean_finder_subroutine(real, infered, infered_quality, precision, group_start, n, final_dist): #TODO BROKEN FIX
     """
@@ -1712,19 +1744,37 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
     
     return final_merge
 
-import cv2
-import numpy as np
-import os
+def contains_wide_table(image, min_width_ratio=0.85):
+    """
+    Detects a wide table in the image.
+    Returns True if a wide table is detected, False otherwise.  
+    """
+    # If the image is   
+    if image.ndim == 3 and image.shape[2] == 3:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = image.copy()
 
-def split_if_double_column(
-    image,
-    save_debug_dir=None,
-    debug=True,
-    page_num=None,
-    slice_idx=None,
-    threshold_ratio=0.03,
-    white_thresh=240,  # white pixel threshold
-):
+    # Binarize (background turns black, table lines turn white)
+    _, binary = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+
+    # Extract contours (all external closed areas)
+    contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    height, width = binary.shape
+
+    for cnt in contours:
+        x, y, w, h = cv2.boundingRect(cnt)
+
+        # If the width exceeds the ratio threshold of the page width and the height is large enough (filter out small noise)
+        if w >= width * min_width_ratio and h > 30:
+            return True
+
+    return False
+
+
+
+def split_if_double_column(image,save_debug_dir=None,debug=True,page_num=None,slice_idx=None,threshold_ratio=0.03,white_thresh=240):
     """
     Detects a wide white band near the vertical center of the image and splits it into two columns if found.
     Returns [left_img, right_img] if split occurs, otherwise [image].
@@ -1995,30 +2045,44 @@ if __name__ == '__main__':
     cpu_num = multiprocessing.cpu_count()
     print("CPU NUM",cpu_num)
 
-    # images=[]
-    # for i,image in enumerate(pages):
-    #     images.append(image_handle(image))
+    #  #load images
     images = []
     for i, image in enumerate(pages):
-        img_np = image_handle(image)
+        img_np = image_handle(image)  # Convert PIL to numpy array and grayscale
 
-        if args.use_double_column_split:
-            print("Splitting double column")
-            print("Splitting double column")
-            print("Splitting double column")
-            print("Splitting double column")
-            print("Splitting double column")
-            slices = split_if_double_column(img_np,save_debug_dir=os.path.join(root, "debug_table_regions"),debug=True,page_num=start + i,slice_idx=0)
-    
-            for idx, part in enumerate(slices):
-                images.append(part)
+        if is_double_column(img_np):  # Auto-detect double-column layout
+            if contains_wide_table(img_np):
+                print(f"Page {i + start} is double column BUT has a wide table — skip splitting.")
+                images.append(img_np)
+            else:
+                print(f"Page {i + start} is true double column. Splitting...")
+                slices = split_if_double_column(
+                    img_np,
+                    save_debug_dir=os.path.join(root, "debug_table_regions"),
+                    debug=True,
+                    page_num=start + i,
+                    slice_idx=0
+                )
+                for idx, part in enumerate(slices):
+                    images.append(part)
         else:
             images.append(img_np)
+        # if use_double_column_split:
+        #     if is_double_column(img_np):
+        #         print(f"Page {i + start} is detected as double column. Splitting...")
+        #         slices = split_if_double_column(img_np, save_debug_dir=os.path.join(root, "debug_table_regions"), debug=True, page_num=start + i, slice_idx=0)
+        #         for idx, part in enumerate(slices):
+        #             images.append(part)
+        #     else:
+        #         images.append(img_np)
+        # else:
+        #     images.append(img_np)
 
 
     print("done handling images")
     pool1 = Pool(processes= cpu_num)
     temp_storage = []
+    
     for image_num, image in enumerate(images):
         print("Start Idendifying Tables on Page " + str(image_num + start))
         if yolo:

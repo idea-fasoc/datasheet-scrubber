@@ -1,50 +1,44 @@
-,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,, ,=, ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,a,,,,,
-,CIPI,,,,,(Tw0s,,1,,,
-VIN*,Out,p,u,t,Code,VIN*,Out,,u,t,Code
-0 V,000,,,,0,5.000 V,100,,,,0
-5.000 V,100,,,,0,0.002 V,111,,,,1
-9.9976 V,111,,,,1,0.000 V,000,,,,0
-,,,,,,+2.500 V,010,,,,0
-,,,,,,+4.9976 V,011,,,,
-*Code center.,,,,,,,,,,,
-,OUTI,,,1,ENABLE,TRUTHTAB,.ES,,,,
-,12,,,, MODE,U2J8 = HGH,,,,,
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-Unipolar,1,,1,,0,,e,4,g,
-Mode,0,,0,,0,,a,b,c,
-,0,,1,,0,,: 1,: 1,k,
-,1,,0,,0,,a,a,a,
-Bipolar,1,,1,,0,,e,+,g,
-Mode,0,,0,,0,,a,b,c,
-,0,,1,,0,,: 1,: 1,k,
-NOTES,,,,,,,,,,
-1 = HIGH vo,Itage,lev,el.,a,= N,ISB.,,,,
-0 = LOW vol,age,eve,,1,= I,.SB.,,,,
-X = Don't ca,e.,,,,,,,,,
-U = Logical ,R.,,,,,,,,,
-REV.C,,,,,,,,,,
-, ,,,,,,, , , ,(),,,,,, ,, ,,,, , ,A,, ,, ,,,
-,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-,,, ,,,,,,,, ,,,s, ,, ,,,, , ,,,,,,, ,, 
 ,,,,,
-,,,,(Not Recommende,d)
-,1,0,0,Continuous Conve,rsion
-,,,,Not Recommende,d)
-,0,x,1,No Conversion,
-is,0,x,,Start Conversion,
-N,.00,e,0,+,0,(,,nti,iuous Con,er,1on
-,,,,,,,,ot,Recommen,eo,
-NOT,ES,,,,,,,,,,
-1=I,IIG,H voltage,level.,,,,,,,,
-,1,,1,,11
-Mode,1,,X,1,Hig
-,0,,X,0,0
-Asynchronous,0,,X,0,Hig
-Mode*,0,,X,1,Hig
-NOTES,,,,,
-l = HIGH voltag,level.,,,,
-0 = LOW voltage,level.,,,,
-X = Don't care,,,,,
-*EOC requires a,oull-up,re,sistor,in asynchror,ous
+ABSOLUTE MAXI,IUI,A RATING,S*,,
+,,With,,,
+,,Respect,,,
+Specification,,To,Min,Max,Units
+Vcc,,AGND,0.3,+18,v
+VEE,,AGND,18,+0.3,
+Vcc,,VEE,0.3,+26.4,v
+VDD,,DGND,0,+7,v
+AGND,,DGND,1,+1,v
+"AIN, REFN",,AGND,VEE,Vcc,v
+Digital Inputs,,DGND,0.5,+7,v
+Digital Outputs,,DGND,0.5,VpD + 0.3,v
+Max Junction,,,,,
+Temperature,,,,175,C
+Operating Temperat,ire,,,,
+J and K Grades,,,0,+70,C
+A and B Grades,,,40,+85,C
+S and T Grades,,,55,+125,C
+Storage Temperature,,,65,+150,C
+Lead Temperature,,,,,
+(10 sec max),,,,+300,C
+*Stresses above those liste,un,er Absolute M,aximum F,atings may caus,e perma-
+nent damage to the device,Th,s is a stress rati,ng only; fj,nctional operat,on of the
+device at these or any oth,er cc,nditions abov,those inc,icated in the op,erational
+sections of this specificatic,n is,ot implied.E,posure to,bsolute maxim,m rating
+degradation,c1,iarges,as high as 40,00 volts,readily,ccumulate on t
+and dischar,re v,vithou,t detection,Jnused,devices,must be stored
+the foam sh,oul,d be,discharged t,the de,stinatio,socket before
+information,on,ESD,"precautions,",refer to,Analog,Devices' ESD
+Model,Package,,,Tempera
+AD678JN,28-Lead,Plastic D,IP,0'C to +7
+AD678KN,28-Lead,Plastic D,IP,0'C to +7
+AD678JD,28-Lead,Ceramic,DIP,0'C to +7
+AD678KD,28-Lead,Ceramic,DIP,0'C to +7
+AD678AD,28-Lead,Ceramic,DIP,40'C to
+AD678BD,28-Lead,Ceramic,DIP,40'C to
+AD678AJ,44-Lead,Ceramic,JLCC,40C to
+AD678BJ,44-Lead,Ceramic,JLCC,-40C to
+AD678SD,28-Lead,Ceramic,DIP,-55C to
+AD678TD,28-Lead,Ceramic,DIP,55C to
+NOTES,,,,
+IFor details on gra,le and package o,fferings scre,ened in acco,dance with MIL-S
+2N = Plastic DIP;,) = Ceramic DII,; J = J-Lea,led Ceramic,Chip Carrier.

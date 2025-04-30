@@ -1,44 +1,142 @@
+U tn = 1U.U6 kHz unless otherwise note,1)1,,,,,,
+,,AD678J/,A/S,,AD678K/,3/T,
+Parameter,Min,Typ,Max,Min,Typ,Max,Units
+,,,,,,,
+,70,71,,71,73,,dB
+,,51,,,53,,dB
+,,11,,,13,,dB
+TOTAL HARMONIC DISTORTION (THD),,88,80,,88,80,dB
+,,0.004,0.010,,0.004,0.010,%
+PEAK SPURIOUS ORPEAKHARMONC COMPONENT,,87,80,,87,80,dB
+FULL POWER BANDWIDTH,,,,,,,MHz
+FULLLINEAR BANDWIDTH,500,,,500,,,kHz
+INTERMODULATION DISTORTION (IMD),,,,,,,
+2nd Order Products,,85,80,,85,80,dB
+3rd Order Products,,90,80,,90,80,dB
+NOTES,,,,,,,
+,ated. All m,asurements,eferred to a --,dB (9.9,7 V p-p) inpu,t signal unl,ess
+LOGIC INPUTS,,,,
+VIH,,2.0,VDD,v
+VIL Low Level Input Voltage,,0,0.8,V
+IIH,VIN = VDD,10,+10,UA
+Low Level Input Current,VN = 0 V,10,+10,UA
+CIN Input Capacitance,,,10,pF
+LOGIC OUTPUTS,,,,
+VOH,IoH = 0.1 mA,4.0,,v
+,IoH = 0.5 mA,2.4,,V
+VOL,IoL = 1.6 mA,,0.4,V
+Ioz,VN = 0 or VDD,10,+10,UA
+Coz High Z Output Capacitance,,,10,pF
+Specifications subject to change without notice,,,,
+,,AD678J/A/S,,,AD678K/B/T,,
+Parameter,Min,Typ,Max,Min,Typ,Max,Units
+TEMPERATURE RANGE,,,,,,,
+"J, K Grades",0,,+70,0,,+70,C
+"A, B Grades",40,,+85,40,,+85,C
+"S, T Grades",55,,+125,55,,+125,C
+ACCURACY,,,,,,,
+Resolution,12,,,12,,,Bits
+Integral Nonlinearity (INL),,1,,,0.7,1,LSB
+,12,,,12,,,Bits
+,,4,,,2,3,LSB
+,,4,,,3,5,LSB
+,,4,,,3,6,LSB
+Temperature Drift,,,,,,,
+Unipolar/Bipolar Zero,,,,,,,
+"J, K Grades",,2,,,2,4,LSB
+"A, B Grades",,4,,,3,4,LSB
+"S, T Grades",,5,,,4,5,LSB
+Gain3,,,,,,,
+"J, K Grades",,4,,,4,6,LSB
+"A, B Grades",,7,,,5,9,LSB
+"S, T Grades",,10,,,8,10,LSB
+,,,,,,,
+"J, K Grades",,2,,,2,4,LSB
+"A, B Grades",,4,,,3,4,LSB
+"S, T Grades",,6,,,5,6,LSB
+ANALOG INPUT,,,,,,,
+Input Ranges,,,,,,,
+Unipolar Range,0,,+10,0,,+10,V
+Bipolar Range,5,,+5,5,,+5,v
+Input Resistance,,10,,,10,,MQ
+Input Capacitance,,10,,,10,,pF
+Input Settling Time,,,1,,,,us
+Aperture Delay,,10,,,10,,ns
+Aperture Jitter,,150,,,150,,ps
+INTERNALVOLTAGE REFERENCE,,,,,,,
+Output Voltage5,4.98,,5.02,4.98,,5.02,v
+External Load,,,,,,,
+Unipolar Mode,,,+1.5,,,+1.5,mA
+Bipolar Mode,,,+0.5,,,+0.5,mA
+POWER SUPPLIES,,,,,,,
+Power Supply Rejection,,,,,,,
+Vcc. +12 V  5%,,2,,,,2,LSB
+VEE -12 V  5%,,2,,,,2,LSB
+VpD = +5 V  10%,,2,,,,2,LSB
+Operating Current,,,,,,,
+Icc,,18,20,,18,20,mA
+IEE,,25,34,,25,34,mA
+IDD,,8,12,,8,12,mA
+Power Consumption,,560,745,,560,745,mW
+NOTES,,,,,,,
+lAdjustable to zero,,,,,,,
+2Includes i,,,,,,,
+Includes internal volta ge reference drift.,,,,,,,
+,,,,,,,
+5With maximum external load applied.,,,,,,,
+Specifications subject to change without notice.,,,,,,,
+Parameter,Symbol,,,,Min,,,,Max,Units
+SC Delay,tsc,,,,50,,,,,ns
+Conversion 'Time,tc,,,,3.0,,,,4.4,us
+Conversion Rate,tcR,,,,,,,,5,us
+Convert Pulsewidth,tcp,,,,97,,,,,ns
+Aperture Delay,tAD,,,,5,,,,20,ns
+Status Delay,tsD,,,,0,,,,400,ns
+"Access Time2, ",tBA,,,,10,,,,100,ns
+,,,,,10,,,,574,ns
+Float Delay,tFD,,,,10,,,,80,ns
+Output Delay,tOD,,,,,,,,0,ns
+Format Setup,tFS,,,,47,,,,,ns
+OE Delay,tOE,,,,0,,,,,ns
+Read Pulsewidth,tRP,,,,97,,,,,ns
+Conversion Delay,tcD,,,,150,,,,,ns
+EOCEN Delay,tEO,,,,0,,,,,ns
+NOTES,,,,,,,,,,
+lIncludes acquisition time,,,,,,,,,,
+,EOCEN (0.8 V) to the time at,which th, data,lin,es/EOC cro,s 2.0 V o,r 0.8 V.Se,Fig,ure 3.,
+,,t cR t cP K,,,,,,,
+,,,,,,EOCE,IZ,,
+,,,tcD,,,,,,Fta ltFD KF
+SHA ,TRACK,HOLD,RACK , ,HOI D ,EOC, , , 
+,,,,,,,,,
+,,tsoK,,,,,NOTE 1SFF EN,-OE-CONV,RT(EOCLPABAGRAPHEORDETAILS
+EOc 2 OUTPUT  OE3 ,   CHRONOU ," ATA 0   MODE, STATE OF CS DO ",_toD DATA 1  S NOT AF ,     ,    ECT OPERATION. ,     D,      ,Figur      ,e 2. E0C Timing    l OL
+,,,,,,,AD,678
+ABSOLUTE MAXIMU,A RATING,S*,,,,cS sc  OE EOCEN SYNC 12/8,EOC,
+"Specification Vcc VEE Vcc VDD AGND Vcc VEE Vcc VDD AGND AIN, REFIN Digital Inputs Digital Outputs Max Junction Temperature Operating Temperature J and K Grades",With  AGND   ,Min 0.3  0,Max +18 +18 +0.3 +26.4 +7 +1 Vcc +7 VpD + 0.3 ,Units v v v v v v v v v C ,VOL DEE VOL REF OU R REF. BIPOFF SAM AIN OH AGND  ,CONTROLLOGIC TAGE CONTROLLOGIC TAGE EF. 12 12-BIT D/A CONVERSION CONVERTER LOGIC PLE/ GAIN 4-BIT F A D STAGE CONVE Functional Block Diagra,AD67 OUTPUT REGISTER  m,8 8 DB11 DB2 DB1 (R/L) DB0 (HBE) Vcc VEE VDD DGND  
+A and B Grades,,40,+85,C,,,,
+S and T Grades,,55,+125,C,,,,
+Storage Temperature,,65,+150,C,,,,
+Lead Temperature,,,,,,,,
+(10 sec max),,,+300,.C,,,,
+*Stresses above those listed un,er Absolute M,aximum F,atings may caus,e perma-,,,,
+nent damage to the device. Th,s is a stress rat,ng only; f,nctional operat,on of the,,,,
+device at these or any other c,nditions abov,those ing,icated in the op,erational,,,,
+degradation. Charges as high as 4000 volts readily accumulate on the human body and test equipment, , , , ,ESD SENSITIVE DEVICE 
 ,,,,,
-ABSOLUTE MAXI,IUI,A RATING,S*,,
-,,With,,,
-,,Respect,,,
-Specification,,To,Min,Max,Units
-Vcc,,AGND,0.3,+18,v
-VEE,,AGND,18,+0.3,
-Vcc,,VEE,0.3,+26.4,v
-VDD,,DGND,0,+7,v
-AGND,,DGND,1,+1,v
-"AIN, REFN",,AGND,VEE,Vcc,v
-Digital Inputs,,DGND,0.5,+7,v
-Digital Outputs,,DGND,0.5,VpD + 0.3,v
-Max Junction,,,,,
-Temperature,,,,175,C
-Operating Temperat,ire,,,,
-J and K Grades,,,0,+70,C
-A and B Grades,,,40,+85,C
-S and T Grades,,,55,+125,C
-Storage Temperature,,,65,+150,C
-Lead Temperature,,,,,
-(10 sec max),,,,+300,C
-*Stresses above those liste,un,er Absolute M,aximum F,atings may caus,e perma-
-nent damage to the device,Th,s is a stress rati,ng only; fj,nctional operat,on of the
-device at these or any oth,er cc,nditions abov,those inc,icated in the op,erational
-sections of this specificatic,n is,ot implied.E,posure to,bsolute maxim,m rating
-degradation,c1,iarges,as high as 40,00 volts,readily,ccumulate on t
-and dischar,re v,vithou,t detection,Jnused,devices,must be stored
-the foam sh,oul,d be,discharged t,the de,stinatio,socket before
-information,on,ESD,"precautions,",refer to,Analog,Devices' ESD
-Model,Package,,,Tempera
-AD678JN,28-Lead,Plastic D,IP,0'C to +7
-AD678KN,28-Lead,Plastic D,IP,0'C to +7
-AD678JD,28-Lead,Ceramic,DIP,0'C to +7
-AD678KD,28-Lead,Ceramic,DIP,0'C to +7
-AD678AD,28-Lead,Ceramic,DIP,40'C to
-AD678BD,28-Lead,Ceramic,DIP,40'C to
-AD678AJ,44-Lead,Ceramic,JLCC,40C to
-AD678BJ,44-Lead,Ceramic,JLCC,-40C to
-AD678SD,28-Lead,Ceramic,DIP,-55C to
-AD678TD,28-Lead,Ceramic,DIP,55C to
-NOTES,,,,
-IFor details on gra,le and package o,fferings scre,ened in acco,dance with MIL-S
-2N = Plastic DIP;,) = Ceramic DII,; J = J-Lea,led Ceramic,Chip Carrier.
+,,,,,
+,,,,,
+Model,Package,Temperature Ra,ige,Tested an,Specified,Pack:,8r,Option2
+AD678JN,28-Lead Plastic DIP,0'C to +70C,,AC,,N-28,,
+AD678KN,28-Lead Plastic DIP,0'C to +70'C,,AC + DC,,N-28,,
+AD678JD,28-Lead Ceramic DIP,0'C to +70'C,,AC,,D-28,,
+AD678KD,28-Lead Ceramic DIP,0'C to +70'C,,AC + DC,,D-28,,
+AD678AD,28-Lead Ceramic DIP,40C to +85'C,,AC,,D-28,,
+AD678BD,28-Lead Ceramic DIP,40C to +85C,,AC + DC,,D-28,,
+AD678AJ,44-Lead Ceramic JLCO,40C to +85C,,AC,,J-44,,
+AD678BJ,44-Lead Ceramic JLCC,40'C to +85'C,,AC + DC,,J-44,,
+AD678SD,28-Lead Ceramic DIP,55C to +125'C,,AC,,D-28,,
+AD678TD,28-Lead Ceramic DIP,-55C to +125O,,AC + DC,,D-28,,
+NOTES,,,,,,,,
+IFor details on gra,e and package offering,"dance with MIL-STD-883, r",fer to An,log Devices Militar,Products Datab,ok or /883 d,ata,sheet.
+2N = Plastic DIP;,= Ceramic DIP;J=J-Leaded Ceramic,Chip Carrier.,,,,,,

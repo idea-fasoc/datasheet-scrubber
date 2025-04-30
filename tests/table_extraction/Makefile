@@ -1,7 +1,7 @@
 cnn_basic:
 	python ../../src/table_extraction/table_extraction_cnn.py --pdf_dir ./test.pdf --work_dir ./ --first_table_page 9 --last_table_page 9
 2:
-	python ../../src/table_extraction/table_extraction.py --pdf_dir ./test.pdf --work_dir ./ --first_table_page 2 --last_table_page 4
+	python ../../src/table_extraction/table_extraction.py --pdf_dir ./test.pdf --work_dir ./ --first_table_page 2 --last_table_page 5
 3:
 	python ../../src/table_extraction/table_extraction.py --pdf_dir ./test.pdf --work_dir ./ --first_table_page 5 --last_table_page 5 --use_gap_split
 cnn_yolo:
@@ -12,4 +12,5 @@ original:
 	python ../../src/table_extraction/original.py --pdf_dir ./test.pdf --work_dir ./ --first_table_page 2 --last_table_page 3
 
 4:
-	python ../../src/table_extraction/table_extraction.py --pdf_dir ./test.pdf --work_dir ./ --first_table_page 4 --last_table_page 4
+	python ../../src/table_extraction/table_extraction.py --pdf_dir ./test.pdf --work_dir ./ --first_table_page 9 --last_table_page 9 
+	

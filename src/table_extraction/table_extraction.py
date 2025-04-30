@@ -899,7 +899,7 @@ def count_text_lines(image):
     mean_val = np.mean(smoothed_projection)
     return np.count_nonzero(smoothed_projection > mean_val * 0.5)
 
-def is_double_column(image, threshold_ratio=0.03, white_thresh=245):
+def is_double_column(image, threshold_ratio=0.015, white_thresh=245):
     """
     Check if the image contains a double column.
     This function checks if the image contains a double column by analyzing the horizontal projection
@@ -1744,33 +1744,41 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
     
     return final_merge
 
-def contains_wide_table(image, min_width_ratio=0.85):
+def contains_wide_table(image, min_width_ratio=0.85, min_height_ratio=0.1):
     """
-    Detects a wide table in the image.
-    Returns True if a wide table is detected, False otherwise.  
+    Determine whether there is a large rectangular structure in the image that spans
+    most of the page width and is not too short in height.
+    This is used to detect full-width tables and avoid misclassifying horizontal boxes 
+    or diagram headers as tables.
+
+    Args:
+        image (np.ndarray): Input image (grayscale or BGR color).
+        min_width_ratio (float): Minimum width ratio relative to the full page width (default is 85%).
+        min_height_ratio (float): Minimum height ratio relative to the page height (default is 10%).
+
+    Returns:
+        bool: True if a wide rectangular structure likely representing a full-width table is found; False otherwise.
     """
-    # If the image is   
+
     if image.ndim == 3 and image.shape[2] == 3:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     else:
         gray = image.copy()
 
-    # Binarize (background turns black, table lines turn white)
     _, binary = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-
-    # Extract contours (all external closed areas)
     contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     height, width = binary.shape
+    min_h_thresh = height * min_height_ratio
 
     for cnt in contours:
         x, y, w, h = cv2.boundingRect(cnt)
 
-        # If the width exceeds the ratio threshold of the page width and the height is large enough (filter out small noise)
-        if w >= width * min_width_ratio and h > 30:
-            return True
+        if w >= width * min_width_ratio and h >= min_h_thresh:
+            return True  # if the width is greater than 85% of the page width and the height is greater than 10% of the page height, then it is a wide table
 
     return False
+
 
 
 
@@ -2048,7 +2056,7 @@ if __name__ == '__main__':
     #  #load images
     images = []
     for i, image in enumerate(pages):
-        img_np = image_handle(image)  # Convert PIL to numpy array and grayscale
+        img_np = image_handle(image)  
 
         if is_double_column(img_np):  # Auto-detect double-column layout
             if contains_wide_table(img_np):

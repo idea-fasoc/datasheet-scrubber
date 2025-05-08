@@ -1,12 +1,24 @@
-from paddleocr import PPStructure,draw_structure_result,save_structure_res
-import cv2
+# import cv2
+# import pytesseract
+# from PIL import Image, ImageDraw
 
-img_path =  r"C:\Users\11217\datasheet3\tests\table_extraction\images\page_2.jpg"
-table_engine = PPStructure(show_log=True,use_gpu = False)
-#table_engine = PPStructure(show_log=True,use_gpu = False,rec_model_dir=r'E:\Python\Python38\Lib\site-packages\paddleocr\2.1\rec\ch',
-#cls_model_dir=r'E:\Python\Python38\Lib\site-packages\paddleocr\2.1\cls',
-#det_model_dir=r'E:\Python\Python38\Lib\site-packages\paddleocr\2.1\det\ch')
-img = cv2.imread(img_path)
-result = table_engine(img)
-print(result)
-save_structure_res(result, 'aa','a')
+# # 设置 tesseract 路径（根据你的实际安装位置修改）
+# pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+
+# # === 1. 加载图像 ===
+# img_path = r"C:\Users\11217\datasheet3\tests\table_extraction\TempImages\debug_i_6_0.jpg"
+# image = Image.open(img_path).convert("RGB")
+# draw = ImageDraw.Draw(image)
+
+# # === 2. 将图像转换为 OpenCV 格式（Tesseract 用这个处理）===
+# img_cv = cv2.imread(img_path)
+
+# a = pytesseract.image_to_string(img_cv, lang='eng', config='--psm 6')
+
+# print(a)
+
+# # === 5. 显示结果图像 ===
+# image.show()
+
+# # === 可选：保存结果图像 ===
+# # image.save("tesseract_output.jpg")

@@ -1414,8 +1414,6 @@ def image_to_text(pixel_data_unchanged, root, contains_data, conc_col_2D, ver_wi
                         
                         # ===== improved OCR call method =====
                         ocr_result = ocr.ocr(cell_img_rgb, cls=True)
-                        
-                        
                         print(f"Main cell OCR result for cell({y},{x}): {ocr_result}")
                         
                         # ===== improved OCR result extraction method =====
@@ -1599,17 +1597,7 @@ def split_if_double_column(image,save_debug_dir=None,debug=True,page_num=None,sl
 
 
 
-def safe_paddleocr_init(model_root='models', lang='en', use_angle_cls=True):
-    return PaddleOCR(
-    use_angle_cls=False,
-    lang="en",
-    det_db_box_thresh=0.3,
-    det_db_thresh=0.2,
-    det_db_unclip_ratio=3.0,
-    drop_score=0.2,
-    show_log=False,
-    use_gpu=False
-    )
+def safe_paddleocr_init(model_root='models', lang='ch', use_angle_cls=True):
     """
     Safely initialize PaddleOCR by checking and extracting model files if needed.
     Args:

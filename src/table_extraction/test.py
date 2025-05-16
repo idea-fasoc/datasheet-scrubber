@@ -1,24 +1,17 @@
-# import cv2
-# import pytesseract
-# from PIL import Image, ImageDraw
+# from paddleocr import PPStructure, save_structure_res
+# import os
 
-# # 设置 tesseract 路径（根据你的实际安装位置修改）
-# pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+# # 设置图片路径
+# img_path = r"C:\Users\11217\datasheet3\src\table_extraction\Table_extract_robust\debug_cells\concatenated_cells.jpg"
+# output_dir = r"C:\Users\11217\datasheet3\output_csv"  # 你希望保存的位置
 
-# # === 1. 加载图像 ===
-# img_path = r"C:\Users\11217\datasheet3\tests\table_extraction\TempImages\debug_i_6_0.jpg"
-# image = Image.open(img_path).convert("RGB")
-# draw = ImageDraw.Draw(image)
+# # 创建结构化识别器（只使用 table 模式）
+# ocr_engine = PPStructure(layout=False, show_log=True, lang='en', structure_version='PP-StructureV2', type='table')
 
-# # === 2. 将图像转换为 OpenCV 格式（Tesseract 用这个处理）===
-# img_cv = cv2.imread(img_path)
+# # 执行结构化识别
+# result = ocr_engine(img_path)
 
-# a = pytesseract.image_to_string(img_cv, lang='eng', config='--psm 6')
+# # 保存结果（会保存为 Excel 表格）
+# save_structure_res(result, output_dir, os.path.basename(img_path))
 
-# print(a)
-
-# # === 5. 显示结果图像 ===
-# image.show()
-
-# # === 可选：保存结果图像 ===
-# # image.save("tesseract_output.jpg")
+# print(f"✅ 表格识别完成，结果保存在：{output_dir}")

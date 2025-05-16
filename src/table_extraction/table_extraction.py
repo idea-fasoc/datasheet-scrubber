@@ -695,7 +695,7 @@ Returns:
     return final_splits, coords
 
 
-# improve count_text_lines.
+# improve count_text_lines
 def count_text_lines(image):
     """
     Estimate the number of horizontal text lines in a grayscale document image.
